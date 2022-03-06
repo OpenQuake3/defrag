@@ -42,6 +42,14 @@ char systemChat[256];
 char teamChat1[256];
 char teamChat2[256];
 
+
+//::OSDF modded
+//TODO: Switch to Cvars
+qboolean ui_speed = qtrue;
+qboolean ui_Vspeed = qtrue;
+//::OSDF end
+
+
 #ifdef MISSIONPACK
 
 int CG_Text_Width(const char *text, float scale, int limit) {
@@ -2514,6 +2522,68 @@ void CG_DrawTimedMenus( void ) {
 	}
 }
 #endif
+
+
+//::OSDF modded
+//:::::::::::::::::
+// Speedometer
+//  Modified forty/chruker's speedometer
+#if 0
+static float CG_DrawSpeedH(float y){
+    char *s;
+    int	w;
+    static int lasttime;
+    int thistime;
+
+    thistime = trap_Milliseconds();
+    if (thistime > lasttime){
+        float velX = cg.ps.velocity[0];
+        float velY = cg.ps.velocity[1];
+        speed = sqrt(velX*velX + velY*velY);
+        lasttime = thistime;
+    }
+    if (ui_speed == qtrue) {
+        s = va("%.1f UPS", speed); // Units per second
+    } 
+	w = CG_Text_Width_Ext(s, 0.19f, 0, &cgs.media.limboFont1);
+
+	CG_FillRect(UPPERRIGHT_X - w - 2, y, w + 5, 12 + 2, timerBackground);
+	//CG_DrawRect_FixedBorder(UPPERRIGHT_X - w - 2, y, w + 5, 12 + 2, 1, timerBorder);
+
+	CG_Text_Paint_Ext(UPPERRIGHT_X - w, y + 11, 0.19f, 0.19f, tclr, s, 0, 0, 0, &cgs.media.limboFont1);
+
+	return y + 12 + 4;
+}
+#endif
+
+// Screen space constants. For adjusting [0-1] to expected virtual screen values
+#define SCREENH 640
+#define SCREENW 480
+
+// Uses 0-1 range for each coordinate, instead of 640 stuff from q3_ui
+// ie: 0.5 == middle of the screen
+static float CG_DrawSpeed(float x, float y, float alpha){
+    int posX, posY, sint;
+    float velX, velY;
+    char *speed;
+
+    // Convert [0-1] input range to q3_ui expected range (screen space)
+    //FIXME: Wrong math. Figure out the proper conversion with cg.scaleX etc
+    posX = x*SCREENW;
+    posY = y*SCREENH;
+
+    // Calculate current speed, based on ps->velocity
+    velX = cg.predictedPlayerState.velocity[0];      // Store X component of velocity
+    velY = cg.predictedPlayerState.velocity[1];      // Store Y component of velocity
+    sint = (int)sqrt(velX*velX + velY*velY);         // Calculate speed as length2D of velocity, and convert to integer
+    Com_sprintf(speed, sizeof(speed)+2, "%i", sint); // Convert integer speed to string
+    CG_DrawBigString(posX, posY, speed, alpha);      // Draw speed string to screen
+}
+//::::::::::::::
+//::OSDF end
+
+
+
 /*
 =================
 CG_Draw2D
@@ -2547,15 +2617,12 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 */
 	if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR ) {
 		CG_DrawSpectator();
-
 		if(stereoFrame == STEREO_CENTER)
 			CG_DrawCrosshair();
-
 		CG_DrawCrosshairNames();
 	} else {
 		// don't draw any status if dead or the scoreboard is being explicitly shown
 		if ( !cg.showScores && cg.snap->ps.stats[STAT_HEALTH] > 0 ) {
-
 #ifdef MISSIONPACK
 			if ( cg_drawStatus.integer ) {
 				Menu_PaintAll();
@@ -2564,7 +2631,6 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 #else
 			CG_DrawStatusBar();
 #endif
-      
 			CG_DrawAmmoWarning();
 
 #ifdef MISSIONPACK
@@ -2617,6 +2683,14 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	if ( !cg.scoreBoardShowing) {
 		CG_DrawCenterString();
 	}
+	
+    //::OSDF modded
+    //::::::::::::::
+	if ( !cg.scoreBoardShowing) {    //FIXME: Segmentation fault when drawing the scoreboard while speed is being drawn
+        CG_DrawSpeed(0.66, 0.4, 1.0); //TODO: Add cvar conditional and settings
+    }
+    //::::::::::::::
+    //::OSDF end
 }
 
 

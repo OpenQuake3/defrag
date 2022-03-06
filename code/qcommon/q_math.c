@@ -1039,4 +1039,18 @@ float Q_acos(float c) {
 	}
 	return angle;
 }
+
+// Q_pown from: https://github.com/aufau/SaberMod/blob/57bfb2d15a535d4441b93e0e7e8d3964ec1679f1/code/game/q_math.c#L1117
+float Q_pown(float base, int exp){ // Returns `base` raised to the power of `exp`
+    float result = 1.0f; qboolean invert = qfalse;
+    if (exp < 0) { invert = qtrue; exp = -exp; }
+    while (exp > 0) { 
+        if (exp & 1) { result *= base; }
+        base *= base;
+        exp >>= 1;
+    }
+    if (invert){ result = 1.0f / result; }
+    return result;
+}
+
 #endif

@@ -736,3 +736,41 @@ qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTim
 #define KAMI_BOOMSPHERE_MAXRADIUS		720
 #define KAMI_SHOCKWAVE2_MAXRADIUS		704
 
+
+
+//:::::::::::::::::
+//::OSDF modded
+// Common
+extern float   phy_stopspeed;
+extern float   phy_duckScale;
+extern float   phy_swimScale;
+
+extern float   phy_accelerate;
+extern float   phy_airaccelerate;
+extern float   phy_wateraccelerate;
+extern float   phy_flyaccelerate;
+
+extern float   phy_friction;
+extern float   phy_waterfriction;
+extern float   phy_flightfriction;
+
+// Functions
+void osdf_init(); // Initializes values to their default state (::TEMP: hack until proper cvar reading/writing)
+void osdf_move(pmove_t *pmove); // Selects the type of movement to execute
+void osdf_accelerate( vec3_t wishdir, float wishspeed, float accel ); // Calculates accel amount and applies it to velocity
+
+// VQ3
+//  Uses common variables only
+void vq3_move(pmove_t *pmove); // Vanilla Q3 movement
+
+
+// CPM
+//  Variables
+extern qboolean phy_aircontrol; // Enables/disables aircontrol (W turning)
+
+//  Functions
+//    Taken from Lumia's Momentum Mod open source implementation.
+void cpm_move(pmove_t *pmove);
+
+//::OSDF end
+//:::::::::::::::::

@@ -79,4 +79,9 @@ void PM_AddEvent( int newEvent );
 qboolean	PM_SlideMove( qboolean gravity );
 void		PM_StepSlideMove( qboolean gravity );
 
-
+//::OSDF modded
+//:::::::::::::::
+qboolean	q3a_SlideMove( qboolean gravity );
+void		q3a_StepSlideMove( qboolean gravity );
+//:::::::::::::::
+//::OSDF end

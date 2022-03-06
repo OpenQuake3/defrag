@@ -55,7 +55,6 @@ endif
 # causing problems with keeping up to date with the repository.
 #
 #############################################################################
--include Makefile.osdf
 -include Makefile.local
 
 ifeq ($(COMPILE_PLATFORM),cygwin)

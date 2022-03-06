@@ -488,7 +488,7 @@ typedef struct {
 
 	// prediction state
 	qboolean	hyperspace;				// true if prediction has hit a trigger_teleport
-	playerState_t	predictedPlayerState;
+	playerState_t   predictedPlayerState;  // Predicted player state
 	centity_t		predictedPlayerEntity;
 	qboolean	validPPS;				// clear until the first call to CG_PredictPlayerState
 	int			predictedErrorTime;

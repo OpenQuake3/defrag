@@ -49,11 +49,6 @@ vmCvar_t	g_needpass;
 vmCvar_t	g_maxclients;
 vmCvar_t	g_maxGameClients;
 vmCvar_t	g_dedicated;
-vmCvar_t	g_speed;
-vmCvar_t	g_gravity;
-vmCvar_t	g_cheats;
-vmCvar_t	g_knockback;
-vmCvar_t	g_quadfactor;
 vmCvar_t	g_forcerespawn;
 vmCvar_t	g_inactivity;
 vmCvar_t	g_debugMove;
@@ -62,7 +57,6 @@ vmCvar_t	g_debugAlloc;
 vmCvar_t	g_weaponRespawn;
 vmCvar_t	g_weaponTeamRespawn;
 vmCvar_t	g_motd;
-vmCvar_t	g_synchronousClients;
 vmCvar_t	g_warmup;
 vmCvar_t	g_doWarmup;
 vmCvar_t	g_restarted;
@@ -77,11 +71,22 @@ vmCvar_t	g_teamForceBalance;
 vmCvar_t	g_banIPs;
 vmCvar_t	g_filterBan;
 vmCvar_t	g_smoothClients;
-vmCvar_t	pmove_fixed;
-vmCvar_t	pmove_msec;
 vmCvar_t	g_rankings;
 vmCvar_t	g_listEntity;
 vmCvar_t	g_localTeamPref;
+//::OSDF modded
+vmCvar_t	phy_speed;
+vmCvar_t	phy_gravity;
+vmCvar_t	phy_knockback;
+vmCvar_t	phy_quadfactor;
+// Default naming
+vmCvar_t	pmove_fixed;
+vmCvar_t	pmove_msec;
+vmCvar_t	g_cheats;
+vmCvar_t	g_synchronousClients;
+// New variables
+vmCvar_t	osdf_pmove;
+
 #ifdef MISSIONPACK
 vmCvar_t	g_obeliskHealth;
 vmCvar_t	g_obeliskRegenPeriod;
@@ -97,9 +102,6 @@ vmCvar_t	g_proxMineTimeout;
 #endif
 
 static cvarTable_t		gameCvarTable[] = {
-	// don't override the cheat state set by the system
-	{ &g_cheats, "sv_cheats", "", 0, 0, qfalse },
-
 	// noset vars
 	{ NULL, "gamename", GAMEVERSION , CVAR_SERVERINFO | CVAR_ROM, 0, qfalse  },
 	{ NULL, "gamedate", PRODUCT_DATE , CVAR_ROM, 0, qfalse  },
@@ -116,8 +118,6 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_fraglimit, "fraglimit", "20", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
 	{ &g_timelimit, "timelimit", "0", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
 	{ &g_capturelimit, "capturelimit", "8", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
-
-	{ &g_synchronousClients, "g_synchronousClients", "0", CVAR_SYSTEMINFO, 0, qfalse  },
 
 	{ &g_friendlyFire, "g_friendlyFire", "0", CVAR_ARCHIVE, 0, qtrue  },
 
@@ -138,10 +138,6 @@ static cvarTable_t		gameCvarTable[] = {
 
 	{ &g_dedicated, "dedicated", "0", 0, 0, qfalse  },
 
-	{ &g_speed, "g_speed", "320", 0, 0, qtrue  },
-	{ &g_gravity, "g_gravity", "800", 0, 0, qtrue  },
-	{ &g_knockback, "g_knockback", "1000", 0, 0, qtrue  },
-	{ &g_quadfactor, "g_quadfactor", "3", 0, 0, qtrue  },
 	{ &g_weaponRespawn, "g_weaponrespawn", "5", 0, 0, qtrue  },
 	{ &g_weaponTeamRespawn, "g_weaponTeamRespawn", "30", 0, 0, qtrue },
 	{ &g_forcerespawn, "g_forcerespawn", "20", 0, 0, qtrue },
@@ -174,12 +170,21 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &g_proxMineTimeout, "g_proxMineTimeout", "20000", 0, 0, qfalse },
 #endif
 	{ &g_smoothClients, "g_smoothClients", "1", 0, 0, qfalse},
-	{ &pmove_fixed, "pmove_fixed", "0", CVAR_SYSTEMINFO, 0, qfalse},
-	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse},
-
 	{ &g_rankings, "g_rankings", "0", 0, 0, qfalse},
-	{ &g_localTeamPref, "g_localTeamPref", "", 0, 0, qfalse }
+	{ &g_localTeamPref, "g_localTeamPref", "", 0, 0, qfalse },
 
+	//::OSDF modded
+	{ &phy_speed, "phy_speed", "320", 0, 0, qtrue  },
+	{ &phy_gravity, "phy_gravity", "800", 0, 0, qtrue  },
+	{ &phy_knockback, "phy_knockback", "1000", 0, 0, qtrue  },
+	{ &phy_quadfactor, "phy_quadfactor", "3", 0, 0, qtrue  },
+	// Default naming
+	{ &pmove_fixed, "pmove_fixed", "1", CVAR_SYSTEMINFO, 0, qfalse}, // default = 0
+	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse},
+	{ &g_cheats, "sv_cheats", "", 0, 0, qfalse },	// don't override the cheat state set by the system
+	{ &g_synchronousClients, "g_synchronousClients", "0", CVAR_SYSTEMINFO, 0, qfalse  }, // default = 0
+	// New variables
+	{ &osdf_pmove, "osdf_pmove", "0", 0, 0, qtrue  }
 };
 
 static int gameCvarTableSize = ARRAY_LEN( gameCvarTable );

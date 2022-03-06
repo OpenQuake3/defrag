@@ -893,7 +893,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 		mass = 200;
 
-		VectorScale (dir, g_knockback.value * (float)knockback / mass, kvel);
+		VectorScale (dir, phy_knockback.value * (float)knockback / mass, kvel);
 		VectorAdd (targ->client->ps.velocity, kvel, targ->client->ps.velocity);
 
 		// set the timer so that the other client can't cancel

@@ -105,7 +105,7 @@ qboolean CheckGauntletAttack( gentity_t *ent ) {
 
 	if (ent->client->ps.powerups[PW_QUAD] ) {
 		G_AddEvent( ent, EV_POWERUP_QUAD, 0 );
-		s_quadFactor = g_quadfactor.value;
+		s_quadFactor = phy_quadfactor.value;
 	} else {
 		s_quadFactor = 1;
 	}
@@ -801,7 +801,7 @@ FireWeapon
 */
 void FireWeapon( gentity_t *ent ) {
 	if (ent->client->ps.powerups[PW_QUAD] ) {
-		s_quadFactor = g_quadfactor.value;
+		s_quadFactor = phy_quadfactor.value;
 	} else {
 		s_quadFactor = 1;
 	}
