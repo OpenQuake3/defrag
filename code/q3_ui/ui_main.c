@@ -99,8 +99,8 @@ typedef struct {
 	int			cvarFlags;
 } cvarTable_t;
 
-vmCvar_t	ui_ffa_fraglimit;
-vmCvar_t	ui_ffa_timelimit;
+vmCvar_t	ui_run_fraglimit;
+vmCvar_t	ui_run_timelimit;
 
 vmCvar_t	ui_tourney_fraglimit;
 vmCvar_t	ui_tourney_timelimit;
@@ -158,8 +158,8 @@ vmCvar_t	ui_cdkeychecked;
 vmCvar_t	ui_ioq3;
 
 static cvarTable_t		cvarTable[] = {
-	{ &ui_ffa_fraglimit, "ui_ffa_fraglimit", "20", CVAR_ARCHIVE },
-	{ &ui_ffa_timelimit, "ui_ffa_timelimit", "0", CVAR_ARCHIVE },
+	{ &ui_run_fraglimit, "ui_run_fraglimit", "0", CVAR_ARCHIVE }, //::OSDF changed to "run" and 0, from "ffa" and 20
+	{ &ui_run_timelimit, "ui_run_timelimit", "0", CVAR_ARCHIVE }, //::OSDF changed to "run"
 
 	{ &ui_tourney_fraglimit, "ui_tourney_fraglimit", "0", CVAR_ARCHIVE },
 	{ &ui_tourney_timelimit, "ui_tourney_timelimit", "15", CVAR_ARCHIVE },

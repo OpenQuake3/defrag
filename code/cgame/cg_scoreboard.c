@@ -395,7 +395,7 @@ qboolean CG_DrawOldScoreboard( void ) {
 
 	} else {
 		//
-		// free for all scoreboard
+		// Run scoreboard
 		//
 		n1 = CG_TeamScoreboard( y, TEAM_FREE, fade, maxClients, lineHeight );
 		y += (n1 * lineHeight) + BIGCHAR_HEIGHT;
@@ -511,7 +511,7 @@ void CG_DrawTourneyScoreboard( void ) {
 		CG_DrawStringExt( 632 - GIANT_WIDTH * strlen(s), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 	} else {
 		//
-		// free for all scoreboard
+		// Run scoreboard
 		//
 		for ( i = 0 ; i < MAX_CLIENTS ; i++ ) {
 			ci = &cgs.clientinfo[i];

@@ -475,7 +475,7 @@ static void CG_MapRestart( void ) {
 	// play the "fight" sound if this is a restart without warmup
 	if ( cg.warmup == 0 /* && cgs.gametype == GT_TOURNAMENT */) {
 		trap_S_StartLocalSound( cgs.media.countFightSound, CHAN_ANNOUNCER );
-		CG_CenterPrint( "FIGHT!", 120, GIANTCHAR_WIDTH*2 );
+		//CG_CenterPrint( "FIGHT!", 120, GIANTCHAR_WIDTH*2 ); //::OSDF removed giant FIGHT! message
 	}
 #ifdef MISSIONPACK
 	if (cg_singlePlayerActive.integer) {

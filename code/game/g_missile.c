@@ -644,32 +644,42 @@ fire_rocket
 */
 gentity_t *fire_rocket (gentity_t *self, vec3_t start, vec3_t dir) {
 	gentity_t	*bolt;
+	//::OSDF modded
+	int rocket_speed 		= (phy_movetype.integer == CPM) ? 1000 : 900;
+	int rocket_dmg			= 100;
+	int rocket_splashdmg	= 100;
+	int rocket_splashrad	= 120;
+	//::OSDF end 
 
 	VectorNormalize (dir);
-
+  // Create the rocket entity
 	bolt = G_Spawn();
 	bolt->classname = "rocket";
+  // Define think properties
 	bolt->nextthink = level.time + 15000;
 	bolt->think = G_ExplodeMissile;
+  // Define rocket entity properties
 	bolt->s.eType = ET_MISSILE;
 	bolt->r.svFlags = SVF_USE_CURRENT_ORIGIN;
 	bolt->s.weapon = WP_ROCKET_LAUNCHER;
 	bolt->r.ownerNum = self->s.number;
 	bolt->parent = self;
-	bolt->damage = 100;
-	bolt->splashDamage = 100;
-	bolt->splashRadius = 120;
+  // Damage and method of death
+	bolt->damage = rocket_dmg; 				//::OSDF changed to variable rocket_dmg
+	bolt->splashDamage = rocket_splashdmg;	//::OSDF changed to variable rocket_splashdmg
+	bolt->splashRadius = rocket_splashrad;	//::OSDF changed to variable rocket_splashrad
 	bolt->methodOfDeath = MOD_ROCKET;
 	bolt->splashMethodOfDeath = MOD_ROCKET_SPLASH;
+  // Collision
 	bolt->clipmask = MASK_SHOT;
 	bolt->target_ent = NULL;
-
+  // Movement
 	bolt->s.pos.trType = TR_LINEAR;
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;		// move a bit on the very first frame
 	VectorCopy( start, bolt->s.pos.trBase );
-	VectorScale( dir, 900, bolt->s.pos.trDelta );
+	VectorScale( dir, rocket_speed, bolt->s.pos.trDelta ); //::OSDF changed to variable rocket_speed
 	SnapVector( bolt->s.pos.trDelta );			// save net bandwidth
-	VectorCopy (start, bolt->r.currentOrigin);
+	VectorCopy( start, bolt->r.currentOrigin);
 
 	return bolt;
 }

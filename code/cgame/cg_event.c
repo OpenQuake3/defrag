@@ -120,7 +120,7 @@ static void CG_Obituary( entityState_t *ent ) {
 
 	switch( mod ) {
 	case MOD_SUICIDE:
-		message = "suicides";
+		//message = "suicides"; //::OSDF removed respawn spam
 		break;
 	case MOD_FALLING:
 		message = "cratered";
@@ -196,11 +196,14 @@ static void CG_Obituary( entityState_t *ent ) {
 #endif
 		default:
 			if ( gender == GENDER_FEMALE )
-				message = "killed herself";
+				//message = "killed herself"; 
+				return;
 			else if ( gender == GENDER_NEUTER )
-				message = "killed itself";
+				//message = "killed itself";
+				return;
 			else
-				message = "killed himself";
+				//message = "killed himself";
+				return;
 			break;
 		}
 	}
@@ -324,8 +327,13 @@ static void CG_Obituary( entityState_t *ent ) {
 		}
 
 		if (message) {
-			CG_Printf( "%s %s %s%s\n", 
-				targetName, message, attackerName, message2);
+			//::OSDF modded. Removed respawn spam
+			switch (mod) {
+			case MOD_SUICIDE: 	
+				return;
+			default:			CG_Printf( "%s %s %s%s\n", targetName, message, attackerName, message2);
+			}
+			//::OSDF end
 			return;
 		}
 	}

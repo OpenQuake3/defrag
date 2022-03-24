@@ -1925,7 +1925,8 @@ void PmoveSingle(pmove_t *pmove) {
   pml.previous_waterlevel = pmove->waterlevel;
 
   // set mins, maxs, and viewheight
-  PM_CheckDuck();
+  if (pm->movetype == VQ1) { q1_CheckDuck (); } //::OSDF added. Allows crouch while jumping
+  else { PM_CheckDuck(); }
 
   // set groundentity
   PM_GroundTrace();
@@ -1938,10 +1939,8 @@ void PmoveSingle(pmove_t *pmove) {
 
   //::OSDF modded: Flow control
 #if 1
-  // if (osdf_pmove.integer == 1){
   osdf_move(pm);
   return;
-  //}
 #endif
   // OSDF end
 
@@ -2045,34 +2044,21 @@ void Pmove(pmove_t *pmove) {
 //::OSDF modded
 //::::::::::::::::::::::
 qboolean osdf_initialized = qfalse;
-// Physics macros
-#define CPM 0 // CPM
-#define VQ1 1 // Vanilla Q1
-#define VQ3 3 // Unmodded q3a
-#define DEV 5 // New physics
-// Mod Macros. For quickly selecting differently named functions (if OSDF: thing; else if IOQ3: otherThing; ... etc)
-#define IOQ3 0 // Select Default named functions (PM_ etc) come from IoQuake3 gamecode
-#define Q3A  1 // Select q3a named functions (q3a_ etc). They revert IoQuake3 gamecode changes back to q3a-1.32
-#define OSDF 2 // Select Modded name functions (osdf_ etc)
-
 // TODO: Change to cvars
 //  General
 float phy_stopspeed;
-float phy_duckScale;
-float phy_swimScale;
+float phy_crouch_scale;
 // Acceleration
 // float    phy_ground_accel;
 // float    phy_air_accel;
-float phy_water_accel;
-float phy_flyaccelerate;
+float phy_fly_accel;
 // Friction
 float phy_friction;
-float phy_waterfriction;
-float phy_flightfriction;
-float phy_spectatorfriction;
+float phy_fly_friction;
+float phy_spectator_friction;
 
 // New variables
-int   phy_movetype = CPM;         // Physics type selection. Available: VQ3, CPM, DEV
+//int   phy_movetype;           // pm->movetype; // Physics type selection. Available: VQ3, CPM    TODO: DEV
 // Ground
 float phy_ground_basespeed;     // Movement speed on the ground (aka maxspeed). Equivalent to the default g_speed
 float phy_ground_accel;         // Acceleration when on the ground. sv_accelerate
@@ -2082,55 +2068,76 @@ float phy_air_accel;            // Acceleration when in strafe mode VQ3, or when
 // Air deceleration. To have different accel values for stopping down than for accelerating normally.
 float phy_air_decel;            // Factor to scale down air acceleration, when the current angle is over decelAngle
 float phy_air_decelAngle;       // Angle at which air deceleration will change
+float phy_air_speedscalar;      // Q1-ag movement. Scales incoming ps->speed from ClientThink_real by this number, to calculate real air speed.
 // AirStrafe (aka AD turning)
 float phy_airstrafe_accel;      // Acceleration in strafe mode VQ1, or when strafing "quakeworld style" in modes CPM and DIFF
 float phy_airstrafe_basespeed;  // Maxspeed on air when in strafe mode VQ3, or when strafing diagonally in modes CPM and DIFF
 // AirControl (aka W turning)
-qboolean phy_aircontrol;        // Turns on or off aircontrol
+qboolean phy_aircontrol;        // Turns aircontrol on or off 
 float phy_aircontrol_amount;    // Amount you can control yourself with W/S
 float phy_aircontrol_power;     // Aircontrol formula exponent
 float phy_fw_accelerate;        // How much (ups) to accelerate when holding forwards(W) only
+// Jump
+qboolean phy_jump_auto;         // Enable/disable autojump
+int   phy_jump_type;            // Jump type selection. Available VQ3, CPM    TODO: DEV
+int   phy_jump_velocity;        // Vertical velocity that will be set/added when jumping (default = JUMP_VELOCITY = 270)
+int   phy_jump_dj_time;         // Amount of time(ms) since last jump, where CPM dj behavior can happen. (default CPM = 400)
+int   phy_jump_dj_velocity;     // Amount of velocity to add to CPM dj behavior. (default CPM = 100)
+// Powerups
+//float phy_haste_factor;         // Multiplier to apply during haste powerup (q3 default = 1.3)
+//float phy_quad_factor;          // Multiplier to apply during quad powerup  (q3 default = 3)
+// Water
+float phy_water_accel;
+float phy_water_scale;          // phy_swimScale;
+float phy_water_friction;
 // q3 math quirks
-qboolean phy_snapvelocity = qfalse;     // Enables rounding velocity to ints every frame
-qboolean phy_input_scalefix = qtrue;    // Fixes slowdown on jump input if enabled
+qboolean phy_snapvelocity;      // Enables rounding velocity to ints every frame (default q3a = qtrue)
+qboolean phy_input_scalefix;    // Fixes slowdown on jump input if enabled (default q3a = qfalse)
 // Slidemove 
-int   phy_slidemove_type;       // Slidemove function type
+int   phy_slidemove_type;       // Slidemove function type. For controlling general movement behavior (not slick_type)
+// Sound
+int   s_jump_interval;          // Dictates how often (ms) the jump sound can be played. Used to stop it from playing every tick/frame
 
 void osdf_init(int movetype) {
   // Initialize physics variables.
   // TODO: Change to Cvars. Current is a TEMP solution until proper physics cvars support.
   if (movetype == VQ3) {
     phy_stopspeed = pm_stopspeed;
-    phy_duckScale = pm_duckScale;
-    phy_swimScale = pm_swimScale;
+    phy_crouch_scale = pm_duckScale;
     // Acceleration
     phy_ground_accel = pm_accelerate;
     phy_air_accel = pm_airaccelerate;
-    phy_water_accel = pm_wateraccelerate;
-    phy_flyaccelerate = pm_flyaccelerate;
+    phy_fly_accel = pm_flyaccelerate;
     // Friction
     phy_friction = pm_friction;
-    phy_waterfriction = pm_waterfriction;
-    phy_flightfriction = pm_flightfriction;
-    phy_spectatorfriction = pm_spectatorfriction;
+    phy_fly_friction = pm_flightfriction;
+    phy_spectator_friction = pm_spectatorfriction;
+    // Water
+    phy_water_accel = pm_wateraccelerate;
+    phy_water_scale = pm_swimScale;
+    phy_water_friction = pm_waterfriction;
     // New
+    phy_slidemove_type = Q3A;
     phy_snapvelocity = qtrue;
     phy_input_scalefix = qfalse;
     phy_aircontrol = qfalse;
-    phy_slidemove_type = Q3A;
+    phy_jump_type = VQ3;
+    phy_jump_auto = qfalse;
+    phy_jump_velocity = JUMP_VELOCITY;
 
   } else if (movetype == CPM) {
     phy_stopspeed = pm_stopspeed;
-    phy_duckScale = pm_duckScale;
-    phy_swimScale = pm_swimScale;
+    phy_crouch_scale = pm_duckScale;
     // Acceleration
-    phy_water_accel = pm_wateraccelerate;
-    phy_flyaccelerate = pm_flyaccelerate;
+    phy_fly_accel = pm_flyaccelerate;
     // Friction
     phy_friction = pm_friction;
-    phy_waterfriction = pm_waterfriction;
-    phy_flightfriction = pm_flightfriction;
-    phy_spectatorfriction = pm_spectatorfriction;
+    phy_fly_friction = pm_flightfriction;
+    phy_spectator_friction = pm_spectatorfriction;
+    // Water
+    phy_water_accel = pm_wateraccelerate;
+    phy_water_scale = pm_swimScale;
+    phy_water_friction = 0.5;
     // New
     phy_slidemove_type = Q3A;
     phy_snapvelocity = qtrue;
@@ -2150,14 +2157,75 @@ void osdf_init(int movetype) {
     // AD turning
     phy_airstrafe_basespeed = 30;
     phy_airstrafe_accel = 70;
+    // Jump
+    phy_jump_auto = qfalse;
+    phy_jump_type = CPM;
+    phy_jump_velocity = JUMP_VELOCITY;
+    phy_jump_dj_time = 400;
+    phy_jump_dj_velocity = 100;
+
+  } else if (movetype == VQ1) {
+    phy_stopspeed = 100; // QW value
+    phy_crouch_scale = pm_duckScale;
+    // Acceleration
+    phy_fly_accel = pm_flyaccelerate;
+    // Friction
+    phy_friction = 4; // QW value. from 6 (q3a/pm_friction)
+    phy_fly_friction = pm_flightfriction;
+    phy_spectator_friction = pm_spectatorfriction;
+    // Water
+    phy_water_accel = 10; // QW value. from 4 (q3a/pm_wateraccelerate)
+    phy_water_scale = pm_swimScale;
+    phy_water_friction = 4; // QW value
+    // New
+    phy_slidemove_type = Q3A;
+    phy_snapvelocity = qfalse;
+    phy_input_scalefix = qtrue;
+    // Ground
+    phy_ground_basespeed = 320;
+    phy_ground_accel = 10;
+    // Air movement
+    phy_air_accel = 70; // QW value 0.7 : q3a default 1
+    phy_air_speedscalar = 0.125; //0.1876; // Value: 0.0938 brings down speed to ~30
+    // Jump
+    phy_jump_velocity = JUMP_VELOCITY;
+    phy_jump_auto = qtrue;
+    phy_jump_type = VQ1;
+    s_jump_interval = 250;
   }
   osdf_initialized = qtrue;
 }
 
+// VectorReflect
+// =============
+// PM_ClipVelocity = VelocityProject = Vector_RotateAndScale = Vector_ReflectAndScale
+//     Wrongly named "clip", due to doom naming inheritance. 
+//     It no longer "clips" or "slides" a vector, but instead reflects / projects it
+//     This is used when we want the player to not simply just go through a surface.
+//
+// - Takes an incoming vector (in), and reflects it on a surface (normal), scaled by the desired amount (overbounce)
+//   This is also used to reflect vectors based on any other arbitrary vector
+//
+void q3a_VectorReflect(vec3_t in, vec3_t normal, vec3_t out, float overbounce) {
+  float backoff, change;
+  int i;
+  // Calculate direction of rotation / reflection
+  backoff = DotProduct(in, normal);
+  // Scale the direction
+  if (backoff < 0)  { backoff *= overbounce; }
+  else              { backoff /= overbounce; }
+  // Apply scale to the vector
+  for (i = 0; i < 3; i++) {
+    change = normal[i] * backoff;
+    out[i] = in[i] - change; // An overbounce value of 1.000 completely negates the incoming velocity, due to this line
+  }
+}
+
+
 // Scale factor to apply to inputs (cmd).
 // Modified to (optionally) allow fixing slowdown when holding jump.
 //  .. fix is ignored for VQ3/CPM movetypes.
-static float osdf_CmdScale(usercmd_t *cmd, float basespeed) {
+static float q3a_CmdScale(usercmd_t *cmd) {
   qboolean fix;
   int max;
   float total, scale;
@@ -2180,12 +2248,13 @@ static float osdf_CmdScale(usercmd_t *cmd, float basespeed) {
   else     { total = sqrt(fmove * fmove + smove * smove + umove * umove); }
 
   // Calculate scale value and return it
-  scale = basespeed * max / (127.0 * total);
+  //scale = basespeed * max / (127.0 * total);
+  scale = (float)pm->ps->speed * max / (127.0 * total);  // This is default behavior, without a   basespeed   input
   return scale;
 }
 
 // Changed from q3a-gpl behavior to include basespeed.
-void osdf_Accelerate(vec3_t wishdir, float wishspeed, float accel, float basespeed) {
+void q3a_Accelerate(vec3_t wishdir, float wishspeed, float accel, float basespeed) {
   int i;
   float addspeed, accelspeed, currentspeed;
   float wishspeed_c;
@@ -2216,22 +2285,210 @@ void osdf_Accelerate(vec3_t wishdir, float wishspeed, float accel, float basespe
   }
 }
 
-static qboolean osdf_CheckJump(void) {
+static void q3a_Friction( void ) {
+	vec3_t	vec;
+	float	*vel;
+	float	speed, newspeed, control;
+	float	drop;
+	
+	vel = pm->ps->velocity;
+	
+	VectorCopy( vel, vec );
+	if ( pml.walking ) {
+		vec[2] = 0;	// ignore slope movement
+	}
+
+	speed = VectorLength(vec);
+	if (speed < 1) {
+		vel[0] = 0;
+		vel[1] = 0;		// allow sinking underwater
+		// FIXME: still have z friction underwater?
+		return;
+	}
+
+	drop = 0;
+
+	// apply ground friction
+	if ( pm->waterlevel <= 1 ) {
+		if ( pml.walking && !(pml.groundTrace.surfaceFlags & SURF_SLICK) ) {
+			// if getting knocked back, no friction
+			if ( ! (pm->ps->pm_flags & PMF_TIME_KNOCKBACK) ) {
+				control = speed < phy_stopspeed ? phy_stopspeed : speed;
+				drop += control*phy_friction*pml.frametime;
+			}
+		}
+	}
+
+	// apply water friction even if just wading
+	if ( pm->waterlevel ) {
+		drop += speed*phy_water_friction*pm->waterlevel*pml.frametime;
+	}
+
+	// apply flying friction
+	if ( pm->ps->powerups[PW_FLIGHT]) {
+		drop += speed*phy_fly_friction*pml.frametime;
+	}
+
+	if ( pm->ps->pm_type == PM_SPECTATOR) {
+		drop += speed*phy_spectator_friction*pml.frametime;
+	}
+
+	// scale the velocity
+	newspeed = speed - drop;
+	if (newspeed < 0) {
+		newspeed = 0;
+	}
+	newspeed /= speed;
+
+	vel[0] = vel[0] * newspeed;
+	vel[1] = vel[1] * newspeed;
+	vel[2] = vel[2] * newspeed;
+}
+
+void q1_CheckDuck(void) {
+  trace_t trace;
+
+  if (pm->ps->powerups[PW_INVULNERABILITY]) {
+    if (pm->ps->pm_flags & PMF_INVULEXPAND) {
+      // invulnerability sphere has a 42 units radius
+      VectorSet(pm->mins, -42, -42, -42);
+      VectorSet(pm->maxs, 42, 42, 42);
+    } else {
+      VectorSet(pm->mins, -15, -15, MINS_Z);
+      VectorSet(pm->maxs, 15, 15, 16);
+    }
+    pm->ps->pm_flags |= PMF_DUCKED;
+    pm->ps->viewheight = CROUCH_VIEWHEIGHT;
+    return;
+  }
+  pm->ps->pm_flags &= ~PMF_INVULEXPAND;
+
+  pm->mins[0] = -15;
+  pm->mins[1] = -15;
+
+  pm->maxs[0] = 15;
+  pm->maxs[1] = 15;
+
+  pm->mins[2] = MINS_Z;
+
+  if (pm->ps->pm_type == PM_DEAD) {
+    pm->maxs[2] = -8;
+    pm->ps->viewheight = DEAD_VIEWHEIGHT;
+    return;
+  }
+
+  if (pm->cmd.upmove < 0) { // duck
+    //  pm->ps->pm_flags |= PMF_DUCKED;
+  } else { // stand up if possible
+    if (pm->ps->pm_flags & PMF_DUCKED) {
+      // try to stand up
+      pm->maxs[2] = 32;
+      pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, pm->ps->origin, pm->ps->clientNum, pm->tracemask);
+      if ( !trace.allsolid && !(pm->cmd.upmove < 0) )
+        pm->ps->pm_flags &= ~PMF_DUCKED;
+    }
+  }
+
+  if (pm->ps->pm_flags & PMF_DUCKED) {
+    pm->maxs[2] = 16;
+    pm->ps->viewheight = CROUCH_VIEWHEIGHT;
+  } else {
+    pm->maxs[2] = 32;
+    pm->ps->viewheight = DEFAULT_VIEWHEIGHT;
+  }
+}
+
+static qboolean q1_CheckJump(void) {
+  // Can't jump cases. Cannot jump again under these conditions
   if (pm->ps->pm_flags & PMF_RESPAWNED) {
+    return qfalse;  // don't allow jump until all buttons are up
+  }
+  if (pm->cmd.upmove < 10) { 
+    return qfalse;  // not holding jump
+  }/*
+  if ((pm->ps->pm_flags & PMF_JUMP_HELD) && !phy_jump_auto) { // must wait for jump to be released
+    pm->cmd.upmove = 0; // clear upmove so cmdscale doesn't lower running speed
     return qfalse;
-  } // don't allow jump until all buttons are up
-  if (pm->cmd.upmove < 10) { // not holding jump
-    return qfalse;
+  }*/
+  // Else: Can jump. Do jump behavior
+  //
+  pml.groundPlane = qfalse; // jumping away
+  pml.walking = qfalse;
+  pm->ps->pm_flags |= PMF_JUMP_HELD;
+  pm->ps->groundEntityNum = ENTITYNUM_NONE;
+  
+  if (pm->ps->pm_flags & PMF_DUCKED) { pm->ps->velocity[2] *= 0.5; }
+
+  // QW downramps
+  if (phy_jump_type == VQ1) {
+    pm->ps->velocity[2] += phy_jump_velocity; // Always adds
+  } else {
+    // Downramps act like vq3 (set). Upramps act like QW (add)
+    if (pm->ps->velocity[2] < 0){
+      if (DotProduct(pm->ps->velocity, pml.groundTrace.plane.normal) > 0) {
+        pm->ps->velocity[2] = phy_jump_velocity; // Downramp
+      } else { pm->ps->velocity[2] += phy_jump_velocity; } // Flat
+    } else { pm->ps->velocity[2] += phy_jump_velocity; } // Upramp
+  }
+  //
+  // Jump end
+
+  if ((pm->cmd.serverTime - pm->ps->stats[STAT_TIME_LASTJUMP]) > s_jump_interval){
+    PM_AddEvent(EV_JUMP); // Ask the client to play the jump sound
+    if (pm->debugLevel) { Com_Printf("%i:Jump+Sound :: Lastjump=%i\n", c_pmove, pm->ps->stats[STAT_TIME_LASTJUMP]); }
+    pm->ps->pm_flags &= ~PMF_JUMP_HELD;
+  }
+  if (pm->cmd.forwardmove >= 0) {
+    PM_ForceLegsAnim(LEGS_JUMP);
+    pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
+  } else {
+    PM_ForceLegsAnim(LEGS_JUMPB);
+    pm->ps->pm_flags |= PMF_BACKWARDS_JUMP;
+  }
+  return qtrue;
+}
+
+
+static qboolean q3a_CheckJump(void) {
+  qboolean canDoubleJump;
+
+  // Can't jump cases. Cannot jump again under these conditions
+  if (pm->ps->pm_flags & PMF_RESPAWNED) {
+    return qfalse;  // don't allow jump until all buttons are up
+  }
+  if (pm->cmd.upmove < 10) { 
+    return qfalse;  // not holding jump
   }
   if (pm->ps->pm_flags & PMF_JUMP_HELD) { // must wait for jump to be released
     pm->cmd.upmove = 0; // clear upmove so cmdscale doesn't lower running speed
     return qfalse;
   }
+  // Else: Can jump. Do jump behavior
+  //
   pml.groundPlane = qfalse; // jumping away
   pml.walking = qfalse;
   pm->ps->pm_flags |= PMF_JUMP_HELD;
   pm->ps->groundEntityNum = ENTITYNUM_NONE;
-  pm->ps->velocity[2] = JUMP_VELOCITY;
+
+  //:: vq3 or CPM jump selection
+  //
+  // Select ADD or SET vertical velocity.
+  canDoubleJump      = (pm->ps->velocity[2] > 0) ? qtrue: qfalse;
+  if (canDoubleJump) { pm->ps->velocity[2] += phy_jump_velocity; } // ADD velocity, without resetting current
+  else               { pm->ps->velocity[2]  = phy_jump_velocity; } // SET velocity, resets current
+  //
+  // Timer check.   ::This is only a check. The values are set in osdf_cpm (aka PmoveSingle)
+  if (pm->movetype == CPM) {
+    int      djtimer   = pm->cmd.serverTime - pm->ps->stats[STAT_TIME_LASTJUMP];
+    qboolean djtimerOn = (( djtimer <= phy_jump_dj_time ) && (djtimer > 0)) ? qtrue : qfalse; // We can dj when this is true.
+    if (djtimerOn) { 
+      pm->ps->velocity[2] += phy_jump_dj_velocity; 
+      if (pm->debugLevel) { Com_Printf(":: DoubleJump -> Timer= %i, Lastjump= %i, servertime= %i\n", djtimer, pm->ps->stats[STAT_TIME_LASTJUMP], pm->cmd.serverTime); }
+      } // Increase height by +100 (default cpm). We can jump, and timer is on.
+    else { pm->ps->stats[STAT_TIME_LASTJUMP] = pm->cmd.serverTime; } // Reset the timer: We can jump, but dj timer is off. 
+  } 
+  //:: vq3 or CPM jump selection end
+
   PM_AddEvent(EV_JUMP);
   if (pm->cmd.forwardmove >= 0) {
     PM_ForceLegsAnim(LEGS_JUMP);
@@ -2243,7 +2500,7 @@ static qboolean osdf_CheckJump(void) {
   return qtrue;
 }
 
-static void osdf_AirControl(vec3_t wishdir, float wishspeed) {
+static void q3a_AirControl(vec3_t wishdir, float wishspeed) {
   float k; //, kMult;
   float speed, dot, zVel;
   vec3_t fwAccel;
@@ -2279,7 +2536,138 @@ static void osdf_AirControl(vec3_t wishdir, float wishspeed) {
   VectorAdd(pm->ps->velocity, fwAccel, pm->ps->velocity);
 }
 
-static void osdf_AirMove(void) {
+void q1_AirMoveQW (void) {
+	int       i;
+	vec3_t    wishvel;
+	float     fmove, smove;
+	vec3_t		wishdir;
+	float     wishspeed;
+  usercmd_t cmd;
+
+    // fmove & smove = -127 to 127
+    // upmove        =    0 to  20
+  fmove = pm->cmd.forwardmove;  // AKA: finput, forward_cmd
+  smove = pm->cmd.rightmove;    //      sinput
+  cmd   = pm->cmd;              // Inputs for this AirMove = current inputs
+  PM_SetMovementDir();          // set the movementDir so clients can rotate the legs for strafing
+
+  // Project moves down to flat plane. Zero out z components of movement vectors
+  // Forward & Right x/y ranges are 0/640 and 0/480 //??Not convinced
+  pml.forward[2] = 0; // AKA: forward_viewangle
+  pml.right[2] = 0;
+  VectorNormalize(pml.forward);
+  VectorNormalize(pml.right);
+
+  // Calculate player desired velocity vector (wishvel)
+  for (i = 0; i < 2; i++) { // Determine x and y parts of velocity
+    wishvel[i] = pml.forward[i]*fmove + pml.right[i]*smove;
+  }
+  wishvel[2] = 0; // Zero out z part of velocity
+
+  // Calculate desired direction (aka normalized wishvel)
+  VectorCopy(wishvel, wishdir);      // Store wishvel in wishdir
+  VectorNormalize(wishdir);          // Normalize wishvel so its actually a 'dir'
+
+  // QW start:
+  PM_GroundTrace();
+	if ( pml.walking )	{
+		pm->ps->velocity[2] = 0;
+		q3a_Accelerate (wishdir, wishspeed, phy_ground_accel, pm->ps->speed);
+		pm->ps->velocity[2] -= pm->ps->gravity * pml.frametime;
+		q3a_StepSlideMove(qfalse);
+	} else {	// not on ground, so little effect on velocity
+		q3a_Accelerate (wishdir, wishspeed, phy_air_accel, pm->ps->speed);
+		// add gravity
+		pm->ps->velocity[2] -= pm->ps->gravity * pml.frametime;
+		q3a_StepSlideMove(qtrue);
+	}
+}
+
+static void q1_AirMove(void) {
+  int i;
+  vec3_t wishvel;
+  float fmove, smove;
+  vec3_t wishdir;
+  float wishspeed;
+  usercmd_t cmd;
+  qboolean doSideMove, doForwMove;
+
+  float realAccel;   // Acceleration to apply
+  float realSpeed;   // Called maxspeed. Actually just baseSpeed (320ups)
+  float realWishSpd; // Wishpeed to apply in each case
+
+  float angle;
+  vec3_t vel2D;
+
+  PM_Friction();
+
+    // fmove & smove = -127 to 127
+    // upmove        =    0 to  20
+  fmove = pm->cmd.forwardmove;  // AKA: finput, forward_cmd
+  smove = pm->cmd.rightmove;    //      sinput
+  cmd   = pm->cmd;              // Inputs for this AirMove = current inputs
+  PM_SetMovementDir();          // set the movementDir so clients can rotate the legs for strafing
+
+  // Project moves down to flat plane. Zero out z components of movement vectors
+  // Forward & Right x/y ranges are 0/640 and 0/480 //??Not convinced
+  pml.forward[2] = 0; // AKA: forward_viewangle
+  pml.right[2] = 0;
+  VectorNormalize(pml.forward);
+  VectorNormalize(pml.right);
+
+  // Calculate player desired velocity vector (wishvel)
+  for (i = 0; i < 2; i++) { // Determine x and y parts of velocity
+    wishvel[i] = pml.forward[i]*fmove + pml.right[i]*smove;
+  }
+  wishvel[2] = 0; // Zero out z part of velocity
+
+  // Calculate desired direction (aka normalized wishvel)
+  VectorCopy(wishvel, wishdir);      // Store wishvel in wishdir
+  VectorNormalize(wishdir);          // Normalize wishvel so its actually a 'dir'
+
+  // Calculate desired speed amount, based on wishvel (aka wishpeed)
+  wishspeed = VectorLength(wishvel); // wishspeed = normalized speed (aka wishvel.length). Because speed = velocity.length
+
+  // CPM specific
+  doSideMove = (smove > 0.1 || smove < -0.1) ? qtrue : qfalse;
+  doForwMove = (fmove > 0.1 || fmove < -0.1) ? qtrue : qfalse;
+
+  // pm->ps->speed comes from g_active.c and has haste factor included in it.
+  if (doSideMove && !doForwMove) {
+    realAccel = phy_air_accel;
+    realSpeed = (int)(pm->ps->speed * phy_air_speedscalar); // Reduce to airstrafe speed (30) but still apply haste from pm->ps->speed
+    realWishSpd = wishspeed * q3a_CmdScale(&cmd);
+  } else {
+    //realAccel = phy_air_accel;
+    //realSpeed = pm->ps->speed;
+    //realWishSpd = wishspeed * q3a_CmdScale(&cmd);
+  }
+    // Deceleration behavior
+    /*
+    VectorCopy(pm->ps->velocity, vel2D);    // Store velocity in 2D vector
+    vel2D[0] = 0;                           // Zero out its vertical velocity
+    angle = acos_alt(DotProduct(wishdir, vel2D) / (VectorLength(wishdir) * VectorLength2D(vel2D)));
+    angle *= (180 / M_PI);                  // Convert radians to degrees
+    if (angle > phy_air_decelAngle){        // If the angle is over the decel angle
+      realAccel *= phy_air_decel;           // Scale down air accel by decel factor
+    }
+    */
+  //::::::::::::::::::
+
+  // not on ground, so little effect on velocity
+  q3a_Accelerate(wishdir, realWishSpd, realAccel, realSpeed);
+
+  // we may have a ground plane that is very steep, even though we don't have a
+  // groundentity. slide along the steep plane
+  if (pml.groundPlane) {
+    q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP);
+  }
+  // Do the movement
+  q3a_StepSlideMove(qtrue);
+}
+
+
+static void q3a_AirMove(void) {
   int i;
   vec3_t wishvel, wishvel_c;
   float fmove, smove;
@@ -2296,13 +2684,7 @@ static void osdf_AirMove(void) {
   float angle;
   vec3_t vel2D;
 
-  //
-  // MMOD does rampsliding jumps here
-  //
-
   PM_Friction();
-
-  // MMOD does AngleVectors here  //////
 
     // fmove & smove = -127 to 127
     // upmove        =    0 to  20
@@ -2332,25 +2714,23 @@ static void osdf_AirMove(void) {
   wishspeed = VectorLength(wishvel); // wishspeed = normalized speed (aka wishvel.length). Because speed = velocity.length
 
 
-  // CPM & Mod specific
+  // CPM specific
   doSideMove = (smove > 0.1 || smove < -0.1) ? qtrue : qfalse;
   doForwMove = (fmove > 0.1 || fmove < -0.1) ? qtrue : qfalse;
 
   if (phy_aircontrol && doForwMove && !doSideMove) {
     doAircontrol = qtrue;
   }
-  if (phy_movetype == CPM) {
+  if (pm->movetype == CPM) {
+    // We do haste in xxx_move. Default is: pm->ps->speed  , which comes from g_active.c and has haste factor included in it.
     if (doSideMove && !doForwMove) {
       realAccel = phy_airstrafe_accel;
       realSpeed = phy_airstrafe_basespeed;
-      realWishSpd = wishspeed * osdf_CmdScale(&cmd, realSpeed);
+      realWishSpd = wishspeed * q3a_CmdScale(&cmd);
     } else {
       realAccel = phy_air_accel;
-      realSpeed = phy_air_basespeed;
-      realWishSpd = wishspeed * osdf_CmdScale(&cmd, realSpeed);
-      // Haste check here???
-      //
-      // :::::::::::::::::::
+      realSpeed = pm->ps->speed;
+      realWishSpd = wishspeed * q3a_CmdScale(&cmd);
 
       // Deceleration behavior
       /*
@@ -2364,30 +2744,24 @@ static void osdf_AirMove(void) {
       }
       */
     }
-  } else if (phy_movetype == VQ3) {
+  } else if (pm->movetype == VQ3) {
     realAccel = phy_air_accel;
-    realSpeed = phy_air_basespeed;
-    realWishSpd = wishspeed * osdf_CmdScale(&cmd, realSpeed);
-    // haste check here???
-    //
-    // :::::::::::::::::::
+    realSpeed = pm->ps->speed;
+    realWishSpd = wishspeed * q3a_CmdScale(&cmd);
 
-  } else {                   // Undefined physics
-                             //
-  }
+  } else { Com_Printf("Undefined movetype in q3a_ function. pm->movetype = %i", pm->movetype); return; }  // Undefined physics
   //::::::::::::::::::
 
   // not on ground, so little effect on velocity
-  osdf_Accelerate(wishdir, realWishSpd, realAccel, realSpeed);
+  q3a_Accelerate(wishdir, realWishSpd, realAccel, realSpeed);
   if (doAircontrol) {
-    osdf_AirControl(wishdir, realWishSpd);
+    q3a_AirControl(wishdir, realWishSpd);
   }
 
   // we may have a ground plane that is very steep, even though we don't have a
-  // groundentity slide along the steep plane
+  // groundentity. slide along the steep plane
   if (pml.groundPlane) {
-    PM_ClipVelocity(pm->ps->velocity, pml.groundTrace.plane.normal,
-                    pm->ps->velocity, OVERCLIP);
+    q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP);
   }
   // Do the movement
   switch (phy_slidemove_type) {
@@ -2395,10 +2769,100 @@ static void osdf_AirMove(void) {
   //case OSDF: osdf_StepSlideMove(qtrue); break;
   default:   PM_StepSlideMove(qtrue); break;
   }
-  
 }
 
-static void osdf_WalkMove(void) {
+static void q1_WalkMove(void) {
+  int i;
+  vec3_t wishvel;
+  float fmove, smove;
+  vec3_t wishdir;
+  float wishspeed;
+  float scale;
+  usercmd_t cmd;
+  float accelerate;
+  float vel;
+  float overbounce;
+
+  if (pm->waterlevel > 2 && DotProduct(pml.forward, pml.groundTrace.plane.normal) > 0) {
+    PM_WaterMove(); // begin swimming
+    return;
+  }
+
+  if (q1_CheckJump()) {
+    if (pm->waterlevel > 1) { PM_WaterMove(); } // jumped away
+    else                    { q1_AirMove(); }
+    return;
+  }
+
+  q3a_Friction();
+
+  fmove = pm->cmd.forwardmove;
+  smove = pm->cmd.rightmove;
+  cmd = pm->cmd;
+  scale = q3a_CmdScale(&cmd);
+
+  // set the movementDir so clients can rotate the legs for strafing
+  PM_SetMovementDir();
+  // project moves down to flat plane
+  pml.forward[2] = 0;
+  pml.right[2] = 0;
+  // project the forward and right directions onto the ground plane
+  overbounce = 1.000f;
+  q3a_VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, overbounce);
+  q3a_VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, overbounce);
+  VectorNormalize(pml.forward);
+  VectorNormalize(pml.right);
+
+  for (i = 0; i < 3; i++) {
+    wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
+  }
+  // when going up or down slopes the wish velocity should Not be zero
+  //	wishvel[2] = 0;
+  VectorCopy(wishvel, wishdir); // Determine magnitude of speed of move
+  wishspeed = VectorNormalize(wishdir);
+  wishspeed *= scale;
+  // clamp the speed lower if ducking
+  if (pm->ps->pm_flags & PMF_DUCKED) {
+    if (wishspeed > pm->ps->speed * phy_crouch_scale) {
+      wishspeed = pm->ps->speed * phy_crouch_scale;
+    }
+  }
+  // clamp the speed lower if wading or walking on the bottom
+  if (pm->waterlevel) {
+    float waterScale;
+    waterScale = pm->waterlevel / 3.0;
+    waterScale = 1.0 - (1.0 - phy_water_scale) * waterScale;
+    if (wishspeed > pm->ps->speed * waterScale) {
+      wishspeed = pm->ps->speed * waterScale;
+    }
+  }
+  // when a player gets hit, they temporarily lose
+  // full control, which allows them to be moved a bit
+  accelerate = phy_ground_accel;
+  q3a_Accelerate(wishdir, wishspeed, accelerate, pm->ps->speed);
+  if ((pml.groundTrace.surfaceFlags & SURF_SLICK)
+       || pm->ps->pm_flags & PMF_TIME_KNOCKBACK) {
+    pm->ps->velocity[2] -= pm->ps->gravity * pml.frametime;
+  } else { //pm->ps->velocity[2] = 0; // don't reset the z velocity for slopes
+  }
+
+  // this is the part that causes overbounces
+  vel = VectorLength(pm->ps->velocity);
+  // slide along the ground plane
+  q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, overbounce);
+  // don't decrease velocity when going up or down a slope
+  VectorNormalize(pm->ps->velocity);
+  VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
+  // don't do anything if standing still
+  if (!pm->ps->velocity[0] && !pm->ps->velocity[1]) {
+    return;
+  }
+  
+  // Do the movement
+  q3a_StepSlideMove(qtrue);
+}
+
+static void q3a_WalkMove(void) {
   int i;
   vec3_t wishvel;
   float fmove, smove;
@@ -2414,12 +2878,12 @@ static void osdf_WalkMove(void) {
     return;
   }
 
-  if (osdf_CheckJump()) {
+  if (q3a_CheckJump()) {
     if (pm->waterlevel > 1) {
       PM_WaterMove();
     } // jumped away
     else {
-      osdf_AirMove();
+      q3a_AirMove();
     }
     return;
   }
@@ -2429,7 +2893,7 @@ static void osdf_WalkMove(void) {
   fmove = pm->cmd.forwardmove;
   smove = pm->cmd.rightmove;
   cmd = pm->cmd;
-  scale = osdf_CmdScale(&cmd, phy_ground_basespeed);
+  scale = q3a_CmdScale(&cmd);
 
   // set the movementDir so clients can rotate the legs for strafing
   PM_SetMovementDir();
@@ -2437,9 +2901,8 @@ static void osdf_WalkMove(void) {
   pml.forward[2] = 0;
   pml.right[2] = 0;
   // project the forward and right directions onto the ground plane
-  PM_ClipVelocity(pml.forward, pml.groundTrace.plane.normal, pml.forward,
-                  OVERCLIP);
-  PM_ClipVelocity(pml.right, pml.groundTrace.plane.normal, pml.right, OVERCLIP);
+  q3a_VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, OVERCLIP);
+  q3a_VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, OVERCLIP);
   VectorNormalize(pml.forward);
   VectorNormalize(pml.right);
 
@@ -2453,41 +2916,39 @@ static void osdf_WalkMove(void) {
   wishspeed *= scale;
   // clamp the speed lower if ducking
   if (pm->ps->pm_flags & PMF_DUCKED) {
-    if (wishspeed > pm->ps->speed * pm_duckScale) {
-      wishspeed = pm->ps->speed * pm_duckScale;
+    if (wishspeed > pm->ps->speed * phy_crouch_scale) {
+      wishspeed = pm->ps->speed * phy_crouch_scale;
     }
   }
   // clamp the speed lower if wading or walking on the bottom
   if (pm->waterlevel) {
     float waterScale;
     waterScale = pm->waterlevel / 3.0;
-    waterScale = 1.0 - (1.0 - pm_swimScale) * waterScale;
+    waterScale = 1.0 - (1.0 - phy_water_scale) * waterScale;
     if (wishspeed > pm->ps->speed * waterScale) {
       wishspeed = pm->ps->speed * waterScale;
     }
   }
   // when a player gets hit, they temporarily lose
   // full control, which allows them to be moved a bit
-  if ((pml.groundTrace.surfaceFlags & SURF_SLICK) ||
-      pm->ps->pm_flags & PMF_TIME_KNOCKBACK) {
+  if ((pml.groundTrace.surfaceFlags & SURF_SLICK 
+       || pm->ps->pm_flags & PMF_TIME_KNOCKBACK)
+       && pm->movetype != CPM) {
     accelerate = phy_air_accel;
   } else {
     accelerate = phy_ground_accel;
   }
-  osdf_Accelerate(wishdir, wishspeed, accelerate, phy_ground_basespeed);
-  if ((pml.groundTrace.surfaceFlags & SURF_SLICK) ||
-      pm->ps->pm_flags & PMF_TIME_KNOCKBACK) {
+  q3a_Accelerate(wishdir, wishspeed, accelerate, pm->ps->speed);
+  if ((pml.groundTrace.surfaceFlags & SURF_SLICK)
+       || pm->ps->pm_flags & PMF_TIME_KNOCKBACK) {
     pm->ps->velocity[2] -= pm->ps->gravity * pml.frametime;
-  } else {
-    // don't reset the z velocity for slopes
-    //		pm->ps->velocity[2] = 0;
+  } else { //pm->ps->velocity[2] = 0; // don't reset the z velocity for slopes
   }
 
   // this is the part that causes overbounces
   vel = VectorLength(pm->ps->velocity);
   // slide along the ground plane
-  PM_ClipVelocity(pm->ps->velocity, pml.groundTrace.plane.normal,
-                  pm->ps->velocity, OVERCLIP);
+  q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP);
   // don't decrease velocity when going up or down a slope
   VectorNormalize(pm->ps->velocity);
   VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
@@ -2504,7 +2965,7 @@ static void osdf_WalkMove(void) {
   }
 }
 
-void osdf_cpm(pmove_t *pmove) {
+void q3a_cpm(pmove_t *pmove) {
   if (pm->ps->powerups[PW_FLIGHT]) {
     PM_FlyMove(); // flight powerup doesn't allow jump and has different
                   // friction
@@ -2516,9 +2977,9 @@ void osdf_cpm(pmove_t *pmove) {
   } else if (pm->waterlevel > 1) {
     PM_WaterMove(); // swimming
   } else if (pml.walking) {
-    osdf_WalkMove(); // walking on ground
+    q3a_WalkMove(); // walking on ground
   } else {
-    osdf_AirMove(); // airborne
+    q3a_AirMove(); // airborne
   }
   // animations
   PM_Animate();
@@ -2534,16 +2995,11 @@ void osdf_cpm(pmove_t *pmove) {
   // entering / leaving water splashes
   PM_WaterEvents();
   // Snapzones: Snap some parts of playerstate to save network bandwidth
-  if (phy_snapvelocity) {
-    trap_SnapVector(pm->ps->velocity);
-  } // Default Q3 behavior
-  else {
-    pm->ps->velocity[2] = roundf(pm->ps->velocity[2]);
-  } // No snapzones. Always snap vertical velocity, to preserve default max jump
-    // height
+  if (phy_snapvelocity) { trap_SnapVector(pm->ps->velocity); } // Default Q3 behavior
+  else                  { pm->ps->velocity[2] = roundf(pm->ps->velocity[2]); } // No snapzones. Always snap vertical velocity, to preserve default max jump height
 }
 
-void osdf_vq3(pmove_t *pmove) {
+void q3a_vq3(pmove_t *pmove) {
   if (pm->ps->powerups[PW_FLIGHT]) {
     PM_FlyMove(); // flight powerup doesn't allow jump and has different
                   // friction
@@ -2555,9 +3011,9 @@ void osdf_vq3(pmove_t *pmove) {
   } else if (pm->waterlevel > 1) {
     PM_WaterMove(); // swimming
   } else if (pml.walking) {
-    PM_WalkMove(); // walking on ground
+    q3a_WalkMove(); // walking on ground
   } else {
-    PM_AirMove(); // airborne
+    q3a_AirMove(); // airborne
   }
   // animations
   PM_Animate();
@@ -2574,21 +3030,51 @@ void osdf_vq3(pmove_t *pmove) {
   PM_WaterEvents();
   // snap some parts of playerstate to save network bandwidth
   trap_SnapVector(pm->ps->velocity);
-  ;
 }
 
-// Select the type of movement to execute. Flow control only. Behavior happens
-// inside each function
+void q3a_vq1(pmove_t *pmove) {
+  if (pm->ps->powerups[PW_FLIGHT]) {
+    PM_FlyMove(); // flight powerup doesn't allow jump and has different friction
+  } else if (pm->ps->pm_flags & PMF_GRAPPLE_PULL) {
+    PM_GrappleMove();
+    PM_AirMove(); // We can wiggle a bit
+  } else if (pm->ps->pm_flags & PMF_TIME_WATERJUMP) {
+    PM_WaterJumpMove();
+  } else if (pm->waterlevel > 1) {
+    PM_WaterMove(); // swimming
+  } else if (pml.walking) {
+    q1_WalkMove(); // walking on ground
+  } else {
+    q1_AirMove(); // airborne
+  }
+  // animations
+  PM_Animate();
+  // set groundentity, watertype, and waterlevel
+  PM_GroundTrace();
+  PM_SetWaterLevel();
+  // weapons
+  PM_Weapon();
+  // torso animation
+  PM_TorsoAnimation();
+  // footstep events / legs animations
+  PM_Footsteps();
+  // entering / leaving water splashes
+  PM_WaterEvents();
+  // Snap vertical velocity only, to preserve default max jump height
+  pm->ps->velocity[2] = roundf(pm->ps->velocity[2]); 
+}
+
+// Select the type of movement to execute. Flow control only. 
+// Behavior happens inside each function
 void osdf_move(pmove_t *pmove) {
-  if (!osdf_initialized) {
-    osdf_init(phy_movetype);
-  }
-  if (phy_movetype == CPM) {
-    osdf_cpm(pmove);
-  } else if (phy_movetype == VQ3) {
-    osdf_vq3(pmove);
+  if (!osdf_initialized) { osdf_init(pmove->movetype); }
+  switch (pmove->movetype) {
+  case CPM: q3a_cpm(pmove); break;
+  case VQ1: q3a_vq1(pmove); break;
+  case VQ3: q3a_vq3(pmove); break;
+  default:  Com_Printf("::ERR phy_movetype %i not recognized\n", pmove->movetype); break;
   }
 }
-
-//::OSDF end
 //::::::::::::::::::::::
+//::OSDF end
+

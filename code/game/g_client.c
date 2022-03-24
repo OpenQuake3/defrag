@@ -1067,8 +1067,7 @@ void ClientSpawn(gentity_t *ent) {
 	// do it before setting health back up, so farthest
 	// ranging doesn't count this client
 	if ( client->sess.sessionTeam == TEAM_SPECTATOR ) {
-		spawnPoint = SelectSpectatorSpawnPoint ( 
-						spawn_origin, spawn_angles);
+		spawnPoint = SelectSpectatorSpawnPoint (spawn_origin, spawn_angles);
 	} else if (g_gametype.integer >= GT_CTF ) {
 		// all base oriented team games use the CTF spawn points
 		spawnPoint = SelectCTFSpawnPoint ( 
@@ -1076,18 +1075,13 @@ void ClientSpawn(gentity_t *ent) {
 						client->pers.teamState.state, 
 						spawn_origin, spawn_angles,
 						!!(ent->r.svFlags & SVF_BOT));
-	}
-	else
-	{
+	} else {
 		// the first spawn should be at a good looking spot
-		if ( !client->pers.initialSpawn && client->pers.localClient )
-		{
+		if ( !client->pers.initialSpawn && client->pers.localClient ) {
 			client->pers.initialSpawn = qtrue;
 			spawnPoint = SelectInitialSpawnPoint(spawn_origin, spawn_angles,
 							     !!(ent->r.svFlags & SVF_BOT));
-		}
-		else
-		{
+		} else {
 			// don't spawn near existing origin if possible
 			spawnPoint = SelectSpawnPoint ( 
 				client->ps.origin, 
@@ -1220,6 +1214,10 @@ void ClientSpawn(gentity_t *ent) {
 
 			tent = G_TempEntity(ent->client->ps.origin, EV_PLAYER_TELEPORT_IN);
 			tent->s.clientNum = ent->s.clientNum;
+
+			//::OSDF modded
+			ent->client->ps.persistant[PERS_SCORE] = 0; // Resets score on every spawn (for fragfilters)
+			//::OSDF end
 
 			trap_LinkEntity (ent);
 		}

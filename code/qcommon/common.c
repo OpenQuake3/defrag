@@ -2712,6 +2712,7 @@ void Com_Init( char *commandLine ) {
 		Cmd_AddCommand ("freeze", Com_Freeze_f);
 	}
 	Cmd_AddCommand ("quit", Com_Quit_f);
+	Cmd_AddCommand ("q", Com_Quit_f); //::OSDF added alias for quit
 	Cmd_AddCommand ("changeVectors", MSG_ReportChangeVectors_f );
 	Cmd_AddCommand ("writeconfig", Com_WriteConfig_f );
 	Cmd_SetCommandCompletionFunc( "writeconfig", Cmd_CompleteCfgName );
@@ -2741,8 +2742,8 @@ void Com_Init( char *commandLine ) {
 	// init commands and vars
 	//
 	com_altivec = Cvar_Get ("com_altivec", "1", CVAR_ARCHIVE);
-	com_maxfps = Cvar_Get ("com_maxfps", "85", CVAR_ARCHIVE);
-	com_blood = Cvar_Get ("com_blood", "1", CVAR_ARCHIVE);
+	com_maxfps = Cvar_Get ("com_maxfps", "125", CVAR_ARCHIVE); //::OSDF changed to 125, from 85
+	com_blood = Cvar_Get ("com_blood", "0", CVAR_ARCHIVE); //::OSDF changed to 0, from 1
 
 	com_logfile = Cvar_Get ("logfile", "0", CVAR_TEMP );
 

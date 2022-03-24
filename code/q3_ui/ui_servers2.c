@@ -120,7 +120,7 @@ static const char *master_items[] = {
 
 static const char *servertype_items[] = {
 	"All",
-	"Free For All",
+	"Run",
 	"Team Deathmatch",
 	"Tournament",
 	"Capture the Flag",
@@ -522,7 +522,7 @@ static void ArenaServers_UpdateMenu( void ) {
 			break;
 
 		case GAMES_FFA:
-			if( servernodeptr->gametype != GT_FFA ) {
+			if( servernodeptr->gametype != GT_RUN ) {
 				continue;
 			}
 			break;

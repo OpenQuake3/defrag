@@ -109,8 +109,8 @@ void SV_RankBegin( char *gamekey )
 		// substitute game-specific game key
 		switch( (int)Cvar_VariableValue("g_gametype") )
 		{
-		case GT_FFA:
-			gamekey = "Q3 Free For All";
+		case GT_RUN:
+			gamekey = "Q3 Run";
 			break;
 		case GT_TOURNAMENT:
 			gamekey = "Q3 Tournament";

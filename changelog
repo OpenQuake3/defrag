@@ -2,7 +2,7 @@
 g_speed         : phy_speed
 g_gravity       : phy_gravity
 g_knockback     : phy_knockback
-g_quadfactor    : phy_quadfactor
+g_quadfactor    : phy_quad_factor
 
 # Added cvar
-osdf_pmove = 1  : When active, changes the flow of the player movement code towards osdf_ code. 1=enabled, 0=disabled
+phy_overbounce_scale : Controls amount that overbounces affect the velocity vector when colliding/reflecting against surfaces

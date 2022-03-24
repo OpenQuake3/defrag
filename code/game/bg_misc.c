@@ -33,7 +33,7 @@ If an item is the target of another entity, it will not spawn in until fired.
 
 An item fires all of its targets when it is picked up.  If the toucher can't carry it, the targets won't be fired.
 
-"notfree" if set to 1, don't spawn in free for all games
+"notrun" if set to 1, don't spawn in Run games
 "notteam" if set to 1, don't spawn in team games
 "notsingle" if set to 1, don't spawn in single player games
 "wait"	override the default wait before respawning.  -1 = never respawn automatically, which can be used with targeted spawning.

@@ -743,14 +743,23 @@ extern	vmCvar_t	g_localTeamPref;
 extern	vmCvar_t	phy_gravity;
 extern	vmCvar_t	phy_speed;
 extern	vmCvar_t	phy_knockback;
-extern	vmCvar_t	phy_quadfactor;
+extern	vmCvar_t	phy_quad_factor;
+extern	vmCvar_t	phy_haste_factor;
 // Default naming
 extern	vmCvar_t	pmove_fixed;
 extern	vmCvar_t	pmove_msec;
 extern	vmCvar_t	g_synchronousClients;
 extern	vmCvar_t	g_cheats;
 // New variables
-extern	vmCvar_t	osdf_pmove; // When active, changes the flow of the player movement code towards osdf_ code. 1=enabled, 0=disabled
+extern	vmCvar_t	phy_movetype; // When active, changes the flow of the player movement code towards osdf_ code. 1=enabled, 0=disabled
+#define CPM			0
+#define VQ3			3
+extern	vmCvar_t	phy_overbounce_scale;
+// Rockets
+extern vmCvar_t		phy_rocket_speed;
+extern vmCvar_t		phy_rocket_damage;
+extern vmCvar_t		phy_rocket_splashDamage;
+extern vmCvar_t		phy_rocket_splashRadius;
 
 void	trap_Print( const char *text );
 void	trap_Error( const char *text ) __attribute__((noreturn));

@@ -228,6 +228,7 @@ spawn_t	spawns[] = {
 	{"target_position", SP_target_position},
 	{"target_location", SP_target_location},
 	{"target_push", SP_target_push},
+	//{"target_startTimer", SP_target_startTimer}, //::OSDF added startTimer
 
 	{"light", SP_light},
 	{"path_corner", SP_path_corner},
@@ -416,7 +417,7 @@ void G_SpawnGEntityFromSpawnVars( void ) {
 			return;
 		}
 	}
-	// check for "notteam" flag (GT_FFA, GT_TOURNAMENT, GT_SINGLE_PLAYER)
+	// check for "notteam" flag (GT_RUN, GT_TOURNAMENT, GT_SINGLE_PLAYER)
 	if ( g_gametype.integer >= GT_TEAM ) {
 		G_SpawnInt( "notteam", "0", &i );
 		if ( i ) {
@@ -425,7 +426,7 @@ void G_SpawnGEntityFromSpawnVars( void ) {
 			return;
 		}
 	} else {
-		G_SpawnInt( "notfree", "0", &i );
+		G_SpawnInt( "notrun", "0", &i );
 		if ( i ) {
 			ADJUST_AREAPORTAL();
 			G_FreeEntity( ent );
@@ -450,7 +451,7 @@ void G_SpawnGEntityFromSpawnVars( void ) {
 #endif
 
 	if( G_SpawnString( "gametype", NULL, &value ) ) {
-		if( g_gametype.integer >= GT_FFA && g_gametype.integer < GT_MAX_GAME_TYPE ) {
+		if( g_gametype.integer >= GT_RUN && g_gametype.integer < GT_MAX_GAME_TYPE ) {
 			gametypeName = gametypeNames[g_gametype.integer];
 
 			s = strstr( value, gametypeName );

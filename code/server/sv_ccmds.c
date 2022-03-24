@@ -196,7 +196,7 @@ static void SV_Map_f( void ) {
 			killBots = qfalse;
 		}
 		if( sv_gametype->integer == GT_SINGLE_PLAYER ) {
-			Cvar_SetValue( "g_gametype", GT_FFA );
+			Cvar_SetValue( "g_gametype", GT_RUN );
 		}
 	}
 

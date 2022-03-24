@@ -42,6 +42,26 @@ void ScorePlum( gentity_t *ent, vec3_t origin, int score ) {
 	plum->s.time = score;
 }
 
+// SetScore
+// ============
+// Set score to both the client and his team
+void SetScore( gentity_t *ent, vec3_t origin, int score ) {
+	if ( !ent->client ) {
+		return;
+	}
+	// no scoring during pre-match warmup
+	if ( level.warmupTime ) {
+		return;
+	}
+	// show score plum
+	//ScorePlum(ent, origin, score);
+	//
+	ent->client->ps.persistant[PERS_SCORE] = score;
+	if ( g_gametype.integer == GT_TEAM )
+		level.teamScores[ ent->client->ps.persistant[PERS_TEAM] ] = score;
+	CalculateRanks();
+}
+
 /*
 ============
 AddScore
@@ -506,7 +526,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		attacker->client->lastkilled_client = self->s.number;
 
 		if ( attacker == self || OnSameTeam (self, attacker ) ) {
-			AddScore( attacker, self->r.currentOrigin, -1 );
+			SetScore( attacker, self->r.currentOrigin, 0 ); //::OSDF changed to SetScore 0, from AddScore -1
 		} else {
 			AddScore( attacker, self->r.currentOrigin, 1 );
 
@@ -539,7 +559,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 		}
 	} else {
-		AddScore( self, self->r.currentOrigin, -1 );
+		SetScore( self, self->r.currentOrigin, 0 ); //::OSDF changed to SetScore 0, from AddScore -1
 	}
 
 	// Add team bonuses
@@ -561,7 +581,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		}
 	}
 
-	TossClientItems( self );
+	//TossClientItems( self ); //::OSDF modded. Removed
 #ifdef MISSIONPACK
 	TossClientPersistantPowerups( self );
 	if( g_gametype.integer == GT_HARVESTER ) {
@@ -605,7 +625,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 	// don't allow respawn until the death anim is done
 	// g_forcerespawn may force spawning at some later time
-	self->client->respawnTime = level.time + 1700;
+	self->client->respawnTime = level.time;// + 1700; //::OSDF modded. Allow Instant Respawn
 
 	// remove powerups
 	memset( self->client->ps.powerups, 0, sizeof(self->client->ps.powerups) );

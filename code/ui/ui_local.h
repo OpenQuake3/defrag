@@ -32,8 +32,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // global display context
 
-extern vmCvar_t	ui_ffa_fraglimit;
-extern vmCvar_t	ui_ffa_timelimit;
+extern vmCvar_t	ui_run_fraglimit;
+extern vmCvar_t	ui_run_timelimit;
 
 extern vmCvar_t	ui_tourney_fraglimit;
 extern vmCvar_t	ui_tourney_timelimit;
@@ -320,6 +320,7 @@ extern vec4_t		menu_red_color;
 extern vec4_t		menu_black_color;
 extern vec4_t		menu_dim_color;
 extern vec4_t		color_black;
+extern vec4_t		color_gray50;
 extern vec4_t		color_white;
 extern vec4_t		color_yellow;
 extern vec4_t		color_blue;

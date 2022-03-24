@@ -78,14 +78,23 @@ vmCvar_t	g_localTeamPref;
 vmCvar_t	phy_speed;
 vmCvar_t	phy_gravity;
 vmCvar_t	phy_knockback;
-vmCvar_t	phy_quadfactor;
 // Default naming
 vmCvar_t	pmove_fixed;
 vmCvar_t	pmove_msec;
 vmCvar_t	g_cheats;
 vmCvar_t	g_synchronousClients;
+// Powerups
+vmCvar_t	phy_quad_factor;
 // New variables
-vmCvar_t	osdf_pmove;
+vmCvar_t	phy_haste_factor;
+vmCvar_t	phy_movetype;
+vmCvar_t	phy_overbounce_scale;
+// Rockets
+vmCvar_t	phy_rocket_speed;
+vmCvar_t	phy_rocket_damage;
+vmCvar_t	phy_rocket_splashDamage;
+vmCvar_t	phy_rocket_splashRadius;
+//::OSDF end
 
 #ifdef MISSIONPACK
 vmCvar_t	g_obeliskHealth;
@@ -115,7 +124,7 @@ static cvarTable_t		gameCvarTable[] = {
 
 	// change anytime vars
 	{ &g_dmflags, "dmflags", "0", CVAR_SERVERINFO | CVAR_ARCHIVE, 0, qtrue  },
-	{ &g_fraglimit, "fraglimit", "20", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
+	{ &g_fraglimit, "fraglimit", "0", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
 	{ &g_timelimit, "timelimit", "0", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
 	{ &g_capturelimit, "capturelimit", "8", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_NORESTART, 0, qtrue },
 
@@ -140,13 +149,13 @@ static cvarTable_t		gameCvarTable[] = {
 
 	{ &g_weaponRespawn, "g_weaponrespawn", "5", 0, 0, qtrue  },
 	{ &g_weaponTeamRespawn, "g_weaponTeamRespawn", "30", 0, 0, qtrue },
-	{ &g_forcerespawn, "g_forcerespawn", "20", 0, 0, qtrue },
+	{ &g_forcerespawn, "g_forcerespawn", "1", 0, 0, qtrue }, //::OSDF changed to 1, from 20
 	{ &g_inactivity, "g_inactivity", "0", 0, 0, qtrue },
 	{ &g_debugMove, "g_debugMove", "0", 0, 0, qfalse },
 	{ &g_debugDamage, "g_debugDamage", "0", 0, 0, qfalse },
 	{ &g_debugAlloc, "g_debugAlloc", "0", 0, 0, qfalse },
 	{ &g_motd, "g_motd", "", 0, 0, qfalse },
-	{ &g_blood, "com_blood", "1", 0, 0, qfalse },
+	{ &g_blood, "com_blood", "0", 0, 0, qfalse }, //::OSDF changed to 0, from 1
 
 	{ &g_podiumDist, "g_podiumDist", "80", 0, 0, qfalse },
 	{ &g_podiumDrop, "g_podiumDrop", "70", 0, 0, qfalse },
@@ -177,14 +186,23 @@ static cvarTable_t		gameCvarTable[] = {
 	{ &phy_speed, "phy_speed", "320", 0, 0, qtrue  },
 	{ &phy_gravity, "phy_gravity", "800", 0, 0, qtrue  },
 	{ &phy_knockback, "phy_knockback", "1000", 0, 0, qtrue  },
-	{ &phy_quadfactor, "phy_quadfactor", "3", 0, 0, qtrue  },
 	// Default naming
 	{ &pmove_fixed, "pmove_fixed", "1", CVAR_SYSTEMINFO, 0, qfalse}, // default = 0
 	{ &pmove_msec, "pmove_msec", "8", CVAR_SYSTEMINFO, 0, qfalse},
 	{ &g_cheats, "sv_cheats", "", 0, 0, qfalse },	// don't override the cheat state set by the system
 	{ &g_synchronousClients, "g_synchronousClients", "0", CVAR_SYSTEMINFO, 0, qfalse  }, // default = 0
-	// New variables
-	{ &osdf_pmove, "osdf_pmove", "0", 0, 0, qtrue  }
+	// Powerups
+	{ &phy_quad_factor, "phy_quad_factor", "3", 0, 0, qtrue  },
+	// ==== New variables
+	{ &phy_haste_factor, "phy_haste_factor", "1.3", CVAR_CHEAT | CVAR_SYSTEMINFO, 0, qtrue  },
+	// General
+	{ &phy_movetype, "phy_movetype", "0", CVAR_SYSTEMINFO, 0, qtrue  },
+	{ &phy_overbounce_scale, "phy_overbounce_scale", "1.001", CVAR_CHEAT | CVAR_SYSTEMINFO, 0, qtrue  },
+	// Rockets
+	{ &phy_rocket_speed, "phy_rocket_speed", "1000", CVAR_CHEAT | CVAR_SYSTEMINFO, 0, qtrue  },
+	{ &phy_rocket_damage, "phy_rocket_damage", "100", CVAR_CHEAT | CVAR_SYSTEMINFO, 0, qtrue  },
+	{ &phy_rocket_splashDamage, "phy_rocket_splashDamage", "100", CVAR_CHEAT | CVAR_SYSTEMINFO, 0, qtrue  },
+	{ &phy_rocket_splashRadius, "phy_rocket_splashRadius", "120", CVAR_CHEAT | CVAR_SYSTEMINFO, 0, qtrue  },
 };
 
 static int gameCvarTableSize = ARRAY_LEN( gameCvarTable );

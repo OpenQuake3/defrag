@@ -95,7 +95,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 typedef enum {
-	GT_FFA,				// free for all
+	GT_RUN,				// Run
 	GT_TOURNAMENT,		// one on one tournament
 	GT_SINGLE_PLAYER,	// single player ffa
 
@@ -189,6 +189,10 @@ typedef struct {
 	// these will be different functions during game and cgame
 	void		(*trace)( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask );
 	int			(*pointcontents)( const vec3_t point, int passEntityNum );
+	//::OSDF modded
+	int			movetype;			// Physics type selection from cvar. Latch protected
+	float		overbounce_scale;	// Amount of overbounce scale to apply. Default OVERCLIP = 1.001f
+	//::OSDF end
 } pmove_t;
 
 // if a full pmove isn't done on the client, you can just update the angles
@@ -210,7 +214,12 @@ typedef enum {
 	STAT_ARMOR,				
 	STAT_DEAD_YAW,					// look this direction when dead (FIXME: get rid of?)
 	STAT_CLIENTS_READY,				// bit mask of clients wishing to exit the intermission (FIXME: configstring?)
-	STAT_MAX_HEALTH					// health / armor limit, changeable by handicap
+	STAT_MAX_HEALTH,				// health / armor limit, changeable by handicap
+	//::OSDF modded
+	STAT_TIME_LASTJUMP,				// level.time when the last jump happened
+	//STAT_TIME_DOUBLEJUMP,			// remaining time to doublejump
+	STAT_OVERBOUNCE_SCALE,			// Overbounce amount to apply. To pass cvar from g_active.c to pmove functions
+	//::OSDF end
 } statIndex_t;
 
 
@@ -685,6 +694,12 @@ typedef enum {
 	ET_INVISIBLE,
 	ET_GRAPPLE,				// grapple hooked on wall
 	ET_TEAM,
+    //::OSDF modded
+    ET_TIMER,               // Goal: Use this as a global timer event
+    ET_TIMER_START,
+    ET_TIMER_CHECKPOINT,
+    ET_TIMER_STOP,
+    //::OSDF end
 
 	ET_EVENTS				// any of the EV_* events can be added freestanding
 							// by setting eType to ET_EVENTS + eventNum
@@ -741,18 +756,24 @@ qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTim
 //:::::::::::::::::
 //::OSDF modded
 // Common
-extern float   phy_stopspeed;
-extern float   phy_duckScale;
-extern float   phy_swimScale;
-
 extern float   phy_accelerate;
 extern float   phy_airaccelerate;
-extern float   phy_wateraccelerate;
-extern float   phy_flyaccelerate;
+extern float   phy_stopspeed;
 
 extern float   phy_friction;
-extern float   phy_waterfriction;
-extern float   phy_flightfriction;
+extern float   phy_crouch_scale;
+
+// Flight Powerup
+extern float   phy_fly_accel;
+extern float   phy_fly_friction;
+// Water
+extern float   phy_water_accel;
+extern float   phy_water_friction;
+extern float   phy_water_scale;
+
+extern int   phy_jump_velocity;        // Vertical velocity that will be set/added when jumping (default = JUMP_VELOCITY = 270)
+extern int   phy_jump_dj_time;         // Amount of time(ms) since last jump, where CPM dj behavior can happen. (default CPM = 400)
+extern int   phy_jump_dj_velocity;     // Amount of velocity to add to CPM dj behavior. (default CPM = 100)
 
 // Functions
 void osdf_init(); // Initializes values to their default state (::TEMP: hack until proper cvar reading/writing)
@@ -771,6 +792,5 @@ extern qboolean phy_aircontrol; // Enables/disables aircontrol (W turning)
 //  Functions
 //    Taken from Lumia's Momentum Mod open source implementation.
 void cpm_move(pmove_t *pmove);
-
-//::OSDF end
 //:::::::::::::::::
+//::OSDF end

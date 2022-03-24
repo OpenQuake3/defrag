@@ -60,7 +60,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 #define TRAVELTIME_SCALE		0.01
 //item flags
-#define IFL_NOTFREE				1		//not in free for all
+#define ifl_notrun				1		//not in Run
 #define IFL_NOTTEAM				2		//not in team play
 #define IFL_NOTSINGLE			4		//not in single player
 #define IFL_NOTBOT				8		//bot should never go for this
@@ -90,7 +90,7 @@ typedef struct campspot_s
 
 //FIXME: these are game specific
 typedef enum {
-	GT_FFA,				// free for all
+	GT_RUN,				// Run
 	GT_TOURNAMENT,		// one on one tournament
 	GT_SINGLE_PLAYER,	// single player tournament
 
@@ -623,8 +623,8 @@ void BotInitLevelItems(void)
 		li->entitynum = 0;
 		//
 		li->flags = 0;
-		AAS_IntForBSPEpairKey(ent, "notfree", &value);
-		if (value) li->flags |= IFL_NOTFREE;
+		AAS_IntForBSPEpairKey(ent, "notrun", &value);
+		if (value) li->flags |= ifl_notrun;
 		AAS_IntForBSPEpairKey(ent, "notteam", &value);
 		if (value) li->flags |= IFL_NOTTEAM;
 		AAS_IntForBSPEpairKey(ent, "notsingle", &value);
@@ -883,7 +883,7 @@ int BotGetLevelItemGoal(int index, char *name, bot_goal_t *goal)
 			if (li->flags & IFL_NOTTEAM) continue;
 		}
 		else {
-			if (li->flags & IFL_NOTFREE) continue;
+			if (li->flags & ifl_notrun) continue;
 		}
 		if (li->flags & IFL_NOTBOT) continue;
 		//
@@ -1101,7 +1101,7 @@ void BotUpdateEntityItems(void)
 				if (li->flags & IFL_NOTTEAM) continue;
 			}
 			else {
-				if (li->flags & IFL_NOTFREE) continue;
+				if (li->flags & ifl_notrun) continue;
 			}
 			//if the model of the level item and the entity are the same
 			if (ic->iteminfo[li->iteminfo].modelindex == modelindex)
@@ -1336,7 +1336,7 @@ int BotChooseLTGItem(int goalstate, vec3_t origin, int *inventory, int travelfla
 				continue;
 		}
 		else {
-			if (li->flags & IFL_NOTFREE)
+			if (li->flags & ifl_notrun)
 				continue;
 		}
 		if (li->flags & IFL_NOTBOT)
@@ -1507,7 +1507,7 @@ int BotChooseNBGItem(int goalstate, vec3_t origin, int *inventory, int travelfla
 				continue;
 		}
 		else {
-			if (li->flags & IFL_NOTFREE)
+			if (li->flags & ifl_notrun)
 				continue;
 		}
 		if (li->flags & IFL_NOTBOT)
