@@ -45,7 +45,7 @@ char teamChat2[256];
 
 //::OSDF modded
 //TODO: Switch to Cvars
-qboolean ui_speed = qtrue;
+qboolean hud_speed = qtrue;
 qboolean ui_Vspeed = qtrue;
 //::OSDF end
 
@@ -777,10 +777,11 @@ static float CG_DrawFPS( float y ) {
 
 /*
 =================
-CG_DrawTimer
+CG_DrawTimelimit
+//::OSDF modded name from timer to timelimit.
 =================
 */
-static float CG_DrawTimer( float y ) {
+static float CG_DrawTimelimit( float y ) {
 	char		*s;
 	int			w;
 	int			mins, seconds, tens;
@@ -998,8 +999,8 @@ static void CG_DrawUpperRight(stereoFrame_t stereoFrame)
 	if (cg_drawFPS.integer && (stereoFrame == STEREO_CENTER || stereoFrame == STEREO_RIGHT)) {
 		y = CG_DrawFPS( y );
 	}
-	if ( cg_drawTimer.integer ) {
-		y = CG_DrawTimer( y );
+	if ( cg_drawTimelimit.integer ) {
+		y = CG_DrawTimelimit( y );  //::OSDF modded name from timer to timelimit.
 	}
 	if ( cg_drawAttacker.integer ) {
 		CG_DrawAttacker( y );
@@ -2527,35 +2528,7 @@ void CG_DrawTimedMenus( void ) {
 //::OSDF modded
 //:::::::::::::::::
 // Speedometer
-//  Modified forty/chruker's speedometer
-#if 0
-static float CG_DrawSpeedH(float y){
-    char *s;
-    int	w;
-    static int lasttime;
-    int thistime;
-
-    thistime = trap_Milliseconds();
-    if (thistime > lasttime){
-        float velX = cg.ps.velocity[0];
-        float velY = cg.ps.velocity[1];
-        speed = sqrt(velX*velX + velY*velY);
-        lasttime = thistime;
-    }
-    if (ui_speed == qtrue) {
-        s = va("%.1f UPS", speed); // Units per second
-    } 
-	w = CG_Text_Width_Ext(s, 0.19f, 0, &cgs.media.limboFont1);
-
-	CG_FillRect(UPPERRIGHT_X - w - 2, y, w + 5, 12 + 2, timerBackground);
-	//CG_DrawRect_FixedBorder(UPPERRIGHT_X - w - 2, y, w + 5, 12 + 2, 1, timerBorder);
-
-	CG_Text_Paint_Ext(UPPERRIGHT_X - w, y + 11, 0.19f, 0.19f, tclr, s, 0, 0, 0, &cgs.media.limboFont1);
-
-	return y + 12 + 4;
-}
-#endif
-
+//
 // Screen space constants. For adjusting [0-1] to expected virtual screen values
 #define SCREENH 640
 #define SCREENW 480
@@ -2563,22 +2536,77 @@ static float CG_DrawSpeedH(float y){
 // Uses 0-1 range for each coordinate, instead of 640 stuff from q3_ui
 // ie: 0.5 == middle of the screen
 static float CG_DrawSpeed(float x, float y, float alpha){
-    int posX, posY, sint;
+    int sint, w;
     float velX, velY;
     char *speed;
 
     // Convert [0-1] input range to q3_ui expected range (screen space)
     //FIXME: Wrong math. Figure out the proper conversion with cg.scaleX etc
-    posX = x*SCREENW;
-    posY = y*SCREENH;
+    x = x*SCREENW;
+    y = y*SCREENH;
 
     // Calculate current speed, based on ps->velocity
-    velX = cg.predictedPlayerState.velocity[0];      // Store X component of velocity
-    velY = cg.predictedPlayerState.velocity[1];      // Store Y component of velocity
-    sint = (int)sqrt(velX*velX + velY*velY);         // Calculate speed as length2D of velocity, and convert to integer
-    Com_sprintf(speed, sizeof(speed)+2, "%i", sint); // Convert integer speed to string
-    CG_DrawBigString(posX, posY, speed, alpha);      // Draw speed string to screen
+    velX = cg.snap->ps.velocity[0];                   // Store X component of velocity
+    velY = cg.snap->ps.velocity[1];                   // Store Y component of velocity
+    sint = (int)sqrt(velX*velX + velY*velY);          // Calculate speed as length2D of velocity, and convert to integer
+    Com_sprintf(speed, sizeof(speed)+2, "%i", sint);  // Convert integer speed to string
+    w = CG_DrawStrlen(speed) * BIGCHAR_WIDTH * 0.5;
+    CG_DrawBigString(x-w, y, speed, alpha);           // Draw speed string to screen
 }
+
+// Replaces Naming of default function. Default renamed to CG_DrawTimelimit
+static void CG_DrawTimer( float x, float y, float alpha ) {
+  char *s;
+  int  w;
+  int  min, sec, ten;
+  int  msec, timer;
+
+  x = x*SCREENW;
+  y = y*SCREENH;
+
+  // Timers set to -1 are considered disabled. On player_die(), ClientSpawn(), etc
+  if      (cg.timer_stop  >= 0) { timer = cg.timer_stop; }                        // If there is a timer_stop active, draw it and ignore active timer 
+  else if (cg.timer_start >= 0) { timer = cg.snap->serverTime - cg.timer_start; } // Draw active timer instead
+  else                          { timer = 0; }                                    // None of them is active, so draw a static 0 timer
+
+  msec = timer % 1000;
+  sec = timer / 1000;
+  min = sec / 60;
+  sec -= min * 60;
+  ten = sec / 10;
+  sec -= ten * 10;
+
+  s = (min > 0) ? va("%i:%i%i:%03i", min, ten, sec, msec) : va("%i%i:%03i", ten, sec, msec);
+  w = CG_DrawStrlen(s) * SMALLCHAR_WIDTH * 0.5;
+  CG_DrawSmallString(x-w, y, s, 1.0);
+}
+
+static void CG_DrawTimerBest( float x, float y, float alpha ) {
+  char	*s;
+  int	w;
+  int	min, sec, ten;
+  int	msec, timer;
+
+  // Don't draw the best timer when its 0 or negative
+  if (cg.timer_best <= 0) { return; }
+
+  x = x*SCREENW;
+  y = y*SCREENH;
+
+  timer = cg.timer_best; 
+
+  msec = timer % 1000;
+  sec = timer / 1000;
+  min = sec / 60;
+  sec -= min * 60;
+  ten = sec / 10;
+  sec -= ten * 10;
+
+  s = (min > 0) ? va("%i:%i%i:%03i", min, ten, sec, msec) : va("%i%i:%03i", ten, sec, msec);
+  w = CG_DrawStrlen(s) * SMALLCHAR_WIDTH * 0.5;
+  CG_DrawSmallString(x-w, y, s, 1.0);
+}
+
 //::::::::::::::
 //::OSDF end
 
@@ -2687,7 +2715,10 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
     //::OSDF modded
     //::::::::::::::
 	if ( !cg.scoreBoardShowing) {    //FIXME: Segmentation fault when drawing the scoreboard while speed is being drawn
-        CG_DrawSpeed(0.66, 0.4, 1.0); //TODO: Add cvar conditional and settings
+        //TODO: Proper screen allignment
+        CG_DrawSpeed(hud_speed_x.value, hud_speed_y.value, 1.0); //TODO: Add cvar conditional and settings
+        CG_DrawTimer(0.6666666, 0.0, 1.0F);
+        CG_DrawTimerBest(0.6666666, 0.05, 1.0F);
     }
     //::::::::::::::
     //::OSDF end

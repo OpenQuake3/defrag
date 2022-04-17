@@ -317,6 +317,13 @@ struct gclient_s {
 #endif
 
 	char		*areabits;
+	//::OSDF added
+	//::::::::::::::
+	//TODO: Switch to timerData_t struct. Will be needed for checkpoints
+	int			timer_start;	// servertime at the moment of hitting start trigger
+	int			timer_end;		// servertime at the moment of hitting end trigger
+	//::::::::::::::
+	//::OSDF end
 };
 
 
@@ -760,6 +767,7 @@ extern vmCvar_t		phy_rocket_speed;
 extern vmCvar_t		phy_rocket_damage;
 extern vmCvar_t		phy_rocket_splashDamage;
 extern vmCvar_t		phy_rocket_splashRadius;
+//::OSDF end
 
 void	trap_Print( const char *text );
 void	trap_Error( const char *text ) __attribute__((noreturn));

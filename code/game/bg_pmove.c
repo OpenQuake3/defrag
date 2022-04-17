@@ -2093,6 +2093,7 @@ float phy_water_friction;
 // q3 math quirks
 qboolean phy_snapvelocity;      // Enables rounding velocity to ints every frame (default q3a = qtrue)
 qboolean phy_input_scalefix;    // Fixes slowdown on jump input if enabled (default q3a = qfalse)
+float q1_overbounce_scale;     // OVERCLIP value. Removed to 1.000f for QW
 // Slidemove 
 int   phy_slidemove_type;       // Slidemove function type. For controlling general movement behavior (not slick_type)
 // Sound
@@ -2181,16 +2182,17 @@ void osdf_init(int movetype) {
     phy_slidemove_type = Q3A;
     phy_snapvelocity = qfalse;
     phy_input_scalefix = qtrue;
+    q1_overbounce_scale = 1.000f;
     // Ground
     phy_ground_basespeed = 320;
     phy_ground_accel = 10;
     // Air movement
-    phy_air_accel = 70; // QW value 0.7 : q3a default 1
-    phy_air_speedscalar = 0.125; //0.1876; // Value: 0.0938 brings down speed to ~30
+    phy_air_accel = 90; // 70 = QW value 0.7 : q3a = 1 :: 100 was too much. 70 not enough :: 0.1/32as/90aa/125fps felt really good
+    phy_air_speedscalar = 0.11; //0.1125;=36 slightly too much //0.125=40 too much; // Value: 0.0938 = ~30, but its too slow. 0.1/32as/70aa/77fps super close to QW/vint
     // Jump
     phy_jump_velocity = JUMP_VELOCITY;
     phy_jump_auto = qtrue;
-    phy_jump_type = VQ1;
+    phy_jump_type = VQ3;
     s_jump_interval = 250;
   }
   osdf_initialized = qtrue;
@@ -2419,10 +2421,13 @@ static qboolean q1_CheckJump(void) {
   
   if (pm->ps->pm_flags & PMF_DUCKED) { pm->ps->velocity[2] *= 0.5; }
 
+  /*
   // QW downramps
   if (phy_jump_type == VQ1) {
     pm->ps->velocity[2] += phy_jump_velocity; // Always adds
-  } else {
+  } else
+  */
+  {
     // Downramps act like vq3 (set). Upramps act like QW (add)
     if (pm->ps->velocity[2] < 0){
       if (DotProduct(pm->ps->velocity, pml.groundTrace.plane.normal) > 0) {
@@ -2660,7 +2665,7 @@ static void q1_AirMove(void) {
   // we may have a ground plane that is very steep, even though we don't have a
   // groundentity. slide along the steep plane
   if (pml.groundPlane) {
-    q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP);
+    q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale);
   }
   // Do the movement
   q3a_StepSlideMove(qtrue);
@@ -2781,7 +2786,6 @@ static void q1_WalkMove(void) {
   usercmd_t cmd;
   float accelerate;
   float vel;
-  float overbounce;
 
   if (pm->waterlevel > 2 && DotProduct(pml.forward, pml.groundTrace.plane.normal) > 0) {
     PM_WaterMove(); // begin swimming
@@ -2807,9 +2811,8 @@ static void q1_WalkMove(void) {
   pml.forward[2] = 0;
   pml.right[2] = 0;
   // project the forward and right directions onto the ground plane
-  overbounce = 1.000f;
-  q3a_VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, overbounce);
-  q3a_VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, overbounce);
+  q3a_VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, q1_overbounce_scale);
+  q3a_VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, q1_overbounce_scale);
   VectorNormalize(pml.forward);
   VectorNormalize(pml.right);
 
@@ -2849,7 +2852,7 @@ static void q1_WalkMove(void) {
   // this is the part that causes overbounces
   vel = VectorLength(pm->ps->velocity);
   // slide along the ground plane
-  q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, overbounce);
+  q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale);
   // don't decrease velocity when going up or down a slope
   VectorNormalize(pm->ps->velocity);
   VectorScale(pm->ps->velocity, vel, pm->ps->velocity);

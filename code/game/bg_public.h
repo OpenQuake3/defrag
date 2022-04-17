@@ -217,7 +217,7 @@ typedef enum {
 	STAT_MAX_HEALTH,				// health / armor limit, changeable by handicap
 	//::OSDF modded
 	STAT_TIME_LASTJUMP,				// level.time when the last jump happened
-	//STAT_TIME_DOUBLEJUMP,			// remaining time to doublejump
+	STAT_TIME_START,				// level.time when the start trigger was hit. NULL means timer is disabled
 	STAT_OVERBOUNCE_SCALE,			// Overbounce amount to apply. To pass cvar from g_active.c to pmove functions
 	//::OSDF end
 } statIndex_t;

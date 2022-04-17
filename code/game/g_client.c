@@ -1184,6 +1184,14 @@ void ClientSpawn(gentity_t *ent) {
 	client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
 	client->ps.pm_time = 100;
 
+	//::OSDF added
+	//::::::::::::
+	client->timer_start = -1;
+  //client->timer_stop = client->ps.commandTime;
+	//trap_SendServerCommand(ent - g_entities, va("timerStop %i", client->timer_stop));
+	//::::::::::::
+	//::OSDF end
+
 	client->respawnTime = level.time;
 	client->inactivityTime = level.time + g_inactivity.integer * 1000;
 	client->latched_buttons = 0;

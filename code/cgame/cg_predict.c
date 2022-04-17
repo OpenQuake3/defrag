@@ -580,6 +580,12 @@ void CG_PredictPlayerState( void ) {
 		if ( cg_pmove.pmove_fixed ) {
 			cg_pmove.cmd.serverTime = ((cg_pmove.cmd.serverTime + pmove_msec.integer-1) / pmove_msec.integer) * pmove_msec.integer;
 		}
+		
+		//::OSDF modded
+		//::::::::::::::
+		//cg_pmove.movetype =  //TODO: How to get g_ cvars data into this?
+		//::::::::::::::
+		//::OSDF end
 
 		Pmove (&cg_pmove);
 

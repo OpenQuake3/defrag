@@ -639,6 +639,16 @@ typedef struct {
 	char			testModelName[MAX_QPATH];
 	qboolean		testGun;
 
+	//::OSDF added
+	//::::::::::::::
+	//TODO: Switch to timerData_t struct. Will be needed for checkpoints
+	int			timer_start;	// cg.snap->servertime at the moment of hitting start trigger
+	int			timer_stop;		// cg.snap->servertime - timer_start at the moment of stopping the timer (no trigger)
+	int			timer_end;		// cg.snap->servertime - timer_start achieved on hitting end trigger
+	int			timer_best;		// best cg.snap->servertime - timer_start achieved on hitting end trigger
+	//::::::::::::::
+	//::OSDF end
+
 } cg_t;
 
 
@@ -1092,7 +1102,7 @@ extern	vmCvar_t		cg_bobroll;
 extern	vmCvar_t		cg_swingSpeed;
 extern	vmCvar_t		cg_shadows;
 extern	vmCvar_t		cg_gibs;
-extern	vmCvar_t		cg_drawTimer;
+extern	vmCvar_t		cg_drawTimelimit;  //::OSDF modded name from timer to timelimit.
 extern	vmCvar_t		cg_drawFPS;
 extern	vmCvar_t		cg_drawSnapshot;
 extern	vmCvar_t		cg_draw3dIcons;
@@ -1177,6 +1187,12 @@ extern	vmCvar_t		cg_oldRail;
 extern	vmCvar_t		cg_oldRocket;
 extern	vmCvar_t		cg_oldPlasma;
 extern	vmCvar_t		cg_trueLightning;
+
+//::OSDF modded
+extern	vmCvar_t		hud_speed_x;
+extern	vmCvar_t		hud_speed_y;
+//::OSDF end
+
 #ifdef MISSIONPACK
 extern	vmCvar_t		cg_redTeamName;
 extern	vmCvar_t		cg_blueTeamName;

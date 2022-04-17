@@ -625,7 +625,10 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 	// don't allow respawn until the death anim is done
 	// g_forcerespawn may force spawning at some later time
-	self->client->respawnTime = level.time;// + 1700; //::OSDF modded. Allow Instant Respawn
+  //::OSDF modded
+	self->client->respawnTime = level.time;// + 1700; // Allow Instant Respawn
+  trap_SendServerCommand( self-g_entities, va("timerStop %i", self->client->ps.commandTime)); // Send server time at the time of respawn.
+  //::OSDF end
 
 	// remove powerups
 	memset( self->client->ps.powerups, 0, sizeof(self->client->ps.powerups) );
