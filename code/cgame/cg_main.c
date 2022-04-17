@@ -189,6 +189,10 @@ vmCvar_t	cg_trueLightning;
 //::OSDF modded
 vmCvar_t	hud_speed_x;
 vmCvar_t	hud_speed_y;
+vmCvar_t	hud_timerActive_x;
+vmCvar_t	hud_timerActive_y;
+vmCvar_t	hud_timerBest_x;
+vmCvar_t	hud_timerBest_y;
 //::OSDF end
 
 #ifdef MISSIONPACK
@@ -329,6 +333,10 @@ static cvarTable_t cvarTable[] = {
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 	{&hud_speed_x, "hud_speed_x", "0.66666", CVAR_USERINFO},
 	{&hud_speed_y, "hud_speed_y", "0.4", CVAR_USERINFO},
+	{&hud_timerActive_x, "hud_timerActive_x", "0.66666", CVAR_USERINFO},
+	{&hud_timerActive_y, "hud_timerActive_y", "0.0", CVAR_USERINFO},
+	{&hud_timerBest_x, "hud_timerBest_x", "1.0", CVAR_USERINFO},
+	{&hud_timerBest_y, "hud_timerBest_y", "0.0", CVAR_USERINFO},
 };
 
 static int  cvarTableSize = ARRAY_LEN( cvarTable );

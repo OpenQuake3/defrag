@@ -2717,8 +2717,8 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	if ( !cg.scoreBoardShowing) {    //FIXME: Segmentation fault when drawing the scoreboard while speed is being drawn
         //TODO: Proper screen allignment
         CG_DrawSpeed(hud_speed_x.value, hud_speed_y.value, 1.0); //TODO: Add cvar conditional and settings
-        CG_DrawTimer(0.6666666, 0.0, 1.0F);
-        CG_DrawTimerBest(0.6666666, 0.05, 1.0F);
+        CG_DrawTimer(hud_timerActive_x.value, hud_timerActive_y.value, 1.0F);
+        CG_DrawTimerBest(hud_timerBest_x.value, hud_timerBest_y.value, 1.0F);
     }
     //::::::::::::::
     //::OSDF end

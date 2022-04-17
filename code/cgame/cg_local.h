@@ -1191,6 +1191,10 @@ extern	vmCvar_t		cg_trueLightning;
 //::OSDF modded
 extern	vmCvar_t		hud_speed_x;
 extern	vmCvar_t		hud_speed_y;
+extern	vmCvar_t		hud_timerActive_x;
+extern	vmCvar_t		hud_timerActive_y;
+extern	vmCvar_t		hud_timerBest_x;
+extern	vmCvar_t		hud_timerBest_y;
 //::OSDF end
 
 #ifdef MISSIONPACK
