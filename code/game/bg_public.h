@@ -694,12 +694,6 @@ typedef enum {
 	ET_INVISIBLE,
 	ET_GRAPPLE,				// grapple hooked on wall
 	ET_TEAM,
-    //::OSDF modded
-    ET_TIMER,               // Goal: Use this as a global timer event
-    ET_TIMER_START,
-    ET_TIMER_CHECKPOINT,
-    ET_TIMER_STOP,
-    //::OSDF end
 
 	ET_EVENTS				// any of the EV_* events can be added freestanding
 							// by setting eType to ET_EVENTS + eventNum
