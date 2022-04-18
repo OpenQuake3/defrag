@@ -1187,8 +1187,6 @@ void ClientSpawn(gentity_t *ent) {
 	//::OSDF added
 	//::::::::::::
 	client->timer_start = -1;
-  //client->timer_stop = client->ps.commandTime;
-	//trap_SendServerCommand(ent - g_entities, va("timerStop %i", client->timer_stop));
 	//::::::::::::
 	//::OSDF end
 
