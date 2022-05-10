@@ -770,7 +770,7 @@ extern int   phy_jump_dj_time;         // Amount of time(ms) since last jump, wh
 extern int   phy_jump_dj_velocity;     // Amount of velocity to add to CPM dj behavior. (default CPM = 100)
 
 // Functions
-void osdf_init(); // Initializes values to their default state (::TEMP: hack until proper cvar reading/writing)
+void osdf_init(int movetype); // Initializes values to their default state (::TEMP: hack until proper cvar reading/writing)
 void osdf_move(pmove_t *pmove); // Selects the type of movement to execute
 void osdf_accelerate( vec3_t wishdir, float wishspeed, float accel ); // Calculates accel amount and applies it to velocity
 

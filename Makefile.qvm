@@ -1,8 +1,5 @@
-# This file is added as '-include' in the project's Makefile
-#   anything here will overwrite the default build options
-# History:
-#   Previous use: Make Q3 compiling tools, and use them to compile into QVM only
-#   Current use: Make the project into a Dynamic Library mod (2022-05-07)
+# ioq3 Default Makefile
+#   -include this file, to only create QVM and TOOLS, ignoring anything else
 
 # Repository's Root folder 
 #   In relationship to this makefile
@@ -24,13 +21,13 @@ CODEDIR=${SRCDIR}/code
 # Options:
 # .. Compile only Tools & QVM
 # Compile qvm (enabled by default)
-BUILD_GAME_QVM=0
+BUILD_GAME_QVM=1
 # Disable Engine based
 BUILD_CLIENT=0
 BUILD_SERVER=0
 BUILD_RENDERER_OPENGL2=0
-# Enable .so based
-BUILD_GAME_SO=1
+# Disable .so based
+BUILD_GAME_SO=0
 # Disable the builtin "mod", aka expansion, aka missionpack
 BUILD_MISSIONPACK=0
 

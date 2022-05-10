@@ -2547,13 +2547,13 @@ void q1_AirMoveQW (void) {
 	float     fmove, smove;
 	vec3_t		wishdir;
 	float     wishspeed;
-  usercmd_t cmd;
+  //usercmd_t cmd;
 
     // fmove & smove = -127 to 127
     // upmove        =    0 to  20
   fmove = pm->cmd.forwardmove;  // AKA: finput, forward_cmd
   smove = pm->cmd.rightmove;    //      sinput
-  cmd   = pm->cmd;              // Inputs for this AirMove = current inputs
+  //cmd   = pm->cmd;              // Inputs for this AirMove = current inputs
   PM_SetMovementDir();          // set the movementDir so clients can rotate the legs for strafing
 
   // Project moves down to flat plane. Zero out z components of movement vectors
@@ -2601,8 +2601,8 @@ static void q1_AirMove(void) {
   float realSpeed;   // Called maxspeed. Actually just baseSpeed (320ups)
   float realWishSpd; // Wishpeed to apply in each case
 
-  float angle;
-  vec3_t vel2D;
+  //float angle;
+  //vec3_t vel2D;
 
   PM_Friction();
 
@@ -2674,10 +2674,10 @@ static void q1_AirMove(void) {
 
 static void q3a_AirMove(void) {
   int i;
-  vec3_t wishvel, wishvel_c;
+  vec3_t wishvel;//, wishvel_c;
   float fmove, smove;
   vec3_t wishdir;
-  float wishspeed, wishspeed_c;
+  float wishspeed;//, wishspeed_c;
   usercmd_t cmd;
   qboolean doSideMove, doForwMove;
 
@@ -2686,8 +2686,8 @@ static void q3a_AirMove(void) {
   float realSpeed;   // Called maxspeed. Actually just baseSpeed (320ups)
   float realWishSpd; // Wishpeed to apply in each case
 
-  float angle;
-  vec3_t vel2D;
+  //float angle;
+  //vec3_t vel2D;
 
   PM_Friction();
 

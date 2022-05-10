@@ -519,7 +519,7 @@ qboolean	q3a_SlideMove( qboolean gravity ) {
 
 void q3a_StepSlideMove( qboolean gravity ) {
 	vec3_t		start_o, start_v;
-	vec3_t		down_o, down_v;
+	//vec3_t		down_o, down_v;
 	trace_t		trace;
 //	float		down_dist, up_dist;
 //	vec3_t		delta, delta2;
@@ -554,8 +554,8 @@ void q3a_StepSlideMove( qboolean gravity ) {
 		{ return; }
 
 
-	VectorCopy (pm->ps->origin, down_o);
-	VectorCopy (pm->ps->velocity, down_v);
+	//VectorCopy (pm->ps->origin, down_o);
+	//VectorCopy (pm->ps->velocity, down_v);
 
 	VectorCopy (start_o, up);
 	up[2] += STEPSIZE;

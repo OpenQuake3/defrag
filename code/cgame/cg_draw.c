@@ -2535,7 +2535,7 @@ void CG_DrawTimedMenus( void ) {
 
 // Uses 0-1 range for each coordinate, instead of 640 stuff from q3_ui
 // ie: 0.5 == middle of the screen
-static float CG_DrawSpeed(float x, float y, float alpha){
+static void CG_DrawSpeed(float x, float y, float alpha){
     int sint, w;
     float velX, velY;
     char *speed;
@@ -2549,7 +2549,7 @@ static float CG_DrawSpeed(float x, float y, float alpha){
     velX = cg.snap->ps.velocity[0];                   // Store X component of velocity
     velY = cg.snap->ps.velocity[1];                   // Store Y component of velocity
     sint = (int)sqrt(velX*velX + velY*velY);          // Calculate speed as length2D of velocity, and convert to integer
-    Com_sprintf(speed, sizeof(speed)+2, "%i", sint);  // Convert integer speed to string
+    speed = va("%i", sint);                           // Convert integer speed to string
     w = CG_DrawStrlen(speed) * BIGCHAR_WIDTH * 0.5;
     CG_DrawBigString(x-w, y, speed, alpha);           // Draw speed string to screen
 }
