@@ -1195,6 +1195,8 @@ extern	vmCvar_t		hud_timerActive_x;
 extern	vmCvar_t		hud_timerActive_y;
 extern	vmCvar_t		hud_timerBest_x;
 extern	vmCvar_t		hud_timerBest_y;
+
+extern	vmCvar_t		phy_movetype;
 //::OSDF end
 
 #ifdef MISSIONPACK

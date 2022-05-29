@@ -1008,18 +1008,43 @@ Items can be picked up without actually touching their physical bounds to make
 grabbing them easier
 ============
 */
-qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTime ) {
+//::OSDF modded for item pickup size
+qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTime, int movetype ) {
 	vec3_t		origin;
+	int			zMargin; // Used for above the item. See Explanation
 
 	BG_EvaluateTrajectory( &item->pos, atTime, origin );
 
+	// Player mins (-15, -15, -24), maxs (15, 15, 32)
+	//   Defined at the top of g_client.c
+	// sizes:   X and Y
+	//   player = 32u wide, 16u from origin
+	//   item   = 32u wide, 16u from origin
+	//   margin = 2u each
+	//   total  = 36u = 18+18 = 16+2 + 16+2
+	// sizes:  +Z
+	//   player = -24u from origin
+	//   item   = -16u from origin
+	//   margin = -2u each
+	//   total  = 44u = 24+2 + 16+2
+	//   standing above 32u, doesn't trigger
+	// sizes:  -Z
+	//   player = 32u from origin
+	//   item   = 16u from origin
+	//   margin = 2u for item bbox
+	//   total  = -50u = -32 - 16-2
+	//
+	//  zMargin : Margin above the item. We need to be under this range to pick it
+	//          : Default 44u = If we are 32u above the item, we won't pick it
+	//          : CPM     70u = If we are 58u above the item, we won't pick it
+	zMargin = (movetype == 0) ? 70 : 44;
 	// we are ignoring ducked differences here
-	if ( ps->origin[0] - origin[0] > 44
-		|| ps->origin[0] - origin[0] < -50
-		|| ps->origin[1] - origin[1] > 36
-		|| ps->origin[1] - origin[1] < -36
-		|| ps->origin[2] - origin[2] > 36
-		|| ps->origin[2] - origin[2] < -36 ) {
+	if ( ps->origin[0] - origin[0] >  zMargin
+	  || ps->origin[0] - origin[0] < -50
+	  || ps->origin[1] - origin[1] >  36
+	  || ps->origin[1] - origin[1] < -36
+	  || ps->origin[2] - origin[2] >  36
+	  || ps->origin[2] - origin[2] < -36 ) {
 		return qfalse;
 	}
 

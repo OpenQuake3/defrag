@@ -264,7 +264,7 @@ static void CG_TouchItem( centity_t *cent ) {
 	if ( !cg_predictItems.integer ) {
 		return;
 	}
-	if ( !BG_PlayerTouchesItem( &cg.predictedPlayerState, &cent->currentState, cg.time ) ) {
+	if ( !BG_PlayerTouchesItem( &cg.predictedPlayerState, &cent->currentState, cg.time, cg_pmove.movetype ) ) {
 		return;
 	}
 
@@ -582,9 +582,7 @@ void CG_PredictPlayerState( void ) {
 		}
 		
 		//::OSDF modded
-		//::::::::::::::
-		//cg_pmove.movetype =  //TODO: How to get g_ cvars data into this?
-		//::::::::::::::
+		cg_pmove.movetype = phy_movetype.integer; //TODO: Is a systeminfo cvar enough to get g_ cvars into the client pmove?
 		//::OSDF end
 
 		Pmove (&cg_pmove);

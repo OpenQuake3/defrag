@@ -913,10 +913,19 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 	if ( knockback && targ->client ) {
 		vec3_t	kvel;
 		float	mass;
+    float scale = 1; //::OSDF added, for knockback scaling
 
 		mass = 200;
 
-		VectorScale (dir, phy_knockback.value * (float)knockback / mass, kvel);
+    //::OSDF added. Different vq3/cpm knockback scaling
+    if ((targ == attacker) 
+         && (mod == MOD_ROCKET_SPLASH || mod == MOD_ROCKET)
+         && (phy_movetype.integer == 0)){
+      scale = 1.2; 
+    }
+    //::OSDF end
+
+		VectorScale (dir, scale * phy_knockback.value * (float)knockback / mass, kvel); //::OSDF modded. Added knockback scaling
 		VectorAdd (targ->client->ps.velocity, kvel, targ->client->ps.velocity);
 
 		// set the timer so that the other client can't cancel
