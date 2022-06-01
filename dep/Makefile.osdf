@@ -1,0 +1,57 @@
+# This file is added as '-include' in the project's Makefile
+#   anything here will overwrite the default build options
+# History:
+#   Previous use: Make Q3 compiling tools, and use them to compile into QVM only
+#   Current use: Make the project into a Dynamic Library mod (2022-05-07)
+
+# Repository's Root folder 
+#   In relationship to this makefile
+ROOTDIR=../..
+
+
+# Mod Configuration
+MODNAME=osdf
+
+# Output dir for binaries
+OUTDIR=${ROOTDIR}/bin
+# Compilation root folder
+#   Where the project is stored, in the way ioq3 Makefile expects it
+SRCDIR=${ROOTDIR}/src/osdf-ioq3/
+# Folder containing the modded source code
+CODEDIR=${SRCDIR}/code
+## Future: src/osdf-mod/  . or ./code
+
+# Options:
+# .. Compile only Tools & QVM
+# Compile qvm (enabled by default)
+BUILD_GAME_QVM=0
+# Disable Engine based
+BUILD_CLIENT=0
+BUILD_SERVER=0
+BUILD_RENDERER_OPENGL2=0
+# Enable .so based
+BUILD_GAME_SO=1
+# Disable the builtin "mod", aka expansion, aka TEAMARENA
+BUILD_TEAMARENA=0
+
+
+# Renamed things for clarity
+##    We are modding the basegame, so the modname IS the basegame
+BASEGAME=$(MODNAME)
+BUILD_DIR=$(OUTDIR)
+MOUNT_DIR=$(CODEDIR)
+
+
+
+## Defaults 
+#  .. Overwritten in the next block,
+#     and inside Makefile.local after that
+#BUILD_STANDALONE	= 0
+#BUILD_CLIENT		= 1
+#BUILD_SERVER		= 1
+#BUILD_GAME_SO		= 1
+#BUILD_AUTOUPDATER	= 0
+#BUILD_RENDERER_OPENGL2=1
+#BUILD_BASEGAME		= 1
+#BUILD_TEAMARENA	= 1
+## ::::::::::::::::::

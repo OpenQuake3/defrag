@@ -1,0 +1,187 @@
+# LBURG
+# Binary
+LD ../../bin/release-linux-x86_64/tools/lburg/lburg
+  # ?? 
+  LBURG code/tools/lcc/src/dagcheck.md
+  TOOLS_CC_DAGCHECK ../../bin/release-linux-x86_64/tools/rcc/dagcheck.c
+# Sources
+code/tools/lcc/etc/lcc.c
+code/tools/lcc/etc/bytecode.c
+code/tools/lcc/src/alloc.c
+code/tools/lcc/src/bind.c
+code/tools/lcc/src/bytecode.c
+code/tools/lcc/src/dag.c
+code/tools/lcc/lburg/lburg.c
+code/tools/lcc/lburg/gram.c
+
+
+# RCC
+# Binary
+../../bin/release-linux-x86_64/tools/q3rcc
+# Sources
+code/tools/lcc/src/decl.c
+code/tools/lcc/src/enode.c
+code/tools/lcc/src/error.c
+code/tools/lcc/src/event.c
+code/tools/lcc/src/expr.c
+code/tools/lcc/src/gen.c
+code/tools/lcc/src/init.c
+code/tools/lcc/src/inits.c
+code/tools/lcc/src/input.c
+code/tools/lcc/src/lex.c
+code/tools/lcc/src/list.c
+code/tools/lcc/src/main.c
+code/tools/lcc/src/null.c
+code/tools/lcc/src/output.c
+code/tools/lcc/src/prof.c
+code/tools/lcc/src/profio.c
+code/tools/lcc/src/simp.c
+code/tools/lcc/src/stmt.c
+code/tools/lcc/src/string.c
+code/tools/lcc/src/sym.c
+code/tools/lcc/src/symbolic.c
+code/tools/lcc/src/trace.c
+code/tools/lcc/src/tree.c
+code/tools/lcc/src/types.c
+
+
+# LCC
+# Binaries
+../../bin/release-linux-x86_64/tools/q3cpp
+../../bin/release-linux-x86_64/tools/q3lcc
+# Sources
+code/tools/lcc/cpp/cpp.c
+code/tools/lcc/cpp/lex.c
+code/tools/lcc/cpp/nlist.c
+code/tools/lcc/cpp/tokens.c
+code/tools/lcc/cpp/macro.c
+code/tools/lcc/cpp/eval.c
+code/tools/lcc/cpp/include.c
+code/tools/lcc/cpp/hideset.c
+code/tools/lcc/cpp/getopt.c
+code/tools/lcc/cpp/unix.c
+
+
+# ASM
+# Binary
+../../bin/release-linux-x86_64/tools/q3asm
+# Sources
+code/qcommon/q_math.c
+code/qcommon/q_shared.c
+code/tools/asm/q3asm.c
+code/tools/asm/cmdlib.c
+
+
+
+# CGAME
+# Binary
+../../bin/release-linux-x86_64/osdf/vm/cgame.qvm
+# Sources
+code/cgame/cg_main.c
+code/sgame/bg_misc.c
+code/sgame/bg_pmove.c
+code/sgame/bg_slidemove.c
+code/sgame/bg_lib.c
+code/cgame/cg_consolecmds.c
+code/cgame/cg_draw.c
+code/cgame/cg_drawtools.c
+code/cgame/cg_effects.c
+code/cgame/cg_ents.c
+code/cgame/cg_event.c
+code/cgame/cg_info.c
+code/cgame/cg_localents.c
+code/cgame/cg_marks.c
+code/cgame/cg_particles.c
+code/cgame/cg_players.c
+code/cgame/cg_playerstate.c
+code/cgame/cg_predict.c
+code/cgame/cg_scoreboard.c
+code/cgame/cg_servercmds.c
+code/cgame/cg_snapshot.c
+code/cgame/cg_view.c
+code/cgame/cg_weapons.c
+code/qcommon/q_math.c
+code/qcommon/q_shared.c
+
+# QAGAME
+# Binary
+../../bin/release-linux-x86_64/osdf/vm/qagame.qvm
+# Sources
+code/sgame/g_main.c
+code/sgame/ai_chat.c
+code/sgame/ai_cmd.c
+code/sgame/ai_dmnet.c
+code/sgame/ai_dmq3.c
+code/sgame/ai_main.c
+code/sgame/ai_team.c
+code/sgame/ai_vcmd.c
+code/sgame/bg_misc.c
+code/sgame/bg_pmove.c
+code/sgame/bg_slidemove.c
+code/sgame/bg_lib.c
+code/sgame/g_active.c
+code/sgame/g_arenas.c
+code/sgame/g_bot.c
+code/sgame/g_client.c
+code/sgame/g_cmds.c
+code/sgame/g_combat.c
+code/sgame/g_items.c
+code/sgame/g_mem.c
+code/sgame/g_misc.c
+code/sgame/g_missile.c
+code/sgame/g_mover.c
+code/sgame/g_session.c
+code/sgame/g_spawn.c
+code/sgame/g_svcmds.c
+code/sgame/g_target.c
+code/sgame/g_team.c
+code/sgame/g_trigger.c
+code/sgame/g_utils.c
+code/sgame/g_weapon.c
+
+
+# UI
+# Binary
+../../bin/release-linux-x86_64/osdf/vm/ui.qvm
+# Sources
+code/ui/ui_main.c
+code/sgame/bg_misc.c
+code/sgame/bg_lib.c
+code/ui/ui_addbots.c
+code/ui/ui_atoms.c
+code/ui/ui_cdkey.c
+code/ui/ui_cinematics.c
+code/ui/ui_confirm.c
+code/ui/ui_connect.c
+code/ui/ui_controls2.c
+code/ui/ui_credits.c
+code/ui/ui_demo2.c
+code/ui/ui_display.c
+code/ui/ui_gameinfo.c
+code/ui/ui_ingame.c
+code/ui/ui_loadconfig.c
+code/ui/ui_menu.c
+code/ui/ui_mfield.c
+code/ui/ui_mods.c
+code/ui/ui_network.c
+code/ui/ui_options.c
+code/ui/ui_playermodel.c
+code/ui/ui_players.c
+code/ui/ui_playersettings.c
+code/ui/ui_preferences.c
+code/ui/ui_qmenu.c
+code/ui/ui_removebots.c
+code/ui/ui_saveconfig.c
+code/ui/ui_serverinfo.c
+code/ui/ui_servers2.c
+code/ui/ui_setup.c
+code/ui/ui_sound.c
+code/ui/ui_sparena.c
+code/ui/ui_specifyserver.c
+code/ui/ui_splevel.c
+code/ui/ui_sppostgame.c
+code/ui/ui_spskill.c
+code/ui/ui_startserver.c
+code/ui/ui_team.c
+code/ui/ui_teamorders.c
+code/ui/ui_video.c
