@@ -713,7 +713,6 @@ ifdef MINGW
 
   ifeq ($(USE_FREETYPE),1)
     FREETYPE_CFLAGS = -Ifreetype2
-  endif
 
   ifeq ($(USE_CURL),1)
     CLIENT_CFLAGS += $(CURL_CFLAGS)
@@ -724,12 +723,8 @@ ifdef MINGW
           CLIENT_LIBS += $(LIBSDIR)/win64/libcurl.a -lcrypt32
         else
           CLIENT_LIBS += $(LIBSDIR)/win32/libcurl.a -lcrypt32
-        endif
       else
         CLIENT_LIBS += $(CURL_LIBS)
-      endif
-    endif
-  endif
 
   ifeq ($(ARCH),x86)
     # build 32bit
