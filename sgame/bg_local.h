@@ -82,18 +82,19 @@ void		PM_StepSlideMove( qboolean gravity );
 //::OSDF modded
 //:::::::::::::::
 // Physics macros
-#define CPM 0 // CPM
-#define VQ1 1 // Q1/QW/AG
-#define VQ3 3 // Unmodded q3a
-#define DEV 5 // New physics
+#define CPM  0 // CPM
+#define VQ1  1 // Q1/QW/AG
+#define VQ3  3 // Unmodded q3a
+#define DEV  5 // New physics
+#define VJK  6 // Star Knight Physics
 // Mod Macros. For quickly selecting differently named functions (if OSDF: thing; else if IOQ3: otherThing; ... etc)
 #define IOQ3 0 // Select Default named functions (PM_ etc) come from IoQuake3 gamecode
 #define Q3A  1 // Select q3a named functions (q3a_ etc). (Includes cpm mod). They also revert IoQuake3 gamecode changes back to q3a-1.32
 #define OSDF 2 // Select Modded name functions (osdf_ etc). They include the new physics in them.
 
-void		q1_CheckDuck(void);
-qboolean	q3a_SlideMove( qboolean gravity );
-void		q3a_StepSlideMove( qboolean gravity );
-void		q3a_VectorReflect(vec3_t in, vec3_t normal, vec3_t out, float overbounce);
+void      q1_CheckDuck(void);
+qboolean  q3a_SlideMove( qboolean gravity );
+void      q3a_StepSlideMove( qboolean gravity );
+void      q3a_VectorReflect(vec3_t in, vec3_t normal, vec3_t out, float overbounce);
 //:::::::::::::::
 //::OSDF end

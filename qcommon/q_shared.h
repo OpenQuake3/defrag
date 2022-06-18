@@ -1445,7 +1445,7 @@ typedef enum _flag_status {
 //:::::::::::::::::
 // Math 
 float Q_pown(float base, int exp);
-// VectorMAM: taken from mmod. ::? Not in q3a. Where does it come from originally? :thinking:
+// VectorMAM: comes from xonotic originally
 void VectorMAM(float scale1, vec3_t b1, float scale2, vec3_t b2, vec3_t c);
 //:::::::::::::::::
 //::OSDF end

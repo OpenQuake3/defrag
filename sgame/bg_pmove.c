@@ -2031,7 +2031,8 @@ void Pmove(pmove_t *pmove) {
       }
     }
     pmove->cmd.serverTime = pmove->ps->commandTime + msec;
-    PmoveSingle(pmove);
+    if (1){ PmoveSingle(pmove); }
+    else  { osdf_PmoveSingle(pmove); }
 
     if (pmove->ps->pm_flags & PMF_JUMP_HELD) {
       pmove->cmd.upmove = 20;
@@ -2194,7 +2195,32 @@ void osdf_init(int movetype) {
     phy_jump_auto = qtrue;
     phy_jump_type = VQ3;
     s_jump_interval = 250;
-  }
+
+  } else if (movetype == VJK) {
+    phy_stopspeed = pm_stopspeed;
+    phy_crouch_scale = pm_duckScale;
+    // Acceleration
+    phy_ground_accel = 12;
+    phy_air_accel = 4;  // and   phy_speed = 250 
+    phy_fly_accel = pm_flyaccelerate;
+    // Friction
+    phy_friction = pm_friction;
+    phy_fly_friction = pm_flightfriction;
+    phy_spectator_friction = pm_spectatorfriction;
+    // Water
+    phy_water_accel = pm_wateraccelerate;
+    phy_water_scale = pm_swimScale;
+    phy_water_friction = pm_waterfriction;
+    // New
+    phy_slidemove_type = Q3A;
+    phy_snapvelocity = qtrue;
+    phy_input_scalefix = qfalse;
+    phy_aircontrol = qfalse;
+    phy_jump_type = VQ3;
+    phy_jump_auto = qtrue;
+    phy_jump_velocity = 225; // default 270
+    }
+
   osdf_initialized = qtrue;
 }
 
@@ -2402,16 +2428,15 @@ void q1_CheckDuck(void) {
 
 static qboolean q1_CheckJump(void) {
   // Can't jump cases. Cannot jump again under these conditions
-  if (pm->ps->pm_flags & PMF_RESPAWNED) {
-    return qfalse;  // don't allow jump until all buttons are up
-  }
-  if (pm->cmd.upmove < 10) { 
-    return qfalse;  // not holding jump
-  }/*
-  if ((pm->ps->pm_flags & PMF_JUMP_HELD) && !phy_jump_auto) { // must wait for jump to be released
+  // don't allow jump until all buttons are up
+  if (pm->ps->pm_flags & PMF_RESPAWNED) {return qfalse;}
+  // not holding jump
+  if (pm->cmd.upmove < 10) {return qfalse;}
+ // must wait for jump to be released
+  if ((pm->ps->pm_flags & PMF_JUMP_HELD) && !phy_jump_auto) {
     pm->cmd.upmove = 0; // clear upmove so cmdscale doesn't lower running speed
     return qfalse;
-  }*/
+  }
   // Else: Can jump. Do jump behavior
   //
   pml.groundPlane = qfalse; // jumping away
@@ -2464,7 +2489,7 @@ static qboolean q3a_CheckJump(void) {
   if (pm->cmd.upmove < 10) { 
     return qfalse;  // not holding jump
   }
-  if (pm->ps->pm_flags & PMF_JUMP_HELD) { // must wait for jump to be released
+  if ((pm->ps->pm_flags & PMF_JUMP_HELD && !phy_jump_auto)) { // must wait for jump to be released
     pm->cmd.upmove = 0; // clear upmove so cmdscale doesn't lower running speed
     return qfalse;
   }
@@ -2753,6 +2778,11 @@ static void q3a_AirMove(void) {
     realAccel = phy_air_accel;
     realSpeed = pm->ps->speed;
     realWishSpd = wishspeed * q3a_CmdScale(&cmd);
+
+  } else if (pm->movetype == VJK) {
+    realAccel = phy_air_accel;
+    realSpeed = pm->ps->speed;
+    realWishSpd = wishspeed * q3a_CmdScale(&cmd);   // Some games don't scale inputs
 
   } else { Com_Printf("Undefined movetype in q3a_ function. pm->movetype = %i", pm->movetype); return; }  // Undefined physics
   //::::::::::::::::::
@@ -3222,6 +3252,38 @@ void q3a_vq1(pmove_t *pmove) {
   pm->ps->velocity[2] = roundf(pm->ps->velocity[2]); 
 }
 
+void q3a_vjk(pmove_t *pmove) {
+  if (pm->ps->powerups[PW_FLIGHT]) {
+    PM_FlyMove(); // flight powerup doesn't allow jump and has different friction
+  } else if (pm->ps->pm_flags & PMF_GRAPPLE_PULL) {
+    PM_GrappleMove();
+    PM_AirMove(); // We can wiggle a bit
+  } else if (pm->ps->pm_flags & PMF_TIME_WATERJUMP) {
+    PM_WaterJumpMove();
+  } else if (pm->waterlevel > 1) {
+    PM_WaterMove(); // swimming
+  } else if (pml.walking) {
+    q3a_WalkMove(); // walking on ground
+  } else {
+    q3a_AirMove(); // airborne
+  }
+  // animations
+  PM_Animate();
+  // set groundentity, watertype, and waterlevel
+  PM_GroundTrace();
+  PM_SetWaterLevel();
+  // weapons
+  q3a_Weapon();
+  // torso animation
+  PM_TorsoAnimation();
+  // footstep events / legs animations
+  PM_Footsteps();
+  // entering / leaving water splashes
+  PM_WaterEvents();
+  // snap some parts of playerstate to save network bandwidth
+  trap_SnapVector(pm->ps->velocity);
+}
+
 // Select the type of movement to execute. Flow control only. 
 // Behavior happens inside each function
 void osdf_move(pmove_t *pmove) {
@@ -3230,6 +3292,7 @@ void osdf_move(pmove_t *pmove) {
   case CPM: q3a_cpm(pmove); break;
   case VQ1: q3a_vq1(pmove); break;
   case VQ3: q3a_vq3(pmove); break;
+  case VJK: q3a_vjk(pmove); break;
   default:  Com_Printf("::ERR phy_movetype %i not recognized\n", pmove->movetype); break;
   }
 }

@@ -759,8 +759,11 @@ extern	vmCvar_t	g_synchronousClients;
 extern	vmCvar_t	g_cheats;
 // New variables
 extern	vmCvar_t	phy_movetype; // When active, changes the flow of the player movement code towards osdf_ code. 1=enabled, 0=disabled
-#define CPM			0
-#define VQ3			3
+#define CPM  0
+#define VQ3  3
+#define VQ1  1
+#define DEV  5
+#define VJK  6
 extern	vmCvar_t	phy_overbounce_scale;
 // Rockets
 extern vmCvar_t		phy_rocket_speed;
