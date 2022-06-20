@@ -211,12 +211,14 @@ vmCvar_t	cg_recordSPDemoName;
 vmCvar_t	cg_obeliskRespawnDelay;
 #endif
 
-typedef struct {
-	vmCvar_t	*vmCvar;
-	char		*cvarName;
-	char		*defaultString;
-	int			cvarFlags;
-} cvarTable_t;
+//::OSDF changed. Declared in local, for use in whole client
+// typedef struct {
+// 	vmCvar_t	*vmCvar;
+// 	char		*cvarName;
+// 	char		*defaultString;
+// 	int			cvarFlags;
+// } cvarTable_t;
+//::OSDF end
 
 static cvarTable_t cvarTable[] = {
 	{ &cg_ignore, "cg_ignore", "0", 0 },	// used for debugging

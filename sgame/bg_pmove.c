@@ -2218,7 +2218,7 @@ void osdf_init(int movetype) {
     phy_aircontrol = qfalse;
     phy_jump_type = VQ3;
     phy_jump_auto = qtrue;
-    phy_jump_velocity = 225; // default 270
+    phy_jump_velocity = JUMP_VELOCITY; // vjk = 225. vq3 default = JUMP_VELOCITY = 270
     }
 
   osdf_initialized = qtrue;
@@ -2242,6 +2242,21 @@ void q3a_VectorReflect(vec3_t in, vec3_t normal, vec3_t out, float overbounce) {
   // Scale the direction
   if (backoff < 0)  { backoff *= overbounce; }
   else              { backoff /= overbounce; }
+  // Apply scale to the vector
+  for (i = 0; i < 3; i++) {
+    change = normal[i] * backoff;
+    out[i] = in[i] - change; // An overbounce value of 1.000 completely negates the incoming velocity, due to this line
+  }
+}
+// VectorReflect One Sided
+void VectorReflectOS(vec3_t in, vec3_t normal, vec3_t out, float overbounce) {
+  float backoff, change;
+  int i;
+  // Calculate direction of rotation / reflection
+  backoff = DotProduct(in, normal);
+  // Scale the direction
+  if (backoff < 0)  { backoff *= overbounce; }
+  else              { backoff  = 0; }
   // Apply scale to the vector
   for (i = 0; i < 3; i++) {
     change = normal[i] * backoff;
@@ -2406,14 +2421,14 @@ void q1_CheckDuck(void) {
   }
 
   if (pm->cmd.upmove < 0) { // duck
-    //  pm->ps->pm_flags |= PMF_DUCKED;
+     pm->ps->pm_flags |= PMF_DUCKED;
   } else { // stand up if possible
     if (pm->ps->pm_flags & PMF_DUCKED) {
       // try to stand up
       pm->maxs[2] = 32;
       pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, pm->ps->origin, pm->ps->clientNum, pm->tracemask);
-      if ( !trace.allsolid && !(pm->cmd.upmove < 0) )
-        pm->ps->pm_flags &= ~PMF_DUCKED;
+      if ( !trace.allsolid)// && !(pm->cmd.upmove < 0) )
+        {pm->ps->pm_flags &= ~PMF_DUCKED;}
     }
   }
 
@@ -2431,8 +2446,16 @@ static qboolean q1_CheckJump(void) {
   // don't allow jump until all buttons are up
   if (pm->ps->pm_flags & PMF_RESPAWNED) {return qfalse;}
   // not holding jump
-  if (pm->cmd.upmove < 10) {return qfalse;}
- // must wait for jump to be released
+  if (pm->cmd.upmove < 10) {return qfalse;}  // Default Q3 behavior. Don't allow jump on crouch
+  // if (pm->cmd.upmove < 10) {   //TODO: Jumpcrouch
+    // We are either pressing jumpcrouch, crouch or noinput
+    // qboolean noinput = (pm->cmd.upmove < 10) && !(pm->ps->pm_flags & PMF_DUCKED) ? qtrue:qfalse;
+    // qboolean crouch  = (pm->cmd.upmove <  0)                                     ? qtrue:qfalse;
+    // if (noinput || crouch) {return qfalse;}
+    // qboolean crouchj = (pm->cmd.upmove < 10) &&  (pm->ps->pm_flags & PMF_DUCKED) ? qtrue:qfalse;
+  // }
+
+ // must wait for jump to be released, when autojump is disabled
   if ((pm->ps->pm_flags & PMF_JUMP_HELD) && !phy_jump_auto) {
     pm->cmd.upmove = 0; // clear upmove so cmdscale doesn't lower running speed
     return qfalse;
@@ -2446,20 +2469,14 @@ static qboolean q1_CheckJump(void) {
   
   if (pm->ps->pm_flags & PMF_DUCKED) { pm->ps->velocity[2] *= 0.5; }
 
-  /*
   // QW downramps
-  if (phy_jump_type == VQ1) {
-    pm->ps->velocity[2] += phy_jump_velocity; // Always adds
-  } else
-  */
-  {
-    // Downramps act like vq3 (set). Upramps act like QW (add)
-    if (pm->ps->velocity[2] < 0){
-      if (DotProduct(pm->ps->velocity, pml.groundTrace.plane.normal) > 0) {
-        pm->ps->velocity[2] = phy_jump_velocity; // Downramp
-      } else { pm->ps->velocity[2] += phy_jump_velocity; } // Flat
-    } else { pm->ps->velocity[2] += phy_jump_velocity; } // Upramp
-  }
+  // Downramps act like vq3 (set). Upramps act like QW (add)
+  if (pm->ps->velocity[2] < 0){
+    if (pm->ps->pm_flags & PMF_DUCKED) {
+      if (pm->debugLevel) { Com_Printf("%i:jump add\n", c_pmove); }
+      pm->ps->velocity[2] += phy_jump_velocity;         // Downramp add
+    } else { pm->ps->velocity[2] = phy_jump_velocity; } // Downramp set
+  } else { pm->ps->velocity[2] += phy_jump_velocity; }  // Flat or Upramp
   //
   // Jump end
 
@@ -2620,7 +2637,6 @@ static void q1_AirMove(void) {
   vec3_t wishdir;
   float wishspeed;
   usercmd_t cmd;
-  qboolean doSideMove, doForwMove;
 
   float realAccel;   // Acceleration to apply
   float realSpeed;   // Called maxspeed. Actually just baseSpeed (320ups)
@@ -2658,31 +2674,10 @@ static void q1_AirMove(void) {
   // Calculate desired speed amount, based on wishvel (aka wishpeed)
   wishspeed = VectorLength(wishvel); // wishspeed = normalized speed (aka wishvel.length). Because speed = velocity.length
 
-  // CPM specific
-  doSideMove = (smove > 0.1 || smove < -0.1) ? qtrue : qfalse;
-  doForwMove = (fmove > 0.1 || fmove < -0.1) ? qtrue : qfalse;
-
   // pm->ps->speed comes from g_active.c and has haste factor included in it.
-  if (doSideMove && !doForwMove) {
-    realAccel = phy_air_accel;
-    realSpeed = (int)(pm->ps->speed * phy_air_speedscalar); // Reduce to airstrafe speed (30) but still apply haste from pm->ps->speed
-    realWishSpd = wishspeed * q3a_CmdScale(&cmd);
-  } else {
-    //realAccel = phy_air_accel;
-    //realSpeed = pm->ps->speed;
-    //realWishSpd = wishspeed * q3a_CmdScale(&cmd);
-  }
-    // Deceleration behavior
-    /*
-    VectorCopy(pm->ps->velocity, vel2D);    // Store velocity in 2D vector
-    vel2D[0] = 0;                           // Zero out its vertical velocity
-    angle = acos_alt(DotProduct(wishdir, vel2D) / (VectorLength(wishdir) * VectorLength2D(vel2D)));
-    angle *= (180 / M_PI);                  // Convert radians to degrees
-    if (angle > phy_air_decelAngle){        // If the angle is over the decel angle
-      realAccel *= phy_air_decel;           // Scale down air accel by decel factor
-    }
-    */
-  //::::::::::::::::::
+  realAccel = phy_air_accel;
+  realSpeed = (int)(pm->ps->speed * phy_air_speedscalar); // Reduce to airstrafe speed (~30) but still apply haste from pm->ps->speed
+  realWishSpd = wishspeed * q3a_CmdScale(&cmd);
 
   // not on ground, so little effect on velocity
   q3a_Accelerate(wishdir, realWishSpd, realAccel, realSpeed);
@@ -2690,7 +2685,7 @@ static void q1_AirMove(void) {
   // we may have a ground plane that is very steep, even though we don't have a
   // groundentity. slide along the steep plane
   if (pml.groundPlane) {
-    q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale);
+    VectorReflectOS(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale);
   }
   // Do the movement
   q3a_StepSlideMove(qtrue);

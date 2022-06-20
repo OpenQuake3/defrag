@@ -381,28 +381,21 @@ qboolean	q3a_SlideMove( qboolean gravity ) {
 	numplanes++;
 
 	for ( bumpcount=0 ; bumpcount < numbumps ; bumpcount++ ) {
-
 		// calculate position we are trying to move to
 		VectorMA( pm->ps->origin, time_left, pm->ps->velocity, end );
-
 		// see if we can make it there
 		pm->trace ( &trace, pm->ps->origin, pm->mins, pm->maxs, end, pm->ps->clientNum, pm->tracemask);
 
+		// entity is completely trapped in another solid
 		if (trace.allsolid) {
-			// entity is completely trapped in another solid
 			pm->ps->velocity[2] = 0;	// don't build up falling damage, but allow sideways acceleration
 			return qtrue;
 		}
 
-		if (trace.fraction > 0) {
-			// actually covered some distance
-			VectorCopy (trace.endpos, pm->ps->origin);
-		}
-
-		if (trace.fraction == 1) {
-			 break;		// moved the entire distance
-		}
-
+		// actually covered some distance
+		if (trace.fraction > 0) { VectorCopy (trace.endpos, pm->ps->origin); }
+    // moved the entire distance
+		if (trace.fraction == 1) { break; }
 		// save entity for contact
 		PM_AddTouchEnt( trace.entityNum );
 
@@ -425,52 +418,32 @@ qboolean	q3a_SlideMove( qboolean gravity ) {
 				break;
 			}
 		}
-		if ( i < numplanes ) {
-			continue;
-		}
+		if ( i < numplanes ) { continue; }
 		VectorCopy (trace.plane.normal, planes[numplanes]);
 		numplanes++;
-
 		//
 		// modify velocity so it parallels all of the clip planes
 		//
-
 		// find a plane that it enters
 		for ( i = 0 ; i < numplanes ; i++ ) {
 			into = DotProduct( pm->ps->velocity, planes[i] );
-			if ( into >= 0.1 ) {
-				continue;		// move doesn't interact with the plane
-			}
-
+			if ( into >= 0.1 ) { continue;}  // move doesn't interact with the plane
 			// see how hard we are hitting things
-			if ( -into > pml.impactSpeed ) {
-				pml.impactSpeed = -into;
-			}
-
+			if ( -into > pml.impactSpeed ) {pml.impactSpeed = -into;}
 			// slide along the plane
 			q3a_VectorReflect (pm->ps->velocity, planes[i], clipVelocity, OVERCLIP );
-
 			// slide along the plane
 			q3a_VectorReflect (endVelocity, planes[i], endClipVelocity, OVERCLIP ); // IoQuake3 Wrapped this behind a gravity check. This version is default q3a
 
 			// see if there is a second plane that the new move enters
 			for ( j = 0 ; j < numplanes ; j++ ) {
-				if ( j == i ) {
-					continue;
-				}
-				if ( DotProduct( clipVelocity, planes[j] ) >= 0.1 ) {
-					continue;		// move doesn't interact with the plane
-				}
-
+				if ( j == i ) {continue;}
+				if ( DotProduct( clipVelocity, planes[j] ) >= 0.1 ) {continue;}  // move doesn't interact with the plane
 				// try clipping the move to the plane
 				q3a_VectorReflect( clipVelocity, planes[j], clipVelocity, OVERCLIP );
 				q3a_VectorReflect( endClipVelocity, planes[j], endClipVelocity, OVERCLIP ); //IoQuake3 wrapped this inside a gravity check. This version is default q3a-1.32
-
 				// see if it goes back into the first clip plane
-				if ( DotProduct( clipVelocity, planes[i] ) >= 0 ) {
-					continue;
-				}
-
+				if ( DotProduct( clipVelocity, planes[i] ) >= 0 ) {continue;}
 				// slide the original velocity along the crease
 				CrossProduct (planes[i], planes[j], dir);
 				VectorNormalize( dir );
@@ -486,19 +459,13 @@ qboolean	q3a_SlideMove( qboolean gravity ) {
 
 				// see if there is a third plane the the new move enters
 				for ( k = 0 ; k < numplanes ; k++ ) {
-					if ( k == i || k == j ) {
-						continue;
-					}
-					if ( DotProduct( clipVelocity, planes[k] ) >= 0.1 ) {
-						continue;		// move doesn't interact with the plane
-					}
-
+					if ( k == i || k == j ) {continue;}
+					if ( DotProduct( clipVelocity, planes[k] ) >= 0.1 ) {continue;}		// move doesn't interact with the plane
 					// stop dead at a tripple plane interaction
 					VectorClear( pm->ps->velocity );
 					return qtrue;
 				}
 			}
-
 			// if we have fixed all interactions, try another move
 			VectorCopy( clipVelocity, pm->ps->velocity );  
 			VectorCopy( endClipVelocity, endVelocity ); //IoQuake3 wrapped this inside a gravity check. This version is default q3a-1.32
@@ -506,14 +473,9 @@ qboolean	q3a_SlideMove( qboolean gravity ) {
 		}
 	}
 
-	if ( gravity ) {
-		VectorCopy( endVelocity, pm->ps->velocity );
-	}
-
+	if ( gravity ) {VectorCopy( endVelocity, pm->ps->velocity );}
 	// don't change velocity if in a timer (FIXME: is this correct?)
-	if ( pm->ps->pm_time ) {
-		VectorCopy( primal_velocity, pm->ps->velocity );
-	}
+	if ( pm->ps->pm_time ) {VectorCopy( primal_velocity, pm->ps->velocity );}
 	return ( bumpcount != 0 );
 }
 
@@ -526,15 +488,13 @@ void q3a_StepSlideMove( qboolean gravity ) {
 	vec3_t		up, down;
 	float		stepSize;
 	float		delta;
-	qboolean	timerActive, cantDoubleJump;
+	qboolean	timerActive, cantDoubleJump, isSteepRamp;
 	int			max_jumpvel;
 
 	VectorCopy (pm->ps->origin, start_o);
 	VectorCopy (pm->ps->velocity, start_v);
 
-	if ( q3a_SlideMove( gravity ) == 0 ) {
-		return;		// we got exactly where we wanted to go first try	
-	}
+	if ( q3a_SlideMove( gravity ) == 0 ) {return;}		// we got exactly where we wanted to go first try	
 	// Step Down
 	VectorCopy(start_o, down);
 	down[2] -= STEPSIZE;
@@ -544,11 +504,13 @@ void q3a_StepSlideMove( qboolean gravity ) {
 	timerActive    = ( pm->cmd.serverTime - pm->ps->stats[STAT_TIME_LASTJUMP] < phy_jump_dj_time ) ? qtrue : qfalse;
 	cantDoubleJump = ( pm->movetype == VQ3 || !timerActive || pm->ps->velocity[2] > max_jumpvel ) ? qtrue : qfalse;
 	VectorSet(up, 0, 0, 1);
-	// never step up when: 
-	//   Step-down trace moved all the way, (and) still have up velocity
-	//   You can't doublejump (vq3 or dj-timer is not active)
-	//   Vertical speed is bigger than the maximum possible dj speed (prevent stairs-climb crazyness) (included in cantDoubleJump)
-	if (((trace.fraction == 1.0 || DotProduct(trace.plane.normal, up) < 0.7) 
+  isSteepRamp    = DotProduct(trace.plane.normal, up) < 0.7 ? qtrue : qfalse;
+	// never step up when:
+	//   Step-down trace moved all the way down, (or) we are in a steepramp
+  //   (and) still have up velocity
+	//   (and) You can't doublejump (vq3 or dj-timer is not active)
+	//   (and) Vertical speed is bigger than the maximum possible dj speed (prevent stairs-climb crazyness) (included in cantDoubleJump)
+	if (((trace.fraction == 1.0 || isSteepRamp) 
 		  && pm->ps->velocity[2] > 0)
 		  && cantDoubleJump)
 		{ return; }
@@ -563,9 +525,7 @@ void q3a_StepSlideMove( qboolean gravity ) {
 	// test the player position if they were a stepheight higher
 	pm->trace (&trace, start_o, pm->mins, pm->maxs, up, pm->ps->clientNum, pm->tracemask);
 	if ( trace.allsolid ) {
-		if ( pm->debugLevel ) {
-			Com_Printf("%i:bend can't step\n", c_pmove);
-		}
+		if ( pm->debugLevel ) { Com_Printf("%i:bend can't step\n", c_pmove); }
 		VectorClear(pm->ps->velocity); // Wallbug fix
 		return;		// can't step up
 	}
@@ -581,12 +541,8 @@ void q3a_StepSlideMove( qboolean gravity ) {
 	VectorCopy (pm->ps->origin, down);
 	down[2] -= stepSize;
 	pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
-	if ( !trace.allsolid ) {
-		VectorCopy (trace.endpos, pm->ps->origin);
-	}
-	if ( trace.fraction < 1.0 ) {
-		q3a_VectorReflect( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP );
-	}
+	if ( !trace.allsolid )      { VectorCopy (trace.endpos, pm->ps->origin); }
+	if ( trace.fraction < 1.0 ) { q3a_VectorReflect( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP ); }
 	// use the step move
 	delta = pm->ps->origin[2] - start_o[2];
 	if ( delta > 2 ) {

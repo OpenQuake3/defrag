@@ -20,6 +20,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 //
+#ifndef CG_LOCAL_H
+#define CG_LOCAL_H
+
 #include "../qcommon/q_shared.h"
 #include "../rendc/tr_types.h"
 #include "../sgame/bg_public.h"
@@ -1708,4 +1711,63 @@ void	CG_ParticleExplosion (char *animStr, vec3_t origin, vec3_t vel, int duratio
 extern qboolean		initparticles;
 int CG_NewParticleArea ( int num );
 
+
+//::OSDF added. Cvar extra functionality support
+//
+// cg_utils.c
+//TODO: Are these needed
+snapshot_t const*    getSnap(void);
+playerState_t const* getPs(void);
+
+//
+// cg_cvar.c
+typedef enum {
+  // X, Y, W and H can be combined, hence the spacing.
+  X              = 1,
+  Y              = 2,
+  W              = 4,
+  H              = 8,
+  BINARY_LITERAL = 16,
+  RGBA,
+  RGBAS
+} cvarKind_t;
+
+typedef struct {
+  vmCvar_t* vmCvar;
+  char*     cvarName;
+  char*     defaultString;
+  int32_t   cvarFlags;
+} cvarTable_t;
+
+char const* VectorParse(char const* data, vec_t* vec, uint8_t size);
+char const* VectorParse4(char const* data, vec4_t* vec, uint8_t size);
+
+int32_t cvar_getInteger(char const* var_name);
+float   cvar_getValue(char const* var_name);
+
+void cvartable_init(cvarTable_t const* cvartable, size_t size);
+void cvartable_update(cvarTable_t const* cvartable, size_t size);
+
+// cvar help
+typedef struct {
+  cvarTable_t const* cvarTable;
+  cvarKind_t         kind;
+  char const*        message[7];
+} help_t;
+
+typedef struct {
+  help_t const* help;
+  size_t        size;
+} helpTable_t;
+
+static size_t      helpTableIdx = 0;
+static helpTable_t helpTable[10];
+
+static void cvar_help_prep(cvarKind_t kind, char const* defaultString);
+static void cvar_help_post(cvarKind_t kind);
+void cvar_help(char const* cvarName);
+void cvartable_with_help(void);
+//::OSDF end
+
+#endif   // CG_LOCAL_H
 

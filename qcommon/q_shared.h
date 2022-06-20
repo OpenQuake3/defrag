@@ -156,7 +156,8 @@ typedef int intptr_t;
 
 #else
 
-#include <assert.h>
+#include "q_assert.h"
+// #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -192,6 +193,16 @@ typedef int intptr_t;
 
 #endif
 
+//::OSDF added. For ASSERT_GT support
+static inline char* vaf(char const* format, ...) {
+  va_list     argptr;
+  static char str[1024];
+  va_start(argptr, format);
+  vsnprintf(str, sizeof(str), format, argptr);
+  va_end(argptr);
+  return str;
+}
+//::OSDF end
 
 #include "q_platform.h"
 
@@ -623,6 +634,12 @@ static ID_INLINE vec_t VectorLengthSquared( const vec3_t v ) {
 	return (v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
 }
 
+//::OSDF added
+static ID_INLINE vec_t VectorLengthSquared2(vec2_t const v) {
+  return (v[0] * v[0] + v[1] * v[1]);
+}
+//::OSDF end
+
 static ID_INLINE vec_t Distance( const vec3_t p1, const vec3_t p2 ) {
 	vec3_t	v;
 
@@ -667,7 +684,8 @@ int VectorCompare( const vec3_t v1, const vec3_t v2 );
 
 vec_t VectorLength( const vec3_t v );
 
-vec_t VectorLengthSquared( const vec3_t v );
+vec_t VectorLengthSquared (const vec3_t v);
+vec_t VectorLengthSquared2(vec2_t const v);  //::OSDF added
 
 vec_t Distance( const vec3_t p1, const vec3_t p2 );
 
@@ -927,6 +945,14 @@ default values.
 #define CVAR_SERVER_CREATED	0x0800	// cvar was created by a server the client connected to.
 #define CVAR_VM_CREATED		0x1000	// cvar was created exclusively in one of the VMs.
 #define CVAR_PROTECTED		0x2000	// prevent modifying this var from VMs or the server
+
+//::OSDF added. For compatibility with proxymod hud
+#define CVAR_NODEFAULT 0x4000 // do not write to config if matching with default value
+#define CVAR_PRIVATE 0x8000 // can't be read from VM
+#define CVAR_DEVELOPER 0x10000 // can be set only in developer mode
+#define CVAR_ARCHIVE_ND (CVAR_ARCHIVE | CVAR_NODEFAULT)
+//::OSDF end
+
 // These flags are only returned by the Cvar_Flags() function
 #define CVAR_MODIFIED		0x40000000	// Cvar was modified
 #define CVAR_NONEXISTENT	0x80000000	// Cvar doesn't exist.
