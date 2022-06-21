@@ -1,4 +1,27 @@
-#include "osdf.h"
+/*
+  ==============================
+  Written by:
+    id software :            Quake III Arena
+    sOkam! :                 Opensource Defrag
+
+  This file is part of Opensource Defrag.
+
+  Opensource Defrag is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Opensource Defrag is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Opensource Defrag.  If not, see <http://www.gnu.org/licenses/>.
+  ==============================
+*/
+
+#include "local.h"
 
 void vq1_init(){
   phy_stopspeed = 100; // QW value
@@ -17,7 +40,7 @@ void vq1_init(){
   phy_slidemove_type = Q3A;
   phy_snapvelocity = qfalse;
   phy_input_scalefix = qtrue;
-  phy_overbounce_scale = 1.000f;
+  q1_overbounce_scale = 1.000f;
   // Ground
   phy_ground_basespeed = 320;
   phy_ground_accel = 10;
@@ -25,13 +48,13 @@ void vq1_init(){
   phy_air_accel = 90; // 70 = QW value 0.7 : q3a = 1 :: 100 was too much. 70 not enough :: 0.1/32as/90aa/125fps felt really good
   phy_air_speedscalar = 0.11; //0.1125;=36 slightly too much //0.125=40 too much; // Value: 0.0938 = ~30, but its too slow. 0.1/32as/70aa/77fps super close to QW/vint
   // Jump
-  phy_jump_velocity = JUMP_VELOCITY;
+  s_jump_interval = 250;
   phy_jump_auto = qtrue;
   phy_jump_type = VQ3;
-  s_jump_interval = 250;
+  phy_jump_velocity = JUMP_VELOCITY;
+  phy_jump_scalar   = 0.5; 
+
 }
-
-
 
 void q1_CheckDuck(void) {
   trace_t trace;
@@ -66,14 +89,14 @@ void q1_CheckDuck(void) {
   }
 
   if (pm->cmd.upmove < 0) { // duck
-    //  pm->ps->pm_flags |= PMF_DUCKED;
+     pm->ps->pm_flags |= PMF_DUCKED;
   } else { // stand up if possible
     if (pm->ps->pm_flags & PMF_DUCKED) {
       // try to stand up
       pm->maxs[2] = 32;
       pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, pm->ps->origin, pm->ps->clientNum, pm->tracemask);
-      if ( !trace.allsolid && !(pm->cmd.upmove < 0) )
-        pm->ps->pm_flags &= ~PMF_DUCKED;
+      if ( !trace.allsolid)// && !(pm->cmd.upmove < 0) )
+        {pm->ps->pm_flags &= ~PMF_DUCKED;}
     }
   }
 
@@ -88,38 +111,25 @@ void q1_CheckDuck(void) {
 
 static qboolean q1_CheckJump(void) {
   // Can't jump cases. Cannot jump again under these conditions
-  if (pm->ps->pm_flags & PMF_RESPAWNED) {
-    return qfalse;  // don't allow jump until all buttons are up
-  }
-  if (pm->cmd.upmove < 10) { 
-    return qfalse; 
-  }
-  if ((pm->ps->pm_flags & PMF_JUMP_HELD) && !phy_jump_auto) { // must wait for jump to be released
+  // don't allow jump until all buttons are up
+  if (pm->ps->pm_flags & PMF_RESPAWNED) {return qfalse;}
+  // not holding jump
+  if (pm->cmd.upmove < 10) {return qfalse;}  // Default Q3 behavior. Don't allow jump on crouch
+  // if (pm->cmd.upmove < 10) {   //TODO: Jumpcrouch
+    // We are either pressing jumpcrouch, crouch or noinput
+    // qboolean noinput = (pm->cmd.upmove < 10) && !(pm->ps->pm_flags & PMF_DUCKED) ? qtrue:qfalse;
+    // qboolean crouch  = (pm->cmd.upmove <  0)                                     ? qtrue:qfalse;
+    // if (noinput || crouch) {return qfalse;}
+    // qboolean crouchj = (pm->cmd.upmove < 10) &&  (pm->ps->pm_flags & PMF_DUCKED) ? qtrue:qfalse;
+  // }
+
+ // must wait for jump to be released, when autojump is disabled
+  if ((pm->ps->pm_flags & PMF_JUMP_HELD) && !phy_jump_auto) {
     pm->cmd.upmove = 0; // clear upmove so cmdscale doesn't lower running speed
     return qfalse;
   }
   // Else: Can jump. Do jump behavior
   //
-
-  jump              = (pm->ps->pm_flags & PMF_JUMP_HELD)  ? qtrue : qfalse;
-  crouch            = (pm->ps->pm_flags & PMF_DUCKED)     ? qtrue : qfalse;
-  standOrJumpcrouch = (pm->cmd.upmove = 0)                ? qtrue : qfalse;
-
-  // standing   = upmove 0 && !jump && !crouch
-  standing          = ( standOrJumpcrouch && !jump )      ? qtrue : qfalse;
-  if (standing)       { return qfalse; } //   cant jump
-  // crouch     = upmove < 0
-  crouchOnly        = ( crouch && !jump )                 ? qtrue : qfalse;
-  if (crouchOnly)     { return qfalse; } //   cant jump
-  // jumpcrouch = upmove 0 && jump && crouch 
-  //   can jump
-
-  // Rest of the function:
-  //   Will jump
-
-
-
-
   pml.groundPlane = qfalse; // jumping away
   pml.walking = qfalse;
   pm->ps->pm_flags |= PMF_JUMP_HELD;
@@ -127,20 +137,15 @@ static qboolean q1_CheckJump(void) {
   
   if (pm->ps->pm_flags & PMF_DUCKED) { pm->ps->velocity[2] *= 0.5; }
 
-  /*
-  // QW downramps
-  if (phy_jump_type == VQ1) {
-    pm->ps->velocity[2] += phy_jump_velocity; // Always adds
-  } else
-  */
-  {
-    // Downramps act like vq3 (set). Upramps act like QW (add)
-    if (pm->ps->velocity[2] < 0){
-      if (DotProduct(pm->ps->velocity, pml.groundTrace.plane.normal) > 0) {
-        pm->ps->velocity[2] = phy_jump_velocity; // Downramp
-      } else { pm->ps->velocity[2] += phy_jump_velocity; } // Flat
-    } else { pm->ps->velocity[2] += phy_jump_velocity; } // Upramp
-  }
+  // QW JumpHeights
+  // Downramps act like vq3 (set). Upramps act like QW (add)
+  if (pm->ps->velocity[2] < 0){
+    if (pm->cmd.buttons & BUTTON_WALKING) { pm->ps->velocity[2] += phy_jump_velocity; }
+    else                                  { pm->ps->velocity[2] = phy_jump_velocity; } // Downramp set
+  } else {  // Flat or Upramp
+    if (pm->cmd.buttons & BUTTON_WALKING) { pm->ps->velocity[2] += phy_jump_velocity*phy_jump_scalar; }
+    else                                  { pm->ps->velocity[2] += phy_jump_velocity; }
+  }  
   //
   // Jump end
 
@@ -196,14 +201,14 @@ void q1_AirMoveQW (void) {
   PM_GroundTrace();
 	if ( pml.walking )	{
 		pm->ps->velocity[2] = 0;
-		q3a_Accelerate (wishdir, wishspeed, phy_ground_accel, pm->ps->speed);
+		core_Accelerate (wishdir, wishspeed, phy_ground_accel, pm->ps->speed);
 		pm->ps->velocity[2] -= pm->ps->gravity * pml.frametime;
-		q3a_StepSlideMove(qfalse);
+		core_StepSlideMove(qfalse);
 	} else {	// not on ground, so little effect on velocity
-		q3a_Accelerate (wishdir, wishspeed, phy_air_accel, pm->ps->speed);
+		core_Accelerate (wishdir, wishspeed, phy_air_accel, pm->ps->speed);
 		// add gravity
 		pm->ps->velocity[2] -= pm->ps->gravity * pml.frametime;
-		q3a_StepSlideMove(qtrue);
+		core_StepSlideMove(qtrue);
 	}
 }
 
@@ -214,7 +219,6 @@ static void q1_AirMove(void) {
   vec3_t wishdir;
   float wishspeed;
   usercmd_t cmd;
-  qboolean doSideMove, doForwMove;
 
   float realAccel;   // Acceleration to apply
   float realSpeed;   // Called maxspeed. Actually just baseSpeed (320ups)
@@ -252,42 +256,26 @@ static void q1_AirMove(void) {
   // Calculate desired speed amount, based on wishvel (aka wishpeed)
   wishspeed = VectorLength(wishvel); // wishspeed = normalized speed (aka wishvel.length). Because speed = velocity.length
 
-  // CPM specific
-  doSideMove = (smove > 0.1 || smove < -0.1) ? qtrue : qfalse;
-  doForwMove = (fmove > 0.1 || fmove < -0.1) ? qtrue : qfalse;
-
   // pm->ps->speed comes from g_active.c and has haste factor included in it.
-  if (doSideMove && !doForwMove) {
-    realAccel = phy_air_accel;
-    realSpeed = (int)(pm->ps->speed * phy_air_speedscalar); // Reduce to airstrafe speed (30) but still apply haste from pm->ps->speed
-    realWishSpd = wishspeed * q3a_CmdScale(&cmd);
-  } else {
-    //realAccel = phy_air_accel;
-    //realSpeed = pm->ps->speed;
-    //realWishSpd = wishspeed * q3a_CmdScale(&cmd);
-  }
-    // Deceleration behavior
-    /*
-    VectorCopy(pm->ps->velocity, vel2D);    // Store velocity in 2D vector
-    vel2D[0] = 0;                           // Zero out its vertical velocity
-    angle = acos_alt(DotProduct(wishdir, vel2D) / (VectorLength(wishdir) * VectorLength2D(vel2D)));
-    angle *= (180 / M_PI);                  // Convert radians to degrees
-    if (angle > phy_air_decelAngle){        // If the angle is over the decel angle
-      realAccel *= phy_air_decel;           // Scale down air accel by decel factor
-    }
-    */
-  //::::::::::::::::::
+  realAccel = phy_air_accel;
+  realSpeed = (int)(pm->ps->speed * phy_air_speedscalar); // Reduce to airstrafe speed (~30) but still apply haste from pm->ps->speed
+  realWishSpd = wishspeed * core_CmdScale(&cmd);
 
   // not on ground, so little effect on velocity
-  q3a_Accelerate(wishdir, realWishSpd, realAccel, realSpeed);
+  core_Accelerate(wishdir, realWishSpd, realAccel, realSpeed);
 
   // we may have a ground plane that is very steep, even though we don't have a
   // groundentity. slide along the steep plane
   if (pml.groundPlane) {
-    q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, phy_overbounce_scale);
+    // "Bouncy" version. Increases incoming overbounce value
+    //    Close, but not quite there. 
+    if (1) { VectorReflectBC(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale); }
+    // "One-sided" version. Ignores backoff when moving away from surface
+    //    Issues with Vertical Velocity affecting surf physics
+    else   { VectorReflectOS(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale); }
   }
   // Do the movement
-  q3a_StepSlideMove(qtrue);
+  core_StepSlideMove(qtrue);
 }
 
 
@@ -313,12 +301,12 @@ static void q1_WalkMove(void) {
     return;
   }
 
-  q3a_Friction();
+  core_Friction();
 
   fmove = pm->cmd.forwardmove;
   smove = pm->cmd.rightmove;
   cmd = pm->cmd;
-  scale = q3a_CmdScale(&cmd);
+  scale = core_CmdScale(&cmd);
 
   // set the movementDir so clients can rotate the legs for strafing
   PM_SetMovementDir();
@@ -326,8 +314,8 @@ static void q1_WalkMove(void) {
   pml.forward[2] = 0;
   pml.right[2] = 0;
   // project the forward and right directions onto the ground plane
-  q3a_VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, phy_overbounce_scale);
-  q3a_VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, phy_overbounce_scale);
+  VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, q1_overbounce_scale);
+  VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, q1_overbounce_scale);
   VectorNormalize(pml.forward);
   VectorNormalize(pml.right);
 
@@ -357,7 +345,7 @@ static void q1_WalkMove(void) {
   // when a player gets hit, they temporarily lose
   // full control, which allows them to be moved a bit
   accelerate = phy_ground_accel;
-  q3a_Accelerate(wishdir, wishspeed, accelerate, pm->ps->speed);
+  core_Accelerate(wishdir, wishspeed, accelerate, pm->ps->speed);
   if ((pml.groundTrace.surfaceFlags & SURF_SLICK)
        || pm->ps->pm_flags & PMF_TIME_KNOCKBACK) {
     pm->ps->velocity[2] -= pm->ps->gravity * pml.frametime;
@@ -367,21 +355,27 @@ static void q1_WalkMove(void) {
   // this is the part that causes overbounces
   vel = VectorLength(pm->ps->velocity);
   // slide along the ground plane
-  q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, phy_overbounce_scale);
+  VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale);
   // don't decrease velocity when going up or down a slope
   VectorNormalize(pm->ps->velocity);
   VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
   // don't do anything if standing still
-  if (!pm->ps->velocity[0] && !pm->ps->velocity[1]) {
-    return;
-  }
-  
+  if (!pm->ps->velocity[0] && !pm->ps->velocity[1]) {return;}
   // Do the movement
-  q3a_StepSlideMove(qtrue);
+  core_StepSlideMove(qtrue);
 }
 
 
-void q3a_vq1(pmove_t *pmove) {
+void vq1_move(pmove_t *pmove) {
+  // set mins, maxs, and viewheight
+  q1_CheckDuck();
+
+  // set groundentity
+  PM_GroundTrace();
+  // do deadmove  :moved to top
+  // drop timers
+  PM_DropTimers();
+
   if (pm->ps->powerups[PW_FLIGHT]) {
     PM_FlyMove(); // flight powerup doesn't allow jump and has different friction
   } else if (pm->ps->pm_flags & PMF_GRAPPLE_PULL) {
@@ -402,7 +396,7 @@ void q3a_vq1(pmove_t *pmove) {
   PM_GroundTrace();
   PM_SetWaterLevel();
   // weapons
-  PM_Weapon();
+  core_Weapon();
   // torso animation
   PM_TorsoAnimation();
   // footstep events / legs animations

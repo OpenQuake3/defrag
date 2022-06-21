@@ -1,4 +1,29 @@
-#include "osdf.h"
+/*
+  ==============================
+  Written by:
+    id software :            Quake III Arena
+    sOkam! :                 Opensource Defrag
+
+  This file is part of Opensource Defrag.
+
+  Opensource Defrag is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Opensource Defrag is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Opensource Defrag.  If not, see <http://www.gnu.org/licenses/>.
+  ==============================
+*/
+
+
+#include "local.h"
+#include "q3a.h"
 
 void vjk_init(){
   phy_stopspeed = pm_stopspeed;
@@ -22,10 +47,19 @@ void vjk_init(){
   phy_aircontrol = qfalse;
   phy_jump_type = VQ3;
   phy_jump_auto = qtrue;
-  phy_jump_velocity = 225; // default 270
+  phy_jump_velocity = JUMP_VELOCITY; // vjk = 225. vq3 default = JUMP_VELOCITY = 270
 }
 
-void q3a_vjk(pmove_t *pmove) {
+void vjk_move(pmove_t *pmove) {
+  // set mins, maxs, and viewheight
+  PM_CheckDuck();
+  // set groundentity
+  PM_GroundTrace();
+
+  // do deadmove  :moved to top
+  // drop timers
+  PM_DropTimers();
+
   if (pm->ps->powerups[PW_FLIGHT]) {
     PM_FlyMove(); // flight powerup doesn't allow jump and has different friction
   } else if (pm->ps->pm_flags & PMF_GRAPPLE_PULL) {
@@ -46,7 +80,7 @@ void q3a_vjk(pmove_t *pmove) {
   PM_GroundTrace();
   PM_SetWaterLevel();
   // weapons
-  q3a_Weapon();
+  core_Weapon();
   // torso animation
   PM_TorsoAnimation();
   // footstep events / legs animations

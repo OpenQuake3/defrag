@@ -24,6 +24,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // because games can change separately from the main system version, we need a
 // second version that must match between game and cgame
+#ifndef   BG_PUBLIC_H
+#define   BG_PUBLIC_H
 
 #define	GAME_VERSION		BASEGAME "-1"
 
@@ -746,45 +748,4 @@ qboolean	BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTim
 #define KAMI_SHOCKWAVE2_MAXRADIUS		704
 
 
-
-//:::::::::::::::::
-//::OSDF modded
-// Common
-extern float   phy_accelerate;
-extern float   phy_airaccelerate;
-extern float   phy_stopspeed;
-
-extern float   phy_friction;
-extern float   phy_crouch_scale;
-
-// Flight Powerup
-extern float   phy_fly_accel;
-extern float   phy_fly_friction;
-// Water
-extern float   phy_water_accel;
-extern float   phy_water_friction;
-extern float   phy_water_scale;
-
-extern int   phy_jump_velocity;        // Vertical velocity that will be set/added when jumping (default = JUMP_VELOCITY = 270)
-extern int   phy_jump_dj_time;         // Amount of time(ms) since last jump, where CPM dj behavior can happen. (default CPM = 400)
-extern int   phy_jump_dj_velocity;     // Amount of velocity to add to CPM dj behavior. (default CPM = 100)
-
-// Functions
-void osdf_init(int movetype); // Initializes values to their default state (::TEMP: hack until proper cvar reading/writing)
-void osdf_move(pmove_t *pmove); // Selects the type of movement to execute
-void osdf_accelerate( vec3_t wishdir, float wishspeed, float accel ); // Calculates accel amount and applies it to velocity
-
-// VQ3
-//  Uses common variables only
-void vq3_move(pmove_t *pmove); // Vanilla Q3 movement
-
-
-// CPM
-//  Variables
-extern qboolean phy_aircontrol; // Enables/disables aircontrol (W turning)
-
-//  Functions
-//    Taken from Lumia's Momentum Mod open source implementation.
-void cpm_move(pmove_t *pmove);
-//:::::::::::::::::
-//::OSDF end
+#endif  // BG_PUBLIC_H

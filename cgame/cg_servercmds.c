@@ -994,7 +994,7 @@ static void CG_TimerEnd( int timer ) {
   cg.timer_stop = cg.timer_end;                           // Stop the active timer
   if (!cg.timer_best) { cg.timer_best = cg.timer_end; }   // If there is no best timer yet, mark timer_end as current best time
   else                { cg.timer_best = cg.timer_end < cg.timer_best ? cg.timer_end : cg.timer_best; }  // Replace best time if timer_end is lower than best time, and replace it if
-  Com_Printf("timer_end= %i :: timer_best= %i\n", cg.timer_end, cg.timer_best);
+  // Com_Printf("timer_end= %i :: timer_best= %i\n", cg.timer_end, cg.timer_best);
 }
 static void CG_TimerCheckpoint( int timer ) {
   // do timer cp here

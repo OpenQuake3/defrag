@@ -478,7 +478,7 @@ void Use_target_startTimer( gentity_t *self, gentity_t *other, gentity_t *activa
 
   // Hitting start trigger
   cl->timer_start = cl->ps.commandTime;   // Set start as commandTime (aka servertime)
-  Com_Printf("timerStart:: ps.commandTime= %i || timer_start= %i\n", cl->ps.commandTime, cl->timer_start);
+  // Com_Printf("timerStart:: ps.commandTime= %i || timer_start= %i\n", cl->ps.commandTime, cl->timer_start);
   // Notify client: New timer started at timer_start
   trap_SendServerCommand(clNum, va("timerStart %i", cl->timer_start));
 }

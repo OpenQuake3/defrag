@@ -1,4 +1,27 @@
-#include "osdf.h"
+/*
+  ==============================
+  Written by:
+    id software :            Quake III Arena
+    sOkam! :                 Opensource Defrag
+
+  This file is part of Opensource Defrag.
+
+  Opensource Defrag is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  Opensource Defrag is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with Opensource Defrag.  If not, see <http://www.gnu.org/licenses/>.
+  ==============================
+*/
+
+#include "local.h"
 
 void cpm_init(){
   phy_stopspeed = pm_stopspeed;
@@ -63,98 +86,6 @@ void vq3_init(){
   phy_jump_type = VQ3;
   phy_jump_auto = qfalse;
   phy_jump_velocity = JUMP_VELOCITY;
-}
-
-// Changed from q3a-gpl behavior to include basespeed.
-void q3a_Accelerate(vec3_t wishdir, float wishspeed, float accel, float basespeed) {
-  int i;
-  float addspeed, accelspeed, currentspeed;
-  float wishspeed_c;
-  vec3_t accelVelocity;
-
-  // Clamp wishpeed to a maximum of basespeed
-  wishspeed_c = wishspeed; // Initialize clamped wishspeed
-  if (wishspeed_c > basespeed) { wishspeed_c = basespeed; }
-
-  // Determine veer amount
-  currentspeed = DotProduct(pm->ps->velocity, wishdir);
-  // See how much to add
-  addspeed = wishspeed_c - currentspeed;
-  // If not adding any, done.
-  if (addspeed <= 0) {
-    return;
-  }
-  // Acceleration speed to add after accel
-  accelspeed = accel * wishspeed_c * pml.frametime;
-  // Cap it
-  if (accelspeed > addspeed) {
-    accelspeed = addspeed;
-  }
-  // Adjust player velocity
-  for (i = 0; i < 3; i++) {
-    accelVelocity[i] = accelspeed * wishdir[i]; // dir*speed = velocity
-    pm->ps->velocity[i] += accelVelocity[i];    // Vector addition, the typical visualization explained in videos of strafing math theory
-  }
-}
-
-static void q3a_Friction( void ) {
-	vec3_t	vec;
-	float	*vel;
-	float	speed, newspeed, control;
-	float	drop;
-	
-	vel = pm->ps->velocity;
-	
-	VectorCopy( vel, vec );
-	if ( pml.walking ) {
-		vec[2] = 0;	// ignore slope movement
-	}
-
-	speed = VectorLength(vec);
-	if (speed < 1) {
-		vel[0] = 0;
-		vel[1] = 0;		// allow sinking underwater
-		// FIXME: still have z friction underwater?
-		return;
-	}
-
-	drop = 0;
-
-	// apply ground friction
-	if ( pm->waterlevel <= 1 ) {
-		if ( pml.walking && !(pml.groundTrace.surfaceFlags & SURF_SLICK) ) {
-			// if getting knocked back, no friction
-			if ( ! (pm->ps->pm_flags & PMF_TIME_KNOCKBACK) ) {
-				control = speed < phy_stopspeed ? phy_stopspeed : speed;
-				drop += control*phy_friction*pml.frametime;
-			}
-		}
-	}
-
-	// apply water friction even if just wading
-	if ( pm->waterlevel ) {
-		drop += speed*phy_water_friction*pm->waterlevel*pml.frametime;
-	}
-
-	// apply flying friction
-	if ( pm->ps->powerups[PW_FLIGHT]) {
-		drop += speed*phy_fly_friction*pml.frametime;
-	}
-
-	if ( pm->ps->pm_type == PM_SPECTATOR) {
-		drop += speed*phy_spectator_friction*pml.frametime;
-	}
-
-	// scale the velocity
-	newspeed = speed - drop;
-	if (newspeed < 0) {
-		newspeed = 0;
-	}
-	newspeed /= speed;
-
-	vel[0] = vel[0] * newspeed;
-	vel[1] = vel[1] * newspeed;
-	vel[2] = vel[2] * newspeed;
 }
 
 static qboolean q3a_CheckJump(void) {
@@ -245,7 +176,7 @@ static void q3a_AirControl(vec3_t wishdir, float wishspeed) {
 }
 
 
-static void q3a_AirMove(void) {
+void q3a_AirMove(void) {
   int i;
   vec3_t wishvel;//, wishvel_c;
   float fmove, smove;
@@ -304,11 +235,11 @@ static void q3a_AirMove(void) {
     if (doSideMove && !doForwMove) {
       realAccel = phy_airstrafe_accel;
       realSpeed = phy_airstrafe_basespeed;
-      realWishSpd = wishspeed * q3a_CmdScale(&cmd);
+      realWishSpd = wishspeed * core_CmdScale(&cmd);
     } else {
       realAccel = phy_air_accel;
       realSpeed = pm->ps->speed;
-      realWishSpd = wishspeed * q3a_CmdScale(&cmd);
+      realWishSpd = wishspeed * core_CmdScale(&cmd);
 
       // Deceleration behavior
       /*
@@ -325,18 +256,18 @@ static void q3a_AirMove(void) {
   } else if (pm->movetype == VQ3) {
     realAccel = phy_air_accel;
     realSpeed = pm->ps->speed;
-    realWishSpd = wishspeed * q3a_CmdScale(&cmd);
+    realWishSpd = wishspeed * core_CmdScale(&cmd);
 
   } else if (pm->movetype == VJK) {
     realAccel = phy_air_accel;
     realSpeed = pm->ps->speed;
-    realWishSpd = wishspeed * q3a_CmdScale(&cmd);   // Some games don't scale inputs
+    realWishSpd = wishspeed * core_CmdScale(&cmd);   // Some games don't scale inputs
 
   } else { Com_Printf("Undefined movetype in q3a_ function. pm->movetype = %i", pm->movetype); return; }  // Undefined physics
   //::::::::::::::::::
 
   // not on ground, so little effect on velocity
-  q3a_Accelerate(wishdir, realWishSpd, realAccel, realSpeed);
+  core_Accelerate(wishdir, realWishSpd, realAccel, realSpeed);
   if (doAircontrol) {
     q3a_AirControl(wishdir, realWishSpd);
   }
@@ -344,17 +275,17 @@ static void q3a_AirMove(void) {
   // we may have a ground plane that is very steep, even though we don't have a
   // groundentity. slide along the steep plane
   if (pml.groundPlane) {
-    q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP);
+    VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP);
   }
   // Do the movement
   switch (phy_slidemove_type) {
-  case Q3A:  q3a_StepSlideMove(qtrue); break;
+  case Q3A:  core_StepSlideMove(qtrue); break;
   //case OSDF: osdf_StepSlideMove(qtrue); break;
   default:   PM_StepSlideMove(qtrue); break;
   }
 }
 
-static void q3a_WalkMove(void) {
+void q3a_WalkMove(void) {
   int i;
   vec3_t wishvel;
   float fmove, smove;
@@ -385,7 +316,7 @@ static void q3a_WalkMove(void) {
   fmove = pm->cmd.forwardmove;
   smove = pm->cmd.rightmove;
   cmd = pm->cmd;
-  scale = q3a_CmdScale(&cmd);
+  scale = core_CmdScale(&cmd);
 
   // set the movementDir so clients can rotate the legs for strafing
   PM_SetMovementDir();
@@ -393,8 +324,8 @@ static void q3a_WalkMove(void) {
   pml.forward[2] = 0;
   pml.right[2] = 0;
   // project the forward and right directions onto the ground plane
-  q3a_VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, OVERCLIP);
-  q3a_VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, OVERCLIP);
+  VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, OVERCLIP);
+  VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, OVERCLIP);
   VectorNormalize(pml.forward);
   VectorNormalize(pml.right);
 
@@ -430,7 +361,7 @@ static void q3a_WalkMove(void) {
   } else {
     accelerate = phy_ground_accel;
   }
-  q3a_Accelerate(wishdir, wishspeed, accelerate, pm->ps->speed);
+  core_Accelerate(wishdir, wishspeed, accelerate, pm->ps->speed);
   if ((pml.groundTrace.surfaceFlags & SURF_SLICK)
        || pm->ps->pm_flags & PMF_TIME_KNOCKBACK) {
     pm->ps->velocity[2] -= pm->ps->gravity * pml.frametime;
@@ -440,7 +371,7 @@ static void q3a_WalkMove(void) {
   // this is the part that causes overbounces
   vel = VectorLength(pm->ps->velocity);
   // slide along the ground plane
-  q3a_VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP);
+  VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, OVERCLIP);
   // don't decrease velocity when going up or down a slope
   VectorNormalize(pm->ps->velocity);
   VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
@@ -451,169 +382,23 @@ static void q3a_WalkMove(void) {
   
   // Do the movement
   switch (phy_slidemove_type) {
-  case Q3A:  q3a_StepSlideMove(qtrue); break;
+  case Q3A:  core_StepSlideMove(qtrue); break;
   //case OSDF: osdf_StepSlideMove(qtrue); break;
   default:   PM_StepSlideMove(qtrue); break;
   }
 }
 
-static void q3a_FinishWeaponChange( void ) {
-	int		weapon;
 
-	weapon = pm->cmd.weapon;
-	if ( weapon < WP_NONE || weapon >= WP_NUM_WEAPONS ) { weapon = WP_NONE; }
-	if ( !( pm->ps->stats[STAT_WEAPONS] & ( 1 << weapon ) ) ) { weapon = WP_NONE; }
+void cpm_move(pmove_t *pmove) {
+  // set mins, maxs, and viewheight
+  PM_CheckDuck();
+  // set groundentity
+  PM_GroundTrace();
 
-	pm->ps->weapon = weapon;
-	pm->ps->weaponstate = WEAPON_RAISING;
-  pm->ps->weaponTime += pm->movetype == CPM ? 0 : 250;  // Instant weapon switch for cpm
-	PM_StartTorsoAnim( TORSO_RAISE );
-}
+  // do deadmove  :moved to top
+  // drop timers
+  PM_DropTimers();
 
-static void q3a_BeginWeaponChange( int weapon ) {
-	if ( weapon <= WP_NONE || weapon >= WP_NUM_WEAPONS ) { return; }
-	if ( !( pm->ps->stats[STAT_WEAPONS] & ( 1 << weapon ) ) ) { return; }
-	if ( pm->ps->weaponstate == WEAPON_DROPPING ) { return; }
-
-	PM_AddEvent( EV_CHANGE_WEAPON );
-	pm->ps->weaponstate = WEAPON_DROPPING;
-	pm->ps->weaponTime += pm->movetype == CPM ? 0 : 250;
-	PM_StartTorsoAnim( TORSO_DROP );
-}
-
-static void q3a_Weapon( void ) {
-	int		addTime;
-
-	// don't allow attack until all buttons are up
-	if ( pm->ps->pm_flags & PMF_RESPAWNED ) { return; }
-	// ignore if spectator
-	if ( pm->ps->persistant[PERS_TEAM] == TEAM_SPECTATOR ) { return; }
-	// check for dead player
-	if ( pm->ps->stats[STAT_HEALTH] <= 0 ) { pm->ps->weapon = WP_NONE; return; }
-	// check for item using
-	if ( pm->cmd.buttons & BUTTON_USE_HOLDABLE ) {
-		if ( ! ( pm->ps->pm_flags & PMF_USE_ITEM_HELD ) ) {
-			if ( bg_itemlist[pm->ps->stats[STAT_HOLDABLE_ITEM]].giTag == HI_MEDKIT
-				&& pm->ps->stats[STAT_HEALTH] >= (pm->ps->stats[STAT_MAX_HEALTH] + 25) ) {
-				// don't use medkit if at max health
-			} else {
-				pm->ps->pm_flags |= PMF_USE_ITEM_HELD;
-				PM_AddEvent( EV_USE_ITEM0 + bg_itemlist[pm->ps->stats[STAT_HOLDABLE_ITEM]].giTag );
-				pm->ps->stats[STAT_HOLDABLE_ITEM] = 0;
-			}
-			return;
-		}
-	} else {
-		pm->ps->pm_flags &= ~PMF_USE_ITEM_HELD;
-	}
-
-
-	// make weapon function
-	if ( pm->ps->weaponTime > 0 ) {
-		pm->ps->weaponTime -= pml.msec;
-	}
-
-	// check for weapon change
-	// can't change if weapon is firing, but can change
-	// again if lowering or raising
-	if ( pm->ps->weaponTime <= 0 || pm->ps->weaponstate != WEAPON_FIRING ) {
-		if ( pm->ps->weapon != pm->cmd.weapon ) {
-			q3a_BeginWeaponChange( pm->cmd.weapon );
-		}
-	}
-	if ( pm->ps->weaponTime > 0 ) { return; }
-
-	// change weapon if time
-	if ( pm->ps->weaponstate == WEAPON_DROPPING ) {
-		q3a_FinishWeaponChange();
-		return;
-	}
-
-	if ( pm->ps->weaponstate == WEAPON_RAISING ) {
-		pm->ps->weaponstate = WEAPON_READY;
-		if ( pm->ps->weapon == WP_GAUNTLET ) {
-			PM_StartTorsoAnim( TORSO_STAND2 );
-		} else {
-			PM_StartTorsoAnim( TORSO_STAND );
-		}
-		return;
-	}
-
-	// check for fire
-	if ( ! (pm->cmd.buttons & BUTTON_ATTACK) ) {
-		pm->ps->weaponTime = 0;
-		pm->ps->weaponstate = WEAPON_READY;
-		return;
-	}
-
-	// start the animation even if out of ammo
-	if ( pm->ps->weapon == WP_GAUNTLET ) {
-		// the guantlet only "fires" when it actually hits something
-		if ( !pm->gauntletHit ) {
-			pm->ps->weaponTime = 0;
-			pm->ps->weaponstate = WEAPON_READY;
-			return;
-		}
-		PM_StartTorsoAnim( TORSO_ATTACK2 );
-	} else {
-		PM_StartTorsoAnim( TORSO_ATTACK );
-	}
-
-	pm->ps->weaponstate = WEAPON_FIRING;
-
-	// check for out of ammo
-	if ( ! pm->ps->ammo[ pm->ps->weapon ] ) {
-		PM_AddEvent( EV_NOAMMO );
-		pm->ps->weaponTime += 500;
-		return;
-	}
-
-	// take an ammo away if not infinite
-	if ( pm->ps->ammo[ pm->ps->weapon ] != -1 ) {
-		pm->ps->ammo[ pm->ps->weapon ]--;
-	}
-
-	// fire weapon
-	PM_AddEvent( EV_FIRE_WEAPON );
-
-	switch( pm->ps->weapon ) {
-	default:
-	case WP_GAUNTLET:         addTime = 400;  break;
-	case WP_LIGHTNING:        addTime = 50;   break;
-	case WP_SHOTGUN:      		addTime = 1000;	break;
-	case WP_MACHINEGUN:     	addTime = 100;	break;
-	case WP_GRENADE_LAUNCHER:	addTime = 800;	break;
-	case WP_ROCKET_LAUNCHER:	addTime = 800;	break;
-	case WP_PLASMAGUN:      	addTime = 100;	break;
-	case WP_RAILGUN:      		addTime = 1500;	break;
-	case WP_BFG:          		addTime = 200;	break;
-	case WP_GRAPPLING_HOOK:		addTime = 400;	break;
-#ifdef TEAMARENA
-  case WP_NAILGUN:      		addTime = 1000;	break;
-	case WP_PROX_LAUNCHER:		addTime = 800;	break;
-	case WP_CHAINGUN:     		addTime = 30;		break;
-#endif
-	}
-
-#ifdef TEAMARENA
-	if( bg_itemlist[pm->ps->stats[STAT_PERSISTANT_POWERUP]].giTag == PW_SCOUT ) {
-		addTime /= 1.5;
-	}
-	else
-	if( bg_itemlist[pm->ps->stats[STAT_PERSISTANT_POWERUP]].giTag == PW_AMMOREGEN ) {
-		addTime /= 1.3;
-  }
-  else
-#endif
-	if ( pm->ps->powerups[PW_HASTE] ) {
-		addTime /= 1.3;
-	}
-
-	pm->ps->weaponTime += addTime;
-}
-
-
-void q3a_cpm(pmove_t *pmove) {
   if (pm->ps->powerups[PW_FLIGHT]) {
     PM_FlyMove(); // flight powerup doesn't allow jump and has different friction
   } else if (pm->ps->pm_flags & PMF_GRAPPLE_PULL) {
@@ -634,7 +419,7 @@ void q3a_cpm(pmove_t *pmove) {
   PM_GroundTrace();
   PM_SetWaterLevel();
   // weapons
-  q3a_Weapon();
+  core_Weapon();
   // torso animation
   PM_TorsoAnimation();
   // footstep events / legs animations
@@ -646,7 +431,16 @@ void q3a_cpm(pmove_t *pmove) {
   else                  { pm->ps->velocity[2] = roundf(pm->ps->velocity[2]); } // No snapzones. Always snap vertical velocity, to preserve default max jump height
 }
 
-void q3a_vq3(pmove_t *pmove) {
+void vq3_move(pmove_t *pmove) {
+  // set mins, maxs, and viewheight
+  PM_CheckDuck();
+  // set groundentity
+  PM_GroundTrace();
+
+  // do deadmove  :moved to top
+  // drop timers
+  PM_DropTimers();
+
   if (pm->ps->powerups[PW_FLIGHT]) {
     PM_FlyMove(); // flight powerup doesn't allow jump and has different
                   // friction
@@ -668,7 +462,7 @@ void q3a_vq3(pmove_t *pmove) {
   PM_GroundTrace();
   PM_SetWaterLevel();
   // weapons
-  q3a_Weapon();
+  core_Weapon();
   // torso animation
   PM_TorsoAnimation();
   // footstep events / legs animations
