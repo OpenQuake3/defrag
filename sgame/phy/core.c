@@ -141,6 +141,96 @@ void VectorReflectBC(vec3_t in, vec3_t normal, vec3_t out, float overbounce) {
   VectorReflect_(in, normal, out, overbounce+1, 3, qfalse);
 }
 
+// Ground Trace
+//   OBfix is applied here
+void core_GroundTrace(void) {
+  vec3_t point;
+  trace_t trace;
+
+  point[0] = pm->ps->origin[0];
+  point[1] = pm->ps->origin[1];
+  point[2] = pm->ps->origin[2] - 0.25;
+
+  pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
+  pml.groundTrace = trace;
+
+  // do something corrective if the trace starts in a solid...
+  if (trace.allsolid) {
+    if (!PM_CorrectAllSolid(&trace)) {return;}
+  }
+  // if the trace didn't hit anything, we are in free fall
+  if (trace.fraction == 1.0) {
+    PM_GroundTraceMissed();
+    pml.groundPlane = qfalse;
+    pml.walking = qfalse;
+    return;
+  }
+  // check if getting thrown off the ground
+  if (pm->ps->velocity[2] > 0 
+      && DotProduct(pm->ps->velocity, trace.plane.normal) > 10) {
+    if (pm->debugLevel) { Com_Printf("%i:kickoff\n", c_pmove);}
+    // go into jump animation
+    if (pm->cmd.forwardmove >= 0) {
+      PM_ForceLegsAnim(LEGS_JUMP);
+      pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
+    } else {
+      PM_ForceLegsAnim(LEGS_JUMPB);
+      pm->ps->pm_flags |= PMF_BACKWARDS_JUMP;
+    }
+
+    pm->ps->groundEntityNum = ENTITYNUM_NONE;
+    pml.groundPlane = qfalse;
+    pml.walking = qfalse;
+    return;
+  }
+
+  // slopes that are too steep will not be considered onground
+  if (trace.plane.normal[2] < MIN_WALK_NORMAL) {
+    if (pm->debugLevel) { Com_Printf("%i:steep\n", c_pmove); }
+    // FIXME: if they can't slide down the slope, let them walk (sharp crevices)
+    pm->ps->groundEntityNum = ENTITYNUM_NONE;
+    pml.groundPlane = qtrue;
+    pml.walking = qfalse;
+    return;
+  }
+
+  pml.groundPlane = qtrue;
+  pml.walking = qtrue;
+
+  // hitting solid ground will end a waterjump
+  if (pm->ps->pm_flags & PMF_TIME_WATERJUMP) {
+    pm->ps->pm_flags &= ~(PMF_TIME_WATERJUMP | PMF_TIME_LAND);
+    pm->ps->pm_time = 0;
+  }
+
+  if (pm->ps->groundEntityNum == ENTITYNUM_NONE) {
+    // just hit the ground
+    if (pm->debugLevel) { Com_Printf("%i:Land\n", c_pmove); }
+    PM_CrashLand();
+    // OBfix: Reflect velocity on floor normal when landing
+    if (pml.groundTrace.surfaceFlags & SURF_NOOB) {
+      VectorReflect(pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP);
+    }
+
+    // don't do landing time if we were just going down a slope
+    if (pml.previous_velocity[2] < -200) {
+      // don't allow another jump for a little while
+      pm->ps->pm_flags |= PMF_TIME_LAND;
+      pm->ps->pm_time = 250;
+    }
+  }
+
+  pm->ps->groundEntityNum = trace.entityNum;
+
+  // OBfix: Remove vertical OBs from Flat surfaces
+  if (pml.groundTrace.surfaceFlags & SURF_NOOB && trace.plane.normal[2] == 1.0f) {
+    pm->ps->velocity[2] = 0;
+  }
+
+  PM_AddTouchEnt(trace.entityNum);
+}
+
+
 // Scale factor to apply to inputs (cmd).
 // Modified to (optionally) allow fixing slowdown when holding jump.
 //  .. fix is ignored for VQ3/CPM movetypes.

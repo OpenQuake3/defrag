@@ -22,7 +22,6 @@
   ==============================
 */
 
-#include "../cg_local.h"
 #include "local.h"  // hud/local.h
 #include "../../qcommon/q_assert.h"
 // #include "cg_snap.h"

@@ -1057,7 +1057,26 @@ plyer_state_t communication
 
 // using the stringizing operator to save typing...
 #define	PSF(x) #x,(size_t)&((playerState_t*)0)->x
+/*
+   #define offsetof(type,member) ((size_t)&((type*)0)->member) 
+     Returns an address of a member of structure type
+     that is stored in memory from address 0 (which happens to be the offset).
+   #define PSF(x) #x,offsetof(playerState_t, x)
 
+   #define          : A macro
+   PSF(x)           : that represents a function with one argument x
+   #x,              : that converts the rest of the code into text, starting with    x,
+   (size_t)         : Cast the result into a size_t type
+   &( ... )         : The adress of ...
+   (playerState_t*) : Pointer to playerState_t
+   )0)              : Zero Pointer Dereference
+   ->x              : Will be calling the X field when expanded
+
+   { PSF(psfield), 32 }                                  // Writing this
+   { psfield, offsetof(playerState_t, psfield),      32} // is equivalent to this
+   { psfield, (size_t)&((playerState_t*)0)->psfield, 32} // and will expand to this
+   { *name,    offset,                             size} // size 0 = float
+*/
 netField_t	playerStateFields[] = 
 {
 { PSF(commandTime), 32 },				

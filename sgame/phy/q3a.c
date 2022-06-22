@@ -393,7 +393,7 @@ void cpm_move(pmove_t *pmove) {
   // set mins, maxs, and viewheight
   PM_CheckDuck();
   // set groundentity
-  PM_GroundTrace();
+  core_GroundTrace();
 
   // do deadmove  :moved to top
   // drop timers
@@ -416,7 +416,7 @@ void cpm_move(pmove_t *pmove) {
   // animations
   PM_Animate();
   // set groundentity, watertype, and waterlevel
-  PM_GroundTrace();
+  core_GroundTrace();
   PM_SetWaterLevel();
   // weapons
   core_Weapon();
@@ -435,7 +435,7 @@ void vq3_move(pmove_t *pmove) {
   // set mins, maxs, and viewheight
   PM_CheckDuck();
   // set groundentity
-  PM_GroundTrace();
+  core_GroundTrace();
 
   // do deadmove  :moved to top
   // drop timers
@@ -459,7 +459,7 @@ void vq3_move(pmove_t *pmove) {
   // animations
   PM_Animate();
   // set groundentity, watertype, and waterlevel
-  PM_GroundTrace();
+  core_GroundTrace();
   PM_SetWaterLevel();
   // weapons
   core_Weapon();

@@ -22,10 +22,9 @@
   ==============================
 */
 
-#include "local.h"
 
+#include "local.h"
 #include "../../sgame/bg_local.h"
-#include "../cg_local.h"
 #include "../../qcommon/q_assert.h"
 
 static vmCvar_t accel;
@@ -143,13 +142,13 @@ static void hud_PmoveSingle(void) {
   if (!cg.demoPlayback && !(s.ps.pm_flags & PMF_FOLLOW)) {
     int32_t const cmdNum = trap_GetCurrentCmdNumber();
     trap_GetUserCmd(cmdNum, &s.pm.cmd);
-  } else {
-    s.pm.cmd.forwardmove = scale * ((s.ps.stats[13] & PSF_USERINPUT_FORWARD) / PSF_USERINPUT_FORWARD -
+  } else {  // during demo, or Following in Spectator mode
+    s.pm.cmd.forwardmove = scale * ((s.ps.stats[13] & PSF_USERINPUT_FORWARD)  / PSF_USERINPUT_FORWARD -
                                     (s.ps.stats[13] & PSF_USERINPUT_BACKWARD) / PSF_USERINPUT_BACKWARD);
-    s.pm.cmd.rightmove   = scale * ((s.ps.stats[13] & PSF_USERINPUT_RIGHT) / PSF_USERINPUT_RIGHT -
-                                    (s.ps.stats[13] & PSF_USERINPUT_LEFT) / PSF_USERINPUT_LEFT);
-    s.pm.cmd.upmove      = scale * ((s.ps.stats[13] & PSF_USERINPUT_JUMP) / PSF_USERINPUT_JUMP -
-                                    (s.ps.stats[13] & PSF_USERINPUT_CROUCH) / PSF_USERINPUT_CROUCH);
+    s.pm.cmd.rightmove   = scale * ((s.ps.stats[13] & PSF_USERINPUT_RIGHT)    / PSF_USERINPUT_RIGHT -
+                                    (s.ps.stats[13] & PSF_USERINPUT_LEFT)     / PSF_USERINPUT_LEFT);
+    s.pm.cmd.upmove      = scale * ((s.ps.stats[13] & PSF_USERINPUT_JUMP)     / PSF_USERINPUT_JUMP -
+                                    (s.ps.stats[13] & PSF_USERINPUT_CROUCH)   / PSF_USERINPUT_CROUCH);
   }
 
   // clear all pmove local vars
@@ -172,33 +171,12 @@ static void hud_PmoveSingle(void) {
   // set groundentity
   hud_GroundTrace(&s.pm, &s.ps, &s.pml);
 
-  //if ( s.ps.pm_type == PM_DEAD ) {
-  //  PM_DeadMove ();
-  //}
-
-  if (s.ps.powerups[PW_FLIGHT]) {
-    // // flight powerup doesn't allow jump and has different friction
-    // PM_FlyMove();
-    return;
-  } else if (s.ps.pm_flags & PMF_GRAPPLE_PULL) {
-    // PM_GrappleMove();
-    // // We can wiggle a bit
-    // hud_AirMove();
-    return;
-  } else if (s.ps.pm_flags & PMF_TIME_WATERJUMP) {
-    // PM_WaterJumpMove();
-    return;
-  } else if (s.pm.waterlevel > 1) {
-    // // swimming
-    // PM_WaterMove();
-    return;
-  } else if (s.pml.walking) {
-    // walking on ground
-    hud_WalkMove();
-  } else {
-    // airborne
-    hud_AirMove();
-  }
+  if      (s.ps.powerups[PW_FLIGHT])           {return;}
+  else if (s.ps.pm_flags & PMF_GRAPPLE_PULL)   {return;}
+  else if (s.ps.pm_flags & PMF_TIME_WATERJUMP) {return;}
+  else if (s.pm.waterlevel > 1)                {return;}
+  else if (s.pml.walking)                      {hud_WalkMove();}
+  else                                         {hud_AirMove();}
 
   CG_DrawAccel();
 }
@@ -372,7 +350,7 @@ static void hud_AirMove(void) {
   hud_Friction();
 
   float const scale = accel_trueness.integer & ACCEL_JUMPCROUCH ? PM_CmdScale(&s.ps, &s.pm.cmd)
-                                                              : PM_AltCmdScale(&s.ps, &s.pm.cmd);
+                                                                : PM_AltCmdScale(&s.ps, &s.pm.cmd);
 
   // project moves down to flat plane
   s.pml.forward[2] = 0;

@@ -244,7 +244,7 @@ void core_StepSlideMove( qboolean gravity ) {
 	down[2] -= stepSize;
 	pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, down, pm->ps->clientNum, pm->tracemask);
 	if ( !trace.allsolid )      { VectorCopy (trace.endpos, pm->ps->origin); }
-	if ( trace.fraction < 1.0 ) { VectorReflect( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP ); }
+	if ( trace.fraction < 1.0 ) { VectorReflect( pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP ); }  // VectorReflect2D for CPM ??
 	// use the step move
 	delta = pm->ps->origin[2] - start_o[2];
 	if ( delta > 2 ) {
