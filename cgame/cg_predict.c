@@ -382,6 +382,19 @@ static void CG_TouchTriggerPrediction( void ) {
 }
 
 
+//::OSDF added
+//:::::::::::::::
+// hud_StoreData
+//   Extracts pmove data needed in other parts of cg
+//:::::::::::::::
+void hud_StoreData(const pmove_t* pmove) {
+  if (pmove == NULL) {return;}
+  memset(&cg.pmd, 0, sizeof(cg.pmd));  // Reset previously stored data
+  cg.pmd = pmove->pmd;                 // Make a copy of it
+}
+//:::::::::::::::
+//::OSDF end
+
 
 /*
 =================
@@ -627,6 +640,9 @@ void CG_PredictPlayerState( void ) {
 			cg.eventSequence = cg.predictedPlayerState.eventSequence;
 		}
 	}
+
+  // Store hud data
+  hud_StoreData(&cg_pmove);
 }
 
 

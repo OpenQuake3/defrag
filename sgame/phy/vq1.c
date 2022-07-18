@@ -24,49 +24,48 @@
 #include "local.h"
 
 void vq1_init(){
-  phy_stopspeed = 100; // QW value
-  phy_crouch_scale = pm_duckScale;
+  phy_stopspeed          = 100; // QW value
+  // Crouch
+  phy_crouch_scale       = pm_duckScale;
+  phy_crouch_feetraise   = 14;
   // Acceleration
-  phy_fly_accel = pm_flyaccelerate;
+  phy_fly_accel          = pm_flyaccelerate;
   // Friction
-  phy_friction = 4; // QW value. from 6 (q3a/pm_friction)
-  phy_fly_friction = pm_flightfriction;
+  phy_friction           = 4; // QW value. from 6 (q3a/pm_friction)
+  phy_fly_friction       = pm_flightfriction;
   phy_spectator_friction = pm_spectatorfriction;
   // Water
-  phy_water_accel = 10; // QW value. from 4 (q3a/pm_wateraccelerate)
-  phy_water_scale = pm_swimScale;
-  phy_water_friction = 4; // QW value
+  phy_water_accel        = 10; // QW value. from 4 (q3a/pm_wateraccelerate)
+  phy_water_scale        = pm_swimScale;
+  phy_water_friction     = 4; // QW value
   // New
-  phy_slidemove_type = Q3A;
-  phy_snapvelocity = qfalse;
-  phy_input_scalefix = qtrue;
-  q1_overbounce_scale = 1.000f;
+  phy_skim_enable        = qtrue;
+  phy_snapvelocity       = qfalse;
+  phy_input_scalefix     = qtrue;
+  overbounce_scale       = OVERCLIP;
   // Ground
-  phy_ground_basespeed = 320;
-  phy_ground_accel = 10;
+  phy_ground_basespeed   = 320;
+  phy_ground_accel       = 10;
   // Air movement
-  phy_air_accel = 90; // 70 = QW value 0.7 : q3a = 1 :: 100 was too much. 70 not enough :: 0.1/32as/90aa/125fps felt really good
-  phy_air_speedscalar = 0.11; //0.1125;=36 slightly too much //0.125=40 too much; // Value: 0.0938 = ~30, but its too slow. 0.1/32as/70aa/77fps super close to QW/vint
+  phy_air_accel          = 90; // 70 = QW value 0.7 : q3a = 1 :: 100 was too much. 70 not enough :: 0.1/32as/90aa/125fps felt really good
+  phy_air_speedscalar    = 0.11; //0.1125;=36 slightly too much //0.125=40 too much; // Value: 0.0938 = ~30, but its too slow. 0.1/32as/70aa/77fps super close to QW/vint
   // Jump
-  s_jump_interval = 250;
-  phy_jump_auto = qtrue;
-  phy_jump_type = VQ3;
-  phy_jump_velocity = JUMP_VELOCITY;
-  phy_jump_scalar   = 0.5; 
-
+  phy_jump_auto          = qtrue;
+  phy_jump_type          = VQ3;
+  phy_jump_velocity      = JUMP_VELOCITY;
+  phy_step_maxvel        = phy_jump_velocity;
+  phy_jump_scalar        = 0.5;
 }
 
-void q1_CheckDuck(void) {
-  trace_t trace;
-
+static void q1_CheckDuck(void) {
   if (pm->ps->powerups[PW_INVULNERABILITY]) {
     if (pm->ps->pm_flags & PMF_INVULEXPAND) {
       // invulnerability sphere has a 42 units radius
       VectorSet(pm->mins, -42, -42, -42);
-      VectorSet(pm->maxs, 42, 42, 42);
+      VectorSet(pm->maxs,  42,  42,  42);
     } else {
       VectorSet(pm->mins, -15, -15, MINS_Z);
-      VectorSet(pm->maxs, 15, 15, 16);
+      VectorSet(pm->maxs,  15,  15, 16);
     }
     pm->ps->pm_flags |= PMF_DUCKED;
     pm->ps->viewheight = CROUCH_VIEWHEIGHT;
@@ -76,11 +75,9 @@ void q1_CheckDuck(void) {
 
   pm->mins[0] = -15;
   pm->mins[1] = -15;
-
-  pm->maxs[0] = 15;
-  pm->maxs[1] = 15;
-
-  pm->mins[2] = MINS_Z;
+  pm->maxs[0] =  15;
+  pm->maxs[1] =  15;
+  pm->mins[2] =  MINS_Z;
 
   if (pm->ps->pm_type == PM_DEAD) {
     pm->maxs[2] = -8;
@@ -89,13 +86,14 @@ void q1_CheckDuck(void) {
   }
 
   if (pm->cmd.upmove < 0) { // duck
+     pm->mins[2] = (pml.groundPlane) ? pm->mins[2] : MINS_Z +phy_crouch_feetraise;  // Keep it the same on the ground. Else apply feetraise
      pm->ps->pm_flags |= PMF_DUCKED;
   } else { // stand up if possible
     if (pm->ps->pm_flags & PMF_DUCKED) {
       // try to stand up
       pm->maxs[2] = 32;
-      pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, pm->ps->origin, pm->ps->clientNum, pm->tracemask);
-      if ( !trace.allsolid)// && !(pm->cmd.upmove < 0) )
+      trace_t trace; pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, pm->ps->origin, pm->ps->clientNum, pm->tracemask);
+      if (!trace.allsolid)// && !(pm->cmd.upmove < 0) )
         {pm->ps->pm_flags &= ~PMF_DUCKED;}
     }
   }
@@ -134,33 +132,22 @@ static qboolean q1_CheckJump(void) {
   pml.walking = qfalse;
   pm->ps->pm_flags |= PMF_JUMP_HELD;
   pm->ps->groundEntityNum = ENTITYNUM_NONE;
-  
-  if (pm->ps->pm_flags & PMF_DUCKED) { pm->ps->velocity[2] *= 0.5; }
 
   // QW JumpHeights
   // Downramps act like vq3 (set). Upramps act like QW (add)
   if (pm->ps->velocity[2] < 0){
     if (pm->cmd.buttons & BUTTON_WALKING) { pm->ps->velocity[2] += phy_jump_velocity; }
-    else                                  { pm->ps->velocity[2] = phy_jump_velocity; } // Downramp set
+    else                                  { pm->ps->velocity[2]  = phy_jump_velocity; } // Downramp set
   } else {  // Flat or Upramp
     if (pm->cmd.buttons & BUTTON_WALKING) { pm->ps->velocity[2] += phy_jump_velocity*phy_jump_scalar; }
     else                                  { pm->ps->velocity[2] += phy_jump_velocity; }
   }  
-  //
-  // Jump end
-
-  if ((pm->cmd.serverTime - pm->ps->stats[STAT_TIME_LASTJUMP]) > s_jump_interval){
-    PM_AddEvent(EV_JUMP); // Ask the client to play the jump sound
-    if (pm->debugLevel) { Com_Printf("%i:Jump+Sound :: Lastjump=%i\n", c_pmove, pm->ps->stats[STAT_TIME_LASTJUMP]); }
-    pm->ps->pm_flags &= ~PMF_JUMP_HELD;
-  }
-  if (pm->cmd.forwardmove >= 0) {
-    PM_ForceLegsAnim(LEGS_JUMP);
-    pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
-  } else {
-    PM_ForceLegsAnim(LEGS_JUMPB);
-    pm->ps->pm_flags |= PMF_BACKWARDS_JUMP;
-  }
+  // Sound and Anim
+  PM_AddEvent(EV_JUMP); // Ask the client to play the jump sound
+  if (pm->cmd.forwardmove >= 0) { PM_ForceLegsAnim(LEGS_JUMP);  pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP; }
+  else                          { PM_ForceLegsAnim(LEGS_JUMPB); pm->ps->pm_flags |=  PMF_BACKWARDS_JUMP; }
+  // We have jumped
+  if (pm->debugLevel) { Com_Printf("%i:Jump\n", c_pmove); }
   return qtrue;
 }
 
@@ -269,26 +256,30 @@ static void q1_AirMove(void) {
   if (pml.groundPlane) {
     // "Bouncy" version. Increases incoming overbounce value
     //    Close, but not quite there. 
-    if (1) { VectorReflectBC(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale); }
+    if (1) { VectorReflectBC(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, overbounce_scale); }
     // "One-sided" version. Ignores backoff when moving away from surface
     //    Issues with Vertical Velocity affecting surf physics
-    else   { VectorReflectOS(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale); }
+    else   { VectorReflectOS(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, overbounce_scale); }
   }
   // Do the movement
-  core_StepSlideMove(qtrue);
+  if (1) { 
+    pm->ps->velocity[2] -= pm->ps->gravity * pml.frametime;
+    core_StepSlideMove(qfalse);
+  }
+  else { core_StepSlideMove(qtrue);}
 }
 
 
 static void q1_WalkMove(void) {
-  int i;
-  vec3_t wishvel;
-  float fmove, smove;
-  vec3_t wishdir;
-  float wishspeed;
-  float scale;
+  int       i;
+  vec3_t    wishvel;
+  float     fmove, smove;
+  vec3_t    wishdir;
+  float     wishspeed;
+  float     scale;
   usercmd_t cmd;
-  float accelerate;
-  float vel;
+  float     accelerate;
+  float     vel;
 
   if (pm->waterlevel > 2 && DotProduct(pml.forward, pml.groundTrace.plane.normal) > 0) {
     PM_WaterMove(); // begin swimming
@@ -314,8 +305,8 @@ static void q1_WalkMove(void) {
   pml.forward[2] = 0;
   pml.right[2] = 0;
   // project the forward and right directions onto the ground plane
-  VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, q1_overbounce_scale);
-  VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, q1_overbounce_scale);
+  VectorReflect(pml.forward, pml.groundTrace.plane.normal, pml.forward, overbounce_scale);
+  VectorReflect(pml.right, pml.groundTrace.plane.normal, pml.right, overbounce_scale);
   VectorNormalize(pml.forward);
   VectorNormalize(pml.right);
 
@@ -355,7 +346,7 @@ static void q1_WalkMove(void) {
   // this is the part that causes overbounces
   vel = VectorLength(pm->ps->velocity);
   // slide along the ground plane
-  VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, q1_overbounce_scale);
+  VectorReflect(pm->ps->velocity, pml.groundTrace.plane.normal, pm->ps->velocity, overbounce_scale);
   // don't decrease velocity when going up or down a slope
   VectorNormalize(pm->ps->velocity);
   VectorScale(pm->ps->velocity, vel, pm->ps->velocity);
@@ -406,5 +397,4 @@ void vq1_move(pmove_t *pmove) {
   // Snap vertical velocity only, to preserve default max jump height
   pm->ps->velocity[2] = roundf(pm->ps->velocity[2]); 
 }
-
 

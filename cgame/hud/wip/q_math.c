@@ -420,23 +420,11 @@ float Q_fabs(float f)
 /*
 ===============
 LerpAngle
-
 ===============*/
-float LerpAngle(float from, float to, float frac)
-{
-  float a;
-
-  if (to - from > 180)
-  {
-    to -= 360;
-  }
-  if (to - from < -180)
-  {
-    to += 360;
-  }
-  a = from + frac * (to - from);
-
-  return a;
+float LerpAngle(float from, float to, float frac) {
+  if (to - from >  180) { to -= 360; }
+  if (to - from < -180) { to += 360; }
+  return from + frac * (to - from);
 }
 
 /*
@@ -513,17 +501,7 @@ float AngleNormalize2PI(float angle)
   return angle < 0 ? angle + 2 * (float)M_PI : angle;
 }
 
-/*
-=================
-AngleNormalizePI
-
-returns angle normalized to the range [-PI <= angle < PI]
-=================*/
-float AngleNormalizePI(float angle)
-{
-  angle = fmodf(angle + (float)M_PI, 2 * (float)M_PI);
-  return angle < 0 ? angle + (float)M_PI : angle - (float)M_PI;
-}
+// AngleNormalizePI
 
 /*
 ================

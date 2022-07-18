@@ -44,20 +44,16 @@ void CG_AdjustFrom640( float *x, float *y, float *w, float *h ) {
 	*h *= cgs.screenYScale;
 }
 
-/*
-================
-CG_FillRect
-
-Coordinates are 640*480 virtual values
-=================
-*/
-void CG_FillRect( float x, float y, float width, float height, const float *color ) {
-	trap_R_SetColor( color );
-
-	CG_AdjustFrom640( &x, &y, &width, &height );
-	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 0, 0, cgs.media.whiteShader );
-
-	trap_R_SetColor( NULL );
+//:::::::::::::::::
+// CG_FillRect
+//   Coordinates are 640*480 virtual values
+//:::::::::::::::::
+void CG_FillRect(float x, float y, float w, float h, const float* color) {
+  if (!w || !h)        {return;}
+  trap_R_SetColor      (color);
+  CG_AdjustFrom640     (&x, &y, &w, &h);
+  trap_R_DrawStretchPic(x, y, w, h, 0, 0, 0, 0, cgs.media.whiteShader);
+  trap_R_SetColor      (NULL);
 }
 
 /*
@@ -429,6 +425,80 @@ void CG_ColorForHealth( vec4_t hcolor ) {
 	CG_GetColorForHealth( cg.snap->ps.stats[STAT_HEALTH], 
 		cg.snap->ps.stats[STAT_ARMOR], hcolor );
 }
+
+//:::::::::::::::::
+//::OSDF added. Used for HUD
+typedef struct {
+  float    x1;
+  float    x2;
+  qboolean split;
+} range_t;
+//:::::::::::::::::
+static inline qboolean AngleInFovY(float pitch) {
+  ASSERT_FLOAT_EQ(pitch, AngleNormalizePI(pitch));
+  float const half_fov_y = cg.refdef.fov_y / 2;
+  return pitch > -half_fov_y && pitch < half_fov_y;
+}
+//:::::::::::::::::
+static inline qboolean AngleInFovX(float yaw) {
+  ASSERT_FLOAT_EQ(yaw, AngleNormalizePI(yaw));
+  float const half_fov_x = cg.refdef.fov_x / 2;
+  return yaw > -half_fov_x && yaw < half_fov_x;
+}
+//:::::::::::::::::
+static inline float ProjectionX(float angle) {
+  ASSERT_FLOAT_EQ(angle, AngleNormalizePI(angle));
+  float const half_fov_x = cg.refdef.fov_x / 2;
+  if (angle >= half_fov_x) return 0;
+  if (angle <= -half_fov_x) return cgs.screenWidth;
+
+  ASSERT_TRUE(AngleInFovX(angle));
+  switch (hud_projection.integer) {
+  case 0: // Rectilinear projection. Breaks with fov >=180.
+    return cgs.screenWidth / 2 * (1 - tanf(angle) / tanf(half_fov_x));
+  case 1: // Cylindrical projection. Breaks with fov >360.
+    return cgs.screenWidth / 2 * (1 - angle / half_fov_x);
+  case 2: // Panini projection. Breaks with fov >=360.
+    return cgs.screenWidth / 2 * (1 - tanf(angle / 2) / tanf(half_fov_x / 2));
+  default:
+    assert(0);
+    return 0;
+  }
+}
+//:::::::::::::::::
+static inline range_t AnglesToRange(float start, float end, float yaw) {
+  if (fabsf(end - start) > 2 * (float)M_PI) {
+    range_t const ret = { 0, cgs.screenWidth, qfalse };
+    return ret;
+  }
+  qboolean split = end > start;
+  start          = AngleNormalizePI(start - yaw);
+  end            = AngleNormalizePI(end - yaw);
+  if (end > start) {
+    split           = !split;
+    float const tmp = start;
+    start           = end;
+    end             = tmp;
+  }
+  range_t const ret = { ProjectionX(start), ProjectionX(end), split };
+  return ret;
+}
+
+//:::::::::::::::::
+// CG_FillAngleYaw
+//   Fills a rectangle from `start` to `end`, with height `h`, at vertical position `y`
+//:::::::::::::::::
+void CG_FillAngleYaw(float start, float end, float yaw, float y, float h, vec4_t const color) {
+  range_t const range = AnglesToRange(start, end, yaw);
+  if (!range.split) {
+    CG_FillRect(range.x1, y, range.x2 - range.x1,        h, color);
+  } else {
+    CG_FillRect(0,        y, range.x1,                   h, color);
+    CG_FillRect(range.x2, y, cgs.screenWidth - range.x2, h, color);
+  }
+}
+//::OSDF end
+//:::::::::::::::::
 
 
 /*

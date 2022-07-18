@@ -607,6 +607,18 @@ float AngleNormalize180 ( float angle ) {
 	return angle;
 }
 
+//::OSDF added
+//::::::::::::::::
+// AngleNormalizePI
+//   returns angle normalized to the range [-PI <= angle < PI]
+//::::::::::::::::
+float AngleNormalizePI(float angle) {
+  angle = fmodf(angle + (float)M_PI, 2 * (float)M_PI);
+  return angle < 0 ? angle + (float)M_PI : angle - (float)M_PI;
+}
+//::::::::::::::::
+//::OSDF end
+
 
 /*
 =================

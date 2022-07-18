@@ -249,7 +249,7 @@ void AxisCopy(vec3_t in[3], vec3_t out[3]);
 float   AngleNormalize360(float angle);
 float   AngleNormalize180(float angle);
 float   AngleNormalize2PI(float angle);
-float   AngleNormalizePI(float angle);
+// AngleNormalizePI
 int32_t AngleNormalize65536(int32_t angle);
 int32_t AngleNormalize32768(int32_t angle);
 

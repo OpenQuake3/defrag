@@ -82,9 +82,11 @@ void hud_update(void) {
   // hud_rl_update();
 }
 
+// This was called inside cg_vm.c in proxymod
+// We are not proxying anything, so this goes directly to cgame instead (cg_draw.c)
 void hud_draw(void) {
   if (!trap_CM_NumInlineModels()) {return;} // Check if we have models, otherwise CM_ClipHandleToModel will fail
-  if (!hud.integer) {return;}
+  if (!hud.integer) {return;}  // If hud is disabled, don't draw it
 
   hud_accel_draw();
   // hud_snap_draw();
@@ -99,14 +101,14 @@ void hud_draw(void) {
 // hud help
 void hud_help_init(help_t const* help, size_t size) {
   ASSERT_LT(helpTableIdx, ARRAY_LEN(helpTable));
-#ifndef NDEBUG
+  #ifndef NDEBUG
   for (size_t i = 0; i < size; ++i)  {
     size_t const len = strlen(help[i].cvarTable->cvarName);
     assert(strlen(help[i].message[0]) > len);
     assert(!Q_strncmp(help[i].message[0], help[i].cvarTable->cvarName, (int)len));
     assert(help[i].message[0][len] == ' ');
   }
-#endif
+  #endif
   helpTable[helpTableIdx].help = help;
   helpTable[helpTableIdx].size = size;
   ++helpTableIdx;

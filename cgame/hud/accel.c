@@ -22,11 +22,12 @@
   ==============================
 */
 
-
 #include "local.h"
 #include "../../sgame/bg_local.h"
 #include "../../qcommon/q_assert.h"
 
+//:::::::::::::::::
+// Cvars
 static vmCvar_t accel;
 static vmCvar_t accel_trueness;
 static vmCvar_t accel_min_speed;
@@ -48,23 +49,17 @@ static cvarTable_t accel_cvartable[] = {
 };
 
 static help_t accel_help[] = {
-  { accel_cvartable + 0, BINARY_LITERAL,
-    {
-      "hud_accel 0bX",
+  { accel_cvartable + 0, BINARY_LITERAL, 
+    { "hud_accel 0bX",
       "           |",
-      "           +- draw hud",
-    },
-  },
+      "           +- draw hud", }, },
 #define ACCEL_DRAW 1
   { accel_cvartable + 1, BINARY_LITERAL,
-    {
-      "hud_accel_trueness 0bXXX",
+    { "hud_accel_trueness 0bXXX",
       "                    |||",
       "                    ||+- show true jump/crouch zones",
       "                    |+-- show true CPM air control zones",
-      "                    +--- show true ground zones",
-    },
-  },
+      "                    +--- show true ground zones",   }, },
 #define ACCEL_JUMPCROUCH 1
 #define ACCEL_CPM        2
 #define ACCEL_GROUND     4
@@ -74,415 +69,234 @@ static help_t accel_help[] = {
   { accel_cvartable + 6,  RGBA, {"hud_accel_rgbaFullAccel X X X X",}, },
   { accel_cvartable + 7,  RGBA, {"hud_accel_rgbaTurnZone X X X X",}, },
 };
-
+//:::::::::::::::::
+// hud_accel_init
+//   Initializes everything in the cvar table, with the respective help info
+//:::::::::::::::::
 void hud_accel_init(void) {
   cvartable_init(accel_cvartable, ARRAY_LEN(accel_cvartable));
-  hud_help_init(accel_help, ARRAY_LEN(accel_help));
+  hud_help_init (accel_help,      ARRAY_LEN(accel_help));
 }
-
+//:::::::::::::::::
+// hud_accel_update
+//   Updates the accel cvars data
+//:::::::::::::::::
 void hud_accel_update(void) {
   cvartable_update(accel_cvartable, ARRAY_LEN(accel_cvartable));
   accel.integer          = cvar_getInteger("hud_accel");
   accel_trueness.integer = cvar_getInteger("hud_accel_trueness");
 }
+//:::::::::::::::::
 
+
+//:::::::::::::::::
 typedef struct {
-  float g_squared; // 0 when not on slick.
-  float v_squared;
-  float vf_squared;
-  float a_squared;
-
-  float v;
-  float vf;
-  float a;
-
-  float wishspeed;
-} state_t;
-
-typedef struct {
-  vec2_t graph_yh;
-
-  vec4_t graph_rgbaNoAccel;
-  vec4_t graph_rgbaPartialAccel;
-  vec4_t graph_rgbaFullAccel;
-  vec4_t graph_rgbaTurnZone;
-
-  float dmin;
-  float dopt;
-  float dmax_cos;
-  float dmax;
-
-  float d_vel;
-
-  vec2_t wishvel;
-
-  pmove_t       pm;
-  playerState_t ps;
-  pml_t         pml;
+  vec2_t         graph_yh;
+  vec4_t         graph_rgbaNoAccel;
+  vec4_t         graph_rgbaPartialAccel;
+  vec4_t         graph_rgbaFullAccel;
+  vec4_t         graph_rgbaTurnZone;
+  float          slowDir;   // dmin     : Minimum angle to gain any speed
+  float          fastDir;   // dopt     : Where you gain more speed forward than in any other dir
+  float          stopDir;   // dmax_cos : Absolute end of gaining speed in any direction
+  float          turnDir;   // dmax     : Where you gain more speed in the turning direction than forward direction
+  float          d_vel;
+  vec2_t         wishvel;   // TODO: Should probably just be a pointer instead
+  pmoveData_t*   pmd;       // Points to the actual cg.pmoveData_t data. Before, it stored a const copy of recalculated pm
+  playerState_t* ps;        // Points to the actual playerState_t data (either predicted or snapshot). Before, it stored a const copy of the data
+  pml_t*         pml;       // Points to the actual pml_t data. Before, it stored a const copy of the data
 } accel_t;
+//:::::::::::::::::
+static accel_t     s;  // Stores accel hud state
+//:::::::::::::::::
 
-static accel_t s;
 
-static void hud_PmoveSingle(void);
-static void hud_AirMove(void);
-static void hud_WalkMove(void);
+//:::::::::::::::::
+// Draw Accel
+//:::::::::::::::::
+// void old_hud_accel_draw(void) {
+//   if (!accel.integer) {return;}
+//   s.ps = *getPs();
+//   s.pm.tracemask = s.ps.pm_type == PM_DEAD ? MASK_PLAYERSOLID & ~CONTENTS_BODY : MASK_PLAYERSOLID;
+//   if (VectorLengthSquared2D(s.ps.velocity) >= accel_min_speed.value * accel_min_speed.value) {hud_PmoveSingle();}
+// }
 
-static void CG_DrawAccel(void);
-
+static void hud_accel_getData(void);   // TODO: Remove
+static void CG_DrawAccel(void);        // TODO: Remove
 void hud_accel_draw(void) {
+  // Exit if not active
   if (!accel.integer) {return;}
-
-  s.ps = *getPs();
-  s.pm.tracemask = s.ps.pm_type == PM_DEAD ? MASK_PLAYERSOLID & ~CONTENTS_BODY : MASK_PLAYERSOLID;
-  if (VectorLengthSquared2(s.ps.velocity) >= accel_min_speed.value * accel_min_speed.value) {hud_PmoveSingle();}
-}
-
-static void hud_PmoveSingle(void) {
-  int8_t const scale = s.ps.stats[13] & PSF_USERINPUT_WALK ? 64 : 127;
-  if (!cg.demoPlayback && !(s.ps.pm_flags & PMF_FOLLOW)) {
-    int32_t const cmdNum = trap_GetCurrentCmdNumber();
-    trap_GetUserCmd(cmdNum, &s.pm.cmd);
-  } else {  // during demo, or Following in Spectator mode
-    s.pm.cmd.forwardmove = scale * ((s.ps.stats[13] & PSF_USERINPUT_FORWARD)  / PSF_USERINPUT_FORWARD -
-                                    (s.ps.stats[13] & PSF_USERINPUT_BACKWARD) / PSF_USERINPUT_BACKWARD);
-    s.pm.cmd.rightmove   = scale * ((s.ps.stats[13] & PSF_USERINPUT_RIGHT)    / PSF_USERINPUT_RIGHT -
-                                    (s.ps.stats[13] & PSF_USERINPUT_LEFT)     / PSF_USERINPUT_LEFT);
-    s.pm.cmd.upmove      = scale * ((s.ps.stats[13] & PSF_USERINPUT_JUMP)     / PSF_USERINPUT_JUMP -
-                                    (s.ps.stats[13] & PSF_USERINPUT_CROUCH)   / PSF_USERINPUT_CROUCH);
+  // Get playerState_t, pmove_t and pml_t
+  s.ps = (cg_synchronousClients.integer) ? &cg.snap->ps : &cg.predictedPlayerState;
+  s.pmd = &cg.pmd;
+  s.pml = &pml;
+  // if vel.lenSquared2D >= min_speed.squared
+  if (VectorLengthSquared2D(s.ps->velocity) >= powf(accel_min_speed.value,2)) {
+    // Get data and Draw
+    hud_accel_getData();
+    CG_DrawAccel();
   }
-
+}
+static void dir_update(float, float, float); // TODO: Remove
+static void hud_accel_getData(void){
+  // Set Accel state
+  //::::::::::::::::::::::::::::::::::::
+  // hud_PmoveSingle();
+  // Set scale, based on walking or not
+  int8_t const scale = s.pmd->cmd.buttons & BUTTON_WALKING ? 64 : 127;
+  // If not demo or not follow, get cmd
+  // Else:  gets cmd from stats[13] instead
+  //:
+  //::::::::::::::::::::::::::::::::::::
+  // Does standard pmovesingle
+  //   Gets ps pm pml data
+  //   We already have valid data, so use pointers instead
+  //::::::::::::::::::::::::::::::::::::
   // clear all pmove local vars
-  memset(&s.pml, 0, sizeof(s.pml));
-
   // save old velocity for crashlanding
-  VectorCopy(s.ps.velocity, s.pml.previous_velocity);
-  AngleVectors(s.ps.viewangles, s.pml.forward, s.pml.right, s.pml.up);
-
-  if (s.pm.cmd.upmove < 10) {s.ps.pm_flags &= ~PMF_JUMP_HELD;} // not holding jump
-  if (s.ps.pm_type >= PM_DEAD) {s.pm.cmd.forwardmove = 0; s.pm.cmd.rightmove = 0;  s.pm.cmd.upmove = 0;}
-
+  // update viewangles
+  // Jump held or dead
   // Use default key combination when no user input
-  if (!s.pm.cmd.forwardmove && !s.pm.cmd.rightmove) {s.pm.cmd.forwardmove = scale;}
-
+  if (!s.pmd->cmd.forwardmove && !s.pmd->cmd.rightmove) {s.pmd->cmd.forwardmove = scale;}
+  //::::::::::::::::::::::::::::::::::::
   // set mins, maxs, and viewheight
-  hud_CheckDuck(&s.pm, &s.ps);
+  // PM_CheckDuck(&s.pm, &s.ps);  // Copy/Paste of the code
+  //::::::::::::::::::::::::::::::::::::
   // set watertype, and waterlevel
-  hud_SetWaterLevel(&s.pm, &s.ps);
+  // hud_SetWaterLevel(&s.pm, &s.ps); // Skips all that's not updating data
+  //::::::::::::::::::::::::::::::::::::
   // set groundentity
-  hud_GroundTrace(&s.pm, &s.ps, &s.pml);
+  // hud_GroundTrace(&s.pm, &s.ps, &s.pml); // Skips all that's not updating data
+  //::::::::::::::::::::::::::::::::::::
+  // Skip accel drawing cases
+  //   s.ps.powerups[PW_FLIGHT]
+  //   s.ps.pm_flags & PMF_GRAPPLE_PULL
+  //   s.ps.pm_flags & PMF_TIME_WATERJUMP
+  //   s.pm.waterlevel > 1
+  //::::::::::::::::::::::::::::::::::::
+  // else if (s.pml->walking) {hud_WalkMove();}
+  // dir_update( with walkmove pm )
+  //::::::::::::::::::::::::::::::::::::
+  // else                     {hud_AirMove();}
+  // Does Normal airmove, except for trueness
+  // Selects AD, W or Diagonal. Gets correct values and does trueness
+  // Else:
+  dir_update(s.pmd->wishspeed, s.pmd->accel, 0);  // TODO: Slick
 
-  if      (s.ps.powerups[PW_FLIGHT])           {return;}
-  else if (s.ps.pm_flags & PMF_GRAPPLE_PULL)   {return;}
-  else if (s.ps.pm_flags & PMF_TIME_WATERJUMP) {return;}
-  else if (s.pm.waterlevel > 1)                {return;}
-  else if (s.pml.walking)                      {hud_WalkMove();}
-  else                                         {hud_AirMove();}
-
-  CG_DrawAccel();
+  //::::::::::::::::::::::::::::::::::::
 }
 
+//:::::::::::::::::
+// CG_DrawAccel
+//   Draw accel hud, based on the data stored in accel.state
+//:::::::::::::::::
 static void CG_DrawAccel(void) {
   float const yaw = atan2f(s.wishvel[1], s.wishvel[0]) - s.d_vel;
 
-  VectorParse(accel_yh.string, s.graph_yh, 2);
-  VectorParse(accel_rgbaNoAccel.string, s.graph_rgbaNoAccel, 4);
+  VectorParse(accel_yh.string,               s.graph_yh,               2);
+  VectorParse(accel_rgbaNoAccel.string,      s.graph_rgbaNoAccel,      4);
   VectorParse(accel_rgbaPartialAccel.string, s.graph_rgbaPartialAccel, 4);
-  VectorParse(accel_rgbaFullAccel.string, s.graph_rgbaFullAccel, 4);
-  VectorParse(accel_rgbaTurnZone.string, s.graph_rgbaTurnZone, 4);
+  VectorParse(accel_rgbaFullAccel.string,    s.graph_rgbaFullAccel,    4);
+  VectorParse(accel_rgbaTurnZone.string,     s.graph_rgbaTurnZone,     4);
 
-  CG_FillAngleYaw(-s.dmin, +s.dmin, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaNoAccel);
-
-  CG_FillAngleYaw(+s.dmin, +s.dopt, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaPartialAccel);
-  CG_FillAngleYaw(-s.dopt, -s.dmin, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaPartialAccel);
-
-  CG_FillAngleYaw(+s.dopt, +s.dmax_cos, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaFullAccel);
-  CG_FillAngleYaw(-s.dmax_cos, -s.dopt, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaFullAccel);
-
-  CG_FillAngleYaw(+s.dmax_cos, +s.dmax, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaTurnZone);
-  CG_FillAngleYaw(-s.dmax, -s.dmax_cos, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaTurnZone);
+  CG_FillAngleYaw(-s.slowDir, +s.slowDir, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaNoAccel);
+  CG_FillAngleYaw(+s.slowDir, +s.fastDir, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaPartialAccel);
+  CG_FillAngleYaw(-s.fastDir, -s.slowDir, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaPartialAccel);
+  CG_FillAngleYaw(+s.fastDir, +s.stopDir, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaFullAccel);
+  CG_FillAngleYaw(-s.stopDir, -s.fastDir, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaFullAccel);
+  CG_FillAngleYaw(+s.stopDir, +s.turnDir, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaTurnZone);
+  CG_FillAngleYaw(-s.turnDir, -s.stopDir, yaw, s.graph_yh[0], s.graph_yh[1], s.graph_rgbaTurnZone);
 }
-
-/*
-==================
-hud_Friction
-Handles both ground friction and water friction
-==================*/
-// TODO: Write assert to assume 0 <= cT <= 1
-static void hud_Friction(void) {
-  // ignore slope movement
-  float const speed = s.pml.walking ? VectorLength2(s.ps.velocity) : VectorLength(s.ps.velocity);
-  if (speed < 1) {
-    s.ps.velocity[0] = 0;
-    s.ps.velocity[1] = 0; // allow sinking underwater
-    // FIXME: still have z friction underwater?
-    return;
-  }
-
-  // apply ground friction
-  float drop = 0;
-  if ( s.pm.waterlevel <= 1 && s.pml.walking && !(s.pml.groundTrace.surfaceFlags & SURF_SLICK)
-       && !(s.ps.pm_flags & PMF_TIME_KNOCKBACK))
-  {
-    float const control = speed < pm_stopspeed ? pm_stopspeed : speed;
-    drop += control * pm_friction * pm_frametime;
-  }
-  // apply water friction even if just wading
-  if (s.pm.waterlevel) {
-    drop += speed * pm_waterfriction * s.pm.waterlevel * pm_frametime;
-  }
-  // apply flying friction
-  if (s.ps.powerups[PW_FLIGHT]) {
-    drop += speed * pm_flightfriction * pm_frametime;
-  }
-  if (s.ps.pm_type == PM_SPECTATOR) {
-    drop += speed * pm_spectatorfriction * pm_frametime;
-  }
-
-  // scale the velocity
-  float newspeed = speed - drop;
-  if (newspeed < 0) { newspeed = 0; }
-  newspeed /= speed;
-  for (uint8_t i = 0; i < 3; ++i) s.ps.velocity[i] *= newspeed;
-}
-
-static float dmin_update(state_t const* state) {
+//::::::::::::::::::
+// slowDir  = dmin     : Minimum angle to gain any speed
+static float slowDir_update(pmoveData_t const* state) {
   assert(state);
-#ifndef NDEBUG
-  if (state->a == 0) {
-    ASSERT_EQ(state->v_squared - state->vf_squared, 2 * state->a * state->wishspeed - state->a_squared);
-  } else {
-    ASSERT_LT(state->v_squared - state->vf_squared, 2 * state->a * state->wishspeed - state->a_squared);
-  }
-#endif
+  #ifndef NDEBUG
+  if (state->a == 0) { ASSERT_EQ(state->v_squared - state->vf_squared, 2 * state->a * state->wishspeed - state->a_squared); } 
+  else               { ASSERT_LT(state->v_squared - state->vf_squared, 2 * state->a * state->wishspeed - state->a_squared); }
+  #endif
   float const num_squared = state->wishspeed * state->wishspeed - state->v_squared + state->vf_squared + state->g_squared;
   ASSERT_GE(num_squared, 0);
   float const num = sqrtf(num_squared);
   return num >= state->vf ? 0 : acosf(num / state->vf);
 }
-
-static float dopt_update(state_t const* state) {
+//::::::::::::::::::
+// fastDir  = dopt     : Where you gain more speed forward than in any other dir
+static float fastDir_update(pmoveData_t const* state) {
   assert(state);
   float const num = state->wishspeed - state->a;
   return num >= state->vf ? 0 : acosf(num / state->vf);
 }
-
-static float dmax_cos_update(state_t const* state, float dopt) {
+//::::::::::::::::::
+// turnDir  = dmax     : Where you gain more speed in the turning direction than forward direction
+static float turnDir_update(pmoveData_t const* state, float stopDir) {
   assert(state);
-  float const num       = sqrtf(state->v_squared - state->g_squared) - state->vf;
-  float       dmax_cos = num >= state->a ? 0 : acosf(num / state->a);
-  if (dmax_cos < dopt) {
-    ASSERT_FLOAT_GE(state->v * state->vf - state->vf_squared, state->a * state->wishspeed - state->a_squared);
-    dmax_cos = dopt;
-  }
-  return dmax_cos;
-}
-
-static float dmax_update(state_t const* state, float dmax_cos) {
-  assert(state);
-#ifndef NDEBUG
+  #ifndef NDEBUG
   if (state->a == 0) {ASSERT_EQ(state->v_squared - state->vf_squared, 2 * state->a * state->wishspeed - state->a_squared);}
   else               {ASSERT_LT(state->v_squared - state->vf_squared, 2 * state->a * state->wishspeed - state->a_squared);}
-#endif
+  #endif
 
   float const num = state->v_squared - state->vf_squared - state->a_squared - state->g_squared;
   float const den = 2 * state->a * state->vf;
-  if (num >= den)       {return 0;}
+  if      ( num >= den) {return 0;}
   else if (-num >= den) {return (float)M_PI;}
 
-  float dmax = acosf(num / den);
-  if (dmax < dmax_cos) {
+  float turnDir = acosf(num / den);
+  if (turnDir < stopDir) {
     ASSERT_EQ(state->a, 0);
-    dmax = dmax_cos;
+    turnDir = stopDir;
   }
-  return dmax;
+  return turnDir;
+}
+//::::::::::::::::::
+// stopDir  = dmax_cos : Absolute end of gaining speed in any direction
+static float stopDir_update(pmoveData_t const* state, float fastDir) {
+  assert(state);
+  float const num     = sqrtf(state->v_squared - state->g_squared) - state->vf;
+  float       stopDir = num >= state->a ? 0 : acosf(num / state->a);
+  if (stopDir < fastDir) {
+    ASSERT_FLOAT_GE(state->v * state->vf - state->vf_squared, state->a * state->wishspeed - state->a_squared);
+    stopDir = fastDir;
+  }
+  return stopDir;
 }
 
-static void update_d(float wishspeed, float accel, float slickGravity) {
+//::::::::::::::::::
+// Update Direction
+// slowDir  = dmin     : Minimum angle to gain any speed
+// fastDir  = dopt     : Where you gain more speed forward than in any other dir
+// turnDir  = dmax     : Where you gain more speed in the turning direction than forward direction
+// stopDir  = dmax_cos : Absolute end of gaining speed in any direction
+//::::::::::::::::::
+static void dir_update(float wishspeed, float accel, float slickGravity) {
+  // check that slickgravity is positive or 0, or we have slick or knockback
   ASSERT_GE(slickGravity, 0);
-  assert(slickGravity == 0 || s.pml.groundTrace.surfaceFlags & SURF_SLICK || s.ps.pm_flags & PMF_TIME_KNOCKBACK);
-
-  state_t state;
+  assert(slickGravity == 0 || s.pml->groundTrace.surfaceFlags & SURF_SLICK || s.ps->pm_flags & PMF_TIME_KNOCKBACK);
+  // Update state
+  pmoveData_t state;
   state.g_squared  = slickGravity * slickGravity;
-  state.v_squared  = VectorLengthSquared2(s.pml.previous_velocity);
-  state.vf_squared = VectorLengthSquared2(s.ps.velocity);
+  state.v_squared  = VectorLengthSquared2D(s.pml->previous_velocity);
+  state.vf_squared = VectorLengthSquared2D(s.ps->velocity);
   state.wishspeed  = wishspeed;
-  state.a          = accel * state.wishspeed * pm_frametime;
+  state.a          = accel * state.wishspeed * pml.frametime;
   state.a_squared  = state.a * state.a;
   if (!(accel_trueness.integer & ACCEL_GROUND) 
-      || state.v_squared - state.vf_squared >= 2 * state.a * state.wishspeed - state.a_squared)
-  {
+      || state.v_squared - state.vf_squared >= 2 * state.a * state.wishspeed - state.a_squared) {
     state.v_squared = state.vf_squared;
   }
   state.v  = sqrtf(state.v_squared);
   state.vf = sqrtf(state.vf_squared);
 
-  ASSERT_LE(state.a * pm_frametime, 1);
+  ASSERT_LE(state.a * pml.frametime, 1);
 
-  s.dmin     = dmin_update(&state);
-  s.dopt     = dopt_update(&state);
-  s.dmax_cos = dmax_cos_update(&state, s.dopt);
-  s.dmax     = dmax_update(&state, s.dmax_cos);
+  s.slowDir = slowDir_update(&state);
+  s.fastDir = fastDir_update(&state);
+  s.stopDir = stopDir_update(&state, s.fastDir);
+  s.turnDir = turnDir_update(&state, s.stopDir);
 
-  ASSERT_LE(s.dmin, s.dopt);
-  ASSERT_LE(s.dopt, s.dmax_cos);
-  ASSERT_LE(s.dmax_cos, s.dmax);
+  ASSERT_LE(s.slowDir, s.fastDir);
+  ASSERT_LE(s.fastDir, s.stopDir);
+  ASSERT_LE(s.stopDir, s.turnDir);
 
-  s.d_vel = atan2f(s.ps.velocity[1], s.ps.velocity[0]);
-}
-
-/*
-==============
-hud_Accelerate
-Handles user intended acceleration
-==============*/
-static void hud_Accelerate(float wishspeed, float accel) {
-  update_d(wishspeed, accel, 0);
-}
-static void hud_SlickAccelerate(float wishspeed, float accel) {
-  update_d(wishspeed, accel, s.ps.gravity * pm_frametime);
-}
-
-/*
-===================
-hud_AirMove
-===================*/
-static void hud_AirMove(void) {
-  hud_Friction();
-
-  float const scale = accel_trueness.integer & ACCEL_JUMPCROUCH ? PM_CmdScale(&s.ps, &s.pm.cmd)
-                                                                : PM_AltCmdScale(&s.ps, &s.pm.cmd);
-
-  // project moves down to flat plane
-  s.pml.forward[2] = 0;
-  s.pml.right[2]   = 0;
-  VectorNormalize(s.pml.forward);
-  VectorNormalize(s.pml.right);
-
-  for (uint8_t i = 0; i < 2; ++i) {
-    s.wishvel[i] = s.pm.cmd.forwardmove * s.pml.forward[i] + s.pm.cmd.rightmove * s.pml.right[i];
-  }
-
-  float const wishspeed = scale * VectorLength2(s.wishvel);
-
-  if (accel_trueness.integer & ACCEL_CPM && s.ps.pm_flags & PMF_PROMODE) {
-    if (s.pm.cmd.forwardmove == 0 && s.pm.cmd.rightmove != 0) {
-      hud_Accelerate(wishspeed > cpm_airwishspeed ? cpm_airwishspeed : wishspeed, cpm_airstrafeaccelerate);
-    } else {
-      // Air control when s.pm.cmd.forwardmove != 0 && s.pm.cmd.rightmove == 0 only changes direction
-      hud_Accelerate(wishspeed, pm_airaccelerate);
-      // TODO: clean up
-      if (s.dmax > (float)M_PI / 2) {
-        float       v_squared  = VectorLengthSquared2(s.pml.previous_velocity);
-        float const vf_squared = VectorLengthSquared2(s.ps.velocity);
-        float const a          = cpm_airstopaccelerate * wishspeed * pm_frametime;
-        if (v_squared - vf_squared >= 2 * a * wishspeed - a * a) v_squared = vf_squared;
-        float const vf = sqrtf(vf_squared);
-        {
-          float const num = v_squared - vf_squared - a * a;
-          float const den = 2 * a * vf;
-          if (num >= den)       {s.dmax = 0;}
-          else if (-num >= den) {s.dmax = (float)M_PI;}
-          else                  {s.dmax = acosf(num / den);}
-        }
-        ASSERT_LE(s.dmax_cos, s.dmax);
-      }
-    }
-  } else {
-    hud_Accelerate(wishspeed, pm_airaccelerate);
-  }
-
-  // // we may have a ground plane that is very steep, even
-  // // though we don't have a groundentity
-  // // slide along the steep plane
-  // if (s.pml->groundPlane) {
-  //   PM_ClipVelocity(vf, s.pml->groundTrace.plane.normal, vf, OVERCLIP);
-  // }
-
-#if 0
-  // ZOID:  If we are on the grapple, try stair-stepping
-  // this allows a player to use the grapple to pull himself
-  // over a ledge
-  if (s.ps.pm_flags & PMF_GRAPPLE_PULL)
-    PM_StepSlideMove(qtrue);
-  else
-    PM_SlideMove(qtrue);
-#endif
-
-  // PM_StepSlideMove(qtrue);
-}
-
-/*
-===================
-hud_WalkMove
-===================*/
-static void hud_WalkMove(void) {
-  if (s.pm.waterlevel > 2 && DotProduct(s.pml.forward, s.pml.groundTrace.plane.normal) > 0) {
-    // // begin swimming
-    // PM_WaterMove();
-    return;
-  }
-
-  if (hud_CheckJump(&s.pm, &s.ps, &s.pml)) {
-    // jumped away
-    if (s.pm.waterlevel > 1) {
-      // PM_WaterMove();
-    } else {
-      hud_AirMove();
-    }
-    return;
-  }
-
-  hud_Friction();
-
-  float const scale = accel_trueness.integer & ACCEL_JUMPCROUCH ? PM_CmdScale(&s.ps, &s.pm.cmd)
-                                                              : PM_AltCmdScale(&s.ps, &s.pm.cmd);
-
-  // project moves down to flat plane
-  s.pml.forward[2] = 0;
-  s.pml.right[2]   = 0;
-
-  // TODO: only flat ground correct now
-  // // project the forward and right directions onto the ground plane
-  // PM_ClipVelocity(pml.forward, pml.groundTrace.plane.normal, pml.forward, OVERCLIP);
-  // PM_ClipVelocity(pml.right, pml.groundTrace.plane.normal, pml.right, OVERCLIP);
-  //
-  VectorNormalize(s.pml.forward);
-  VectorNormalize(s.pml.right);
-
-  for (uint8_t i = 0; i < 2; ++i) {
-    s.wishvel[i] = s.pm.cmd.forwardmove * s.pml.forward[i] + s.pm.cmd.rightmove * s.pml.right[i];
-  }
-
-  float wishspeed = scale * VectorLength2(s.wishvel);
-
-  // clamp the speed lower if ducking
-  if (s.ps.pm_flags & PMF_DUCKED && wishspeed > s.ps.speed * pm_duckScale) {
-    wishspeed = s.ps.speed * pm_duckScale;
-  }
-
-  // clamp the speed lower if wading or walking on the bottom
-  if (s.pm.waterlevel) {
-    float const waterScale = 1.f - (1.f - pm_swimScale) * s.pm.waterlevel / 3.f;
-    if (wishspeed > s.ps.speed * waterScale) {
-      wishspeed = s.ps.speed * waterScale;
-    }
-  }
-
-  // when a player gets hit, they temporarily lose
-  // full control, which allows them to be moved a bit
-  if (s.pml.groundTrace.surfaceFlags & SURF_SLICK || s.ps.pm_flags & PMF_TIME_KNOCKBACK) {
-    // hud_Accelerate(wishspeed, s.ps.pm_flags & PMF_PROMODE ? cpm_slickaccelerate : pm_slickaccelerate);
-    // g_syscall(CG_PRINT, vaf("a: %1.3f %1.3f %1.3f %1.3f\n", s.dmin, s.dopt, s.dmax_cos, s.dmax));
-    hud_SlickAccelerate(wishspeed, s.ps.pm_flags & PMF_PROMODE ? cpm_slickaccelerate : pm_slickaccelerate);
-    // g_syscall(CG_PRINT, vaf("a: %1.3f %1.3f %1.3f %1.3f\n", s.dmin, s.dopt, s.dmax_cos, s.dmax));
-  } else {
-    // don't reset the z velocity for slopes
-    // s.ps.velocity[2] = 0;
-    hud_Accelerate(wishspeed, s.ps.pm_flags & PMF_PROMODE ? cpm_accelerate : pm_accelerate);
-  }
-
-  // // don't do anything if standing still
-  // if (!s.ps.velocity[0] && !s.ps.velocity[1]) {return;}
-
-  // PM_StepSlideMove(qfalse);
+  s.d_vel = atan2f(s.ps->velocity[1], s.ps->velocity[0]);
 }

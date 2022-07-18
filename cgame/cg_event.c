@@ -517,6 +517,63 @@ void CG_PainEvent( centity_t *cent, int health ) {
 }
 
 
+//::OSDF Added : Sound event limits
+typedef struct {
+  int      event;       // Event index the limit is tied to
+  int      limit;       // Time (in ms) to wait for playing the sound again
+  int      lastPlayed;  // Time (in ms) when the sound was last played (0 never)
+  qboolean canPlay;     // Allowed to play the sound
+} soundLimit_t;
+
+// Sound Limit Values
+#define SLV_DEFAULT 100
+#define SLV_MEDIUM  200
+#define SLV_LONG    300
+soundLimit_t s_limits[] = {
+  // event            limit       lp  canPlay
+  {EV_NONE,                     0, 0, qfalse},
+  {EV_JUMP,            SLV_MEDIUM, 0, qtrue},
+  {EV_FOOTSTEP,       SLV_DEFAULT, 0, qtrue},
+  {EV_FOOTSTEP_METAL, SLV_DEFAULT, 0, qtrue},
+  {EV_FALL_SHORT,        SLV_LONG, 0, qtrue},
+};
+static soundLimit_t* getLimit(int event){
+  soundLimit_t* limit = &s_limits[0]; // Initialize to EV_NONE
+  for (size_t i=1; i < sizeof(*s_limits); i++){
+    if (s_limits[i].event == event) {
+      limit = &s_limits[i]; break;
+    }
+  }
+  return limit;
+}
+static qboolean CG_CanPlaySound(int event) {
+  soundLimit_t* limit = getLimit(event);
+  // Skip invalid event
+  if (limit->event == EV_NONE) {return qfalse;}
+  // If already set, switch and return true
+  if (limit->canPlay) { limit->canPlay = qfalse; return qtrue; }
+  // Check if enough time passed
+  int timePassed = cg.snap->serverTime - limit->lastPlayed;
+  limit->canPlay  = (timePassed > limit->limit) ? qtrue:qfalse;
+  return limit->canPlay;
+}
+
+static void CG_PlaySound(int event, entityState_t* es, clientInfo_t* ci) {
+  // Play the event sound
+  switch (event){
+    case EV_JUMP:           trap_S_StartSound (NULL, es->number, CHAN_VOICE, CG_CustomSound(es->number, "*jump1.wav")); break;
+    case EV_FOOTSTEP:       trap_S_StartSound (NULL, es->number, CHAN_BODY, cgs.media.footsteps[ ci->footsteps ][rand()&3] ); break;
+    case EV_FOOTSTEP_METAL: trap_S_StartSound (NULL, es->number, CHAN_BODY, cgs.media.footsteps[ FOOTSTEP_METAL ][rand()&3] ); break;
+    case EV_FALL_SHORT:     trap_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.landSound ); break;
+    default: Com_Printf("%s: Requested to play an unregistered sound event, with index:  %i\n", __func__, event); break;
+  }
+  // Update limit's state
+  soundLimit_t* limit = getLimit(event);
+  limit->lastPlayed   = cg.snap->serverTime;
+  limit->canPlay      = qfalse;
+}
+//::OSDF end
+
 
 /*
 ==============
@@ -560,22 +617,19 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	case EV_FOOTSTEP:
 		DEBUGNAME("EV_FOOTSTEP");
 		if (cg_footsteps.integer) {
-			trap_S_StartSound (NULL, es->number, CHAN_BODY, 
-				cgs.media.footsteps[ ci->footsteps ][rand()&3] );
+      if (CG_CanPlaySound(event)) {CG_PlaySound(event, es, ci);}  //::OSDF modded. Changed to time-limited sound
 		}
 		break;
 	case EV_FOOTSTEP_METAL:
 		DEBUGNAME("EV_FOOTSTEP_METAL");
 		if (cg_footsteps.integer) {
-			trap_S_StartSound (NULL, es->number, CHAN_BODY, 
-				cgs.media.footsteps[ FOOTSTEP_METAL ][rand()&3] );
+      if (CG_CanPlaySound(event)) {CG_PlaySound(event, es, ci);}  //::OSDF modded. Changed to time-limited sound
 		}
 		break;
 	case EV_FOOTSPLASH:
 		DEBUGNAME("EV_FOOTSPLASH");
 		if (cg_footsteps.integer) {
-			trap_S_StartSound (NULL, es->number, CHAN_BODY, 
-				cgs.media.footsteps[ FOOTSTEP_SPLASH ][rand()&3] );
+			trap_S_StartSound (NULL, es->number, CHAN_BODY, cgs.media.footsteps[ FOOTSTEP_SPLASH ][rand()&3] );
 		}
 		break;
 	case EV_FOOTWADE:
@@ -596,7 +650,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 
 	case EV_FALL_SHORT:
 		DEBUGNAME("EV_FALL_SHORT");
-		trap_S_StartSound (NULL, es->number, CHAN_AUTO, cgs.media.landSound );
+    if (CG_CanPlaySound(event)) {CG_PlaySound(event, es, ci);}  //::OSDF modded. Changed to time-limited sound
 		if ( clientNum == cg.predictedPlayerState.clientNum ) {
 			// smooth landing z changes
 			cg.landChange = -8;
@@ -683,7 +737,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 
 	case EV_JUMP:
 		DEBUGNAME("EV_JUMP");
-		trap_S_StartSound (NULL, es->number, CHAN_VOICE, CG_CustomSound( es->number, "*jump1.wav" ) );
+    if (CG_CanPlaySound(event)) {CG_PlaySound(event, es, ci);}  //::OSDF modded. Changed to time-limited sound
 		break;
 	case EV_TAUNT:
 		DEBUGNAME("EV_TAUNT");

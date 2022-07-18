@@ -60,9 +60,8 @@ CG_FillRect
 
 Coordinates are 640*480 virtual values
 =================*/
-void CG_FillRect(float x, float y, float w, float h, vec4_t const color)
-{
-  if (!w || !h) return;
+void CG_FillRect(float x, float y, float w, float h, vec4_t const color) {
+  if (!w || !h) {return;}
   trap_R_SetColor(color);
   CG_AdjustFrom640(&x, &y, &w, &h);
   trap_R_DrawStretchPic(x, y, w, h, 0, 0, 0, 0, cgs.media.whiteShader);
@@ -192,27 +191,13 @@ void CG_DrawText(
   trap_R_SetColor(NULL);
 }
 
-void CG_Draw3DModel(
-  float        x,
-  float        y,
-  float        w,
-  float        h,
-  qhandle_t    model,
-  qhandle_t    skin,
-  vec3_t const origin,
-  vec3_t const angles)
-{
-  refdef_t    refdef;
-  refEntity_t ent;
-
-  // if ( !cg_draw3dIcons.integer || !cg_drawIcons.integer ) {
-  //  return;
-  // }
-
+void CG_Draw3DModel(float x, float y, float w, float h,
+                    qhandle_t model, qhandle_t skin,
+                    vec3_t const origin, vec3_t const angles) {
+  // if ( !cg_draw3dIcons.integer || !cg_drawIcons.integer ) { return; }
   CG_AdjustFrom640(&x, &y, &w, &h);
 
-  memset(&refdef, 0, sizeof(refdef));
-
+  refEntity_t ent;
   memset(&ent, 0, sizeof(ent));
   AnglesToAxis(angles, ent.axis);
   VectorCopy(origin, ent.origin);
@@ -220,50 +205,35 @@ void CG_Draw3DModel(
   ent.customSkin = skin;
   ent.renderfx   = RF_NOSHADOW; // no stencil shadows
 
+  refdef_t    refdef;
+  memset(&refdef, 0, sizeof(refdef));
   refdef.rdflags = RDF_NOWORLDMODEL;
-
   AxisClear(refdef.viewaxis);
 
-  refdef.fov_x = 30;
-  refdef.fov_y = 30;
-
+  refdef.fov_x  = 30;
+  refdef.fov_y  = 30;
   refdef.x      = (int32_t)x;
   refdef.y      = (int32_t)y;
   refdef.width  = (int32_t)w;
   refdef.height = (int32_t)h;
-
-  refdef.time = 0; // getSnap()->serverTime;
-  // refdef.time = cg.time;
+  refdef.time   = 0; // getSnap()->serverTime;
+  // refdef.time   = cg.time;
 
   trap_R_ClearScene();
   trap_R_AddRefEntityToScene(&ent);
   trap_R_RenderScene(&refdef);
 }
 
-static inline qboolean AngleInFovY(float pitch)
-{
-  ASSERT_FLOAT_EQ(pitch, AngleNormalizePI(pitch));
-  float const half_fov_y = cg.refdef.fov_y / 2;
-  return pitch > -half_fov_y && pitch < half_fov_y;
-}
-
-static inline qboolean AngleInFovX(float yaw)
-{
-  ASSERT_FLOAT_EQ(yaw, AngleNormalizePI(yaw));
-  float const half_fov_x = cg.refdef.fov_x / 2;
-  return yaw > -half_fov_x && yaw < half_fov_x;
-}
-
-static inline float ProjectionY(float angle)
-{
+// AngleInFovY
+// AngleInFovX
+static inline float ProjectionY(float angle) {
   ASSERT_FLOAT_EQ(angle, AngleNormalizePI(angle));
   float const half_fov_y = cg.refdef.fov_y / 2;
-  if (angle >= half_fov_y) return 0;
-  if (angle <= -half_fov_y) return cgs.screenHeight;
+  if (angle >=  half_fov_y) {return 0;}
+  if (angle <= -half_fov_y) {return cgs.screenHeight;}
 
   ASSERT_TRUE(AngleInFovY(angle));
-  switch (hud_projection.integer)
-  {
+  switch (hud_projection.integer) {
   case 0: // Rectilinear projection. Breaks with fov >=180.
     return cgs.screenHeight / 2 * (1 + tanf(angle) / tanf(half_fov_y));
   case 1: // Cylindrical projection. Breaks with fov >360.
@@ -276,95 +246,34 @@ static inline float ProjectionY(float angle)
   }
 }
 
-static inline float ProjectionX(float angle)
-{
-  ASSERT_FLOAT_EQ(angle, AngleNormalizePI(angle));
-  float const half_fov_x = cg.refdef.fov_x / 2;
-  if (angle >= half_fov_x) return 0;
-  if (angle <= -half_fov_x) return cgs.screenWidth;
+// ProjectionX
+// range_t
+// AnglesToRange
 
-  ASSERT_TRUE(AngleInFovX(angle));
-  switch (hud_projection.integer)
-  {
-  case 0: // Rectilinear projection. Breaks with fov >=180.
-    return cgs.screenWidth / 2 * (1 - tanf(angle) / tanf(half_fov_x));
-  case 1: // Cylindrical projection. Breaks with fov >360.
-    return cgs.screenWidth / 2 * (1 - angle / half_fov_x);
-  case 2: // Panini projection. Breaks with fov >=360.
-    return cgs.screenWidth / 2 * (1 - tanf(angle / 2) / tanf(half_fov_x / 2));
-  default:
-    assert(0);
-    return 0;
-  }
-}
 
-typedef struct
-{
-  float    x1;
-  float    x2;
-  qboolean split;
-} range_t;
 
-static inline range_t AnglesToRange(float start, float end, float yaw)
-{
-  if (fabsf(end - start) > 2 * (float)M_PI)
-  {
-    range_t const ret = { 0, cgs.screenWidth, qfalse };
-    return ret;
-  }
-
-  qboolean split = end > start;
-  start          = AngleNormalizePI(start - yaw);
-  end            = AngleNormalizePI(end - yaw);
-
-  if (end > start)
-  {
-    split           = !split;
-    float const tmp = start;
-    start           = end;
-    end             = tmp;
-  }
-
-  range_t const ret = { ProjectionX(start), ProjectionX(end), split };
-  return ret;
-}
-
-void CG_DrawLinePitch(float angle, float pitch, float x, float w, float h, vec4_t const color)
-{
+void CG_DrawLinePitch(float angle, float pitch, float x, float w, float h, vec4_t const color) {
   angle = AngleNormalizePI(angle - pitch);
-  if (!AngleInFovY(angle)) return; // TODO: thick lines => if half of line goes out of screen, nothing will be drawn
+  if (!AngleInFovY(angle)) {return;} // TODO: thick lines => if half of line goes out of screen, nothing will be drawn
 
   float const y = ProjectionY(angle);
   CG_FillRect(x, y - h / 2, w, h, color);
 }
 
-void CG_FillAngleYaw(float start, float end, float yaw, float y, float h, vec4_t const color)
-{
-  range_t const range = AnglesToRange(start, end, yaw);
-  if (!range.split)
-  {
-    CG_FillRect(range.x1, y, range.x2 - range.x1, h, color);
-  }
-  else
-  {
-    CG_FillRect(0, y, range.x1, h, color);
-    CG_FillRect(range.x2, y, cgs.screenWidth - range.x2, h, color);
-  }
-}
+// CG_FillAngleYaw
 
-void CG_DrawLineYaw(float angle, float yaw, float y, float w, float h, vec4_t const color)
-{
+
+void CG_DrawLineYaw(float angle, float yaw, float y, float w, float h, vec4_t const color) {
   angle = AngleNormalizePI(angle - yaw);
-  if (!AngleInFovX(angle)) return; // TODO: thick lines => if half of line goes out of screen, nothing will be drawn
+  if (!AngleInFovX(angle)) {return;} // TODO: thick lines => if half of line goes out of screen, nothing will be drawn
 
   float const x = ProjectionX(angle);
   CG_FillRect(x - w / 2, y, w, h, color);
 }
 
-void CG_DrawCharYaw(float angle, float yaw, float y, float w, float h, uint8_t ch, vec4_t const color)
-{
+void CG_DrawCharYaw(float angle, float yaw, float y, float w, float h, uint8_t ch, vec4_t const color) {
   angle = AngleNormalizePI(angle - yaw);
-  if (!AngleInFovX(angle)) return; // TODO: wide chars => if half of char goes out of screen, nothing will be drawn
+  if (!AngleInFovX(angle)) {return;} // TODO: thick lines => if half of line goes out of screen, nothing will be drawn
 
   float const x = ProjectionX(angle);
   trap_R_SetColor(color);

@@ -184,18 +184,15 @@ typedef struct
   qhandle_t deferShader;
 } cgMedia_t;
 
-typedef struct
-{
+typedef struct {
   // incomplete
-  gameState_t gameState;    // gamestate from server
-  glconfig_t  glconfig;     // rendering configuration
-  float       screenXScale; // derived from glconfig
-  float       screenWidth;  // normalized/virtual screen width  (always SCREEN_WIDTH, i.e. 640)
-  float       screenHeight; // normalized/virtual screen height (depends on aspect ratio, e.g. 4:3 => 480, 16:9 => 360)
-
-  int32_t levelStartTime;
-
-  cgMedia_t media;
+  // gameState_t gameState;    // gamestate from server
+  // glconfig_t  glconfig;     // rendering configuration
+  // float       screenXScale; // derived from glconfig
+  // float       screenWidth;  // normalized/virtual screen width  (always SCREEN_WIDTH, i.e. 640)
+  // float       screenHeight; // normalized/virtual screen height (depends on aspect ratio, e.g. 4:3 => 480, 16:9 => 360)
+  // int32_t     levelStartTime;
+  // cgMedia_t   media;
 } cgs_t;
 
 //==============================================================================
@@ -204,7 +201,7 @@ extern cgs_t cgs;
 extern cg_t  cg;
 
 extern vmCvar_t hud_fov;
-extern vmCvar_t hud_projection;
+// hud_projection
 
 //
 // cg_main.c

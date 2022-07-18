@@ -1926,8 +1926,7 @@ void PmoveSingle(pmove_t *pmove) {
   pml.previous_waterlevel = pmove->waterlevel;
 
   // set mins, maxs, and viewheight
-  if (pm->movetype == VQ1) { q1_CheckDuck (); } //::OSDF added. Allows crouch while jumping
-  else { PM_CheckDuck(); }
+  PM_CheckDuck();
 
   // set groundentity
   PM_GroundTrace();

@@ -70,13 +70,13 @@ float cvar_getValue(char const* var_name) {
 }
 
 void cvartable_init(cvarTable_t const* cvartable, size_t size) {
-  for (uint32_t i = 0; i < size; ++i) {
+  for (size_t i = 0; i < size; ++i) {
     trap_Cvar_Register(cvartable[i].vmCvar, cvartable[i].cvarName, cvartable[i].defaultString, cvartable[i].cvarFlags);
   }
 }
 
 void cvartable_update(cvarTable_t const* cvartable, size_t size) {
-  for (uint32_t i = 0; i < size; ++i) {
+  for (size_t i = 0; i < size; ++i) {
     trap_Cvar_Update(cvartable[i].vmCvar);
   }
 }

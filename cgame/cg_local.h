@@ -549,10 +549,9 @@ typedef struct {
 	int				spectatorOffset;										// current offset from start
 	int				spectatorPaintLen; 									// current offset from start
 
-#ifdef TEAMARENA
-	// skull trails
-	skulltrail_t	skulltrails[MAX_CLIENTS];
-#endif
+  #ifdef TEAMARENA
+	skulltrail_t	skulltrails[MAX_CLIENTS]; // skull trails
+  #endif
 
 	// centerprinting
 	int			centerPrintTime;
@@ -589,12 +588,12 @@ typedef struct {
 	int			soundTime;
 	qhandle_t	soundBuffer[MAX_SOUNDBUFFER];
 
-#ifdef TEAMARENA
+  #ifdef TEAMARENA
 	// for voice chat buffer
 	int			voiceChatTime;
 	int			voiceChatBufferIn;
 	int			voiceChatBufferOut;
-#endif
+  #endif
 
 	// warmup countdown
 	int			warmup;
@@ -645,13 +644,15 @@ typedef struct {
 	//::OSDF added
 	//::::::::::::::
 	//TODO: Switch to timerData_t struct. Will be needed for checkpoints
+  // Timer
 	int			timer_start;	// cg.snap->servertime at the moment of hitting start trigger
 	int			timer_stop;		// cg.snap->servertime - timer_start at the moment of stopping the timer (no trigger)
 	int			timer_end;		// cg.snap->servertime - timer_start achieved on hitting end trigger
 	int			timer_best;		// best cg.snap->servertime - timer_start achieved on hitting end trigger
+  // Hud
+	pmoveData_t pmd;			// Stores extracted pmove data needed outside of pmove
 	//::::::::::::::
 	//::OSDF end
-
 } cg_t;
 
 
@@ -998,19 +999,20 @@ typedef struct {
 } cgMedia_t;
 
 
-// The client game static (cgs) structure hold everything
-// loaded or calculated from the gamestate.  It will NOT
-// be cleared when a tournement restart is done, allowing
-// all clients to begin playing instantly
+// Client Game Static (cgs) holds everything loaded or calculated from the gamestate. 
+// Won't be cleared when a tournement restart is done, allowing all clients to begin playing instantly
 typedef struct {
-	gameState_t		gameState;			// gamestate from server
-	glconfig_t		glconfig;			// rendering configuration
-	float			screenXScale;		// derived from glconfig
-	float			screenYScale;
-	float			screenXBias;
-
-	int				serverCommandSequence;	// reliable command stream counter
-	int				processedSnapshotNum;// the number of snapshots cgame has requested
+  gameState_t   gameState;    // gamestate from server
+  glconfig_t    glconfig;     // rendering configuration
+  float         screenXScale; // derived from glconfig
+  float         screenYScale;
+  float         screenXBias;
+  //::OSDF added. Hud support
+  float         screenWidth;  // normalized/virtual screen width  (always SCREEN_WIDTH, i.e. 640)
+  float         screenHeight; // normalized/virtual screen height (depends on aspect ratio, e.g. 4:3 => 480, 16:9 => 360)
+  //::OSDF end
+	int				serverCommandSequence;  // reliable command stream counter
+	int				processedSnapshotNum;   // the number of snapshots cgame has requested
 
 	qboolean		localServer;		// detected on startup by checking sv_running
 
@@ -1192,14 +1194,18 @@ extern	vmCvar_t		cg_oldPlasma;
 extern	vmCvar_t		cg_trueLightning;
 
 //::OSDF modded
+//::::::::::::::::
 extern	vmCvar_t		hud_speed_x;
 extern	vmCvar_t		hud_speed_y;
 extern	vmCvar_t		hud_timerActive_x;
 extern	vmCvar_t		hud_timerActive_y;
 extern	vmCvar_t		hud_timerBest_x;
 extern	vmCvar_t		hud_timerBest_y;
-
+//::::::::::::::::
+extern  vmCvar_t    hud_projection;
+//::::::::::::::::
 extern	vmCvar_t		phy_movetype;
+//::::::::::::::::
 //::OSDF end
 
 #ifdef TEAMARENA
@@ -1263,8 +1269,7 @@ void CG_DrawActiveFrame( int serverTime, stereoFrame_t stereoView, qboolean demo
 void CG_AdjustFrom640( float *x, float *y, float *w, float *h );
 void CG_FillRect( float x, float y, float width, float height, const float *color );
 void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader );
-void CG_DrawString( float x, float y, const char *string, 
-				   float charWidth, float charHeight, const float *modulate );
+void CG_DrawString( float x, float y, const char *string, float charWidth, float charHeight, const float *modulate );
 
 
 void CG_DrawStringExt( int x, int y, const char *string, const float *setColor, 
@@ -1287,6 +1292,9 @@ void CG_DrawRect( float x, float y, float width, float height, float size, const
 void CG_DrawSides(float x, float y, float w, float h, float size);
 void CG_DrawTopBottom(float x, float y, float w, float h, float size);
 
+//::OSDF added
+void CG_FillAngleYaw(float start, float end, float yaw, float y, float h, vec4_t const color);
+//::OSDF end
 
 //
 // cg_draw.c, cg_newDraw.c
@@ -1770,4 +1778,3 @@ void cvartable_with_help(void);
 //::OSDF end
 
 #endif   // CG_LOCAL_H
-

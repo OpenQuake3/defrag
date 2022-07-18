@@ -27,17 +27,21 @@
 // #include "cg_vm.h"     //#TODO: We don't need this, I imagine
 // #include "defrag.h"    //#TODO: Remove and reconnect PS correctly
 
-snapshot_t const* getSnap(void) {
-  static snapshot_t snapshot;
-  int32_t           curSnapNum;
-  int32_t           servertime;
-  trap_GetCurrentSnapshotNumber(&curSnapNum, &servertime);
-  trap_GetSnapshot(curSnapNum, &snapshot);
-  return &snapshot;
-}
-
-playerState_t const* getPs(void) {
-  //TODO: Fix this
-  // if (cvar_getInteger("g_synchronousClients")) {return &getSnap()->ps;}
-  // return (playerState_t const*)VM_ArgPtr(defrag()->pps_offset);
-}
+// TODO: Remove this when hud is ported. Not used. We have direct access to the data
+// snapshot_t const* getSnap(void) {
+//   static snapshot_t snapshot;
+//   int32_t           curSnapNum;
+//   int32_t           servertime;
+//   trap_GetCurrentSnapshotNumber(&curSnapNum, &servertime);
+//   trap_GetSnapshot(curSnapNum, &snapshot);
+//   return &snapshot;
+// }
+//::::::::::
+// playerState_t const* getPs(void) {
+//   //TODO: Fix this
+//   //      Second option shouldn't be needed, since we are not proxying the vm
+//   // if (cvar_getInteger("g_synchronousClients")) {return &getSnap()->ps;}
+//   // return (playerState_t const*)VM_ArgPtr(defrag()->pps_offset);
+//   return &getSnap()->ps;
+// }
+//::::::::::

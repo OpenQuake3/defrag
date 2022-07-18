@@ -270,13 +270,13 @@ static void hud_AirMove(void) {
       } else if (s.pm.cmd.forwardmove && !s.pm.cmd.rightmove) {
         // TODO
         hud_Accelerate(wishspeed, pm_airaccelerate);
-        // if (s.dmax > (float)M_PI / 2)
+        // if (s.turnDir > (float)M_PI / 2)
         // AIRCONTROl
       } else {
         // TODO: forward only
         // Air control when s.pm.cmd.forwardmove != 0 && s.pm.cmd.rightmove == 0 only changes direction
         hud_Accelerate(wishspeed, pm_airaccelerate);
-        // if (s.dmax > (float)M_PI / 2) {
+        // if (s.turnDir > (float)M_PI / 2) {
         //   float       v_squared  = VectorLengthSquared2(s.pml.previous_velocity);
         //   float const vf_squared = VectorLengthSquared2(s.ps.velocity);
         //   float const a          = cpm_airstopaccelerate * wishspeed * pm_frametime;
@@ -285,7 +285,7 @@ static void hud_AirMove(void) {
         //   {
         //     float const num = v_squared - vf_squared - a * a;
         //     float const den = 2 * a * vf;
-        //     s.dmax         = num >= den ? 0 : acosf(num / den);
+        //     s.turnDir         = num >= den ? 0 : acosf(num / den);
         //   }
         // }
       }

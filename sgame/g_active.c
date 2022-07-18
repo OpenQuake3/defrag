@@ -923,7 +923,7 @@ void ClientThink_real( gentity_t *ent ) {
 	//::OSDF modded
 	// Pass cvar data through pm->
 	pm.movetype = phy_movetype.integer;
-	pm.ps->stats[STAT_OVERBOUNCE_SCALE] = phy_overbounce_scale.value;
+	// pm.ps->stats[STAT_OVERBOUNCE_SCALE] = phy_overbounce_scale.value;
 	//::OSDF end
 
 	VectorCopy( client->ps.origin, client->oldOrigin );

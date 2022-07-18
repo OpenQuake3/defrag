@@ -245,7 +245,7 @@ typedef int		clipHandle_t;
 #define	MAX_QINT			0x7fffffff
 #define	MIN_QINT			(-MAX_QINT-1)
 
-#define ARRAY_LEN(x)			(sizeof(x) / sizeof(*(x)))
+#define ARRAY_LEN(x)  (size_t)(sizeof(x) / sizeof(*(x)))  //::OSDF modded. changed to explicit size_t conversion
 #define STRARRAY_LEN(x)			(ARRAY_LEN(x) - 1)
 
 // angle indexes
@@ -635,7 +635,7 @@ static ID_INLINE vec_t VectorLengthSquared( const vec3_t v ) {
 }
 
 //::OSDF added
-static ID_INLINE vec_t VectorLengthSquared2(vec2_t const v) {
+static ID_INLINE vec_t VectorLengthSquared2D(vec2_t const v) {
   return (v[0] * v[0] + v[1] * v[1]);
 }
 //::OSDF end
@@ -684,8 +684,8 @@ int VectorCompare( const vec3_t v1, const vec3_t v2 );
 
 vec_t VectorLength( const vec3_t v );
 
-vec_t VectorLengthSquared (const vec3_t v);
-vec_t VectorLengthSquared2(vec2_t const v);  //::OSDF added
+vec_t VectorLengthSquared  (const vec3_t v);
+vec_t VectorLengthSquared2D(vec2_t const v);  //::OSDF added
 
 vec_t Distance( const vec3_t p1, const vec3_t p2 );
 
@@ -737,6 +737,7 @@ void	AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 );
 
 float AngleNormalize360 ( float angle );
 float AngleNormalize180 ( float angle );
+float AngleNormalizePI  ( float angle );
 float AngleDelta ( float angle1, float angle2 );
 
 qboolean PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
@@ -1287,6 +1288,33 @@ typedef struct usercmd_s {
 	byte			weapon;           // weapon 
 	signed char	forwardmove, rightmove, upmove;
 } usercmd_t;
+
+//===================================================================
+
+//::OSDF added
+//:::::::::::::::::
+// Pmove Extracted Data
+//   Stores extracted pmove data for the cg module
+//   It is cleared before the client's call to Pmove() inside cg_predict.c
+//   Renamed from state_t
+typedef struct { 
+  float g_squared;  // gravity squared.  0 when not on slick.
+  float v_squared;  // velocity squared (starts as previous_velocity)
+  float vf_squared; // this frame's velocity, squared
+  float a_squared;  // Accel squared
+  float v;          // Velocity (starts as previous_velocity)
+  float vf;         // this frame's velocity
+  float a;          // Accel
+  float wishspeed;  // Wishspeed, as calculated in Pmove()
+  // New
+  float accel;      // TODO: Is this different than `a` ?
+  // pm specific
+  int   movetype;   // Physics movetype index
+  int   tracemask;  // Collides against these types of surfaces
+  usercmd_t cmd;
+} pmoveData_t;  //TODO: Get this data out of pm. Should be extern for all CG
+//::OSDF end
+//:::::::::::::::::
 
 //===================================================================
 

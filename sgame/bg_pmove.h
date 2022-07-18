@@ -89,9 +89,6 @@ void PM_TorsoAnimation(void);
 void PM_Weapon(void);
 void PM_Animate(void);
 
-
-
-// phy_PmoveSingle
 void PM_UpdateViewAngles(playerState_t *ps, const usercmd_t *cmd);
 void PM_CheckDuck(void);
 void PM_FlyMove(void);
@@ -100,8 +97,6 @@ void PM_NoclipMove(void);
 void PM_SetWaterLevel(void);
 void PM_GroundTrace(void);
 void PM_DeadMove(void);
-
-
 
 
 #endif // BG_PMOVE_H

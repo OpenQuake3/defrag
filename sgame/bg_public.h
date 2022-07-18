@@ -194,6 +194,7 @@ typedef struct {
 	//::OSDF modded
 	int			movetype;			// Physics type selection from cvar. Latch protected
 	float		overbounce_scale;	// Amount of overbounce scale to apply. Default OVERCLIP = 1.001f
+  pmoveData_t pmd;  // Stores extracted pmove data needed outside of pmove
 	//::OSDF end
 } pmove_t;
 
@@ -220,7 +221,9 @@ typedef enum {
 	//::OSDF modded
 	STAT_TIME_LASTJUMP,				// level.time when the last jump happened
 	STAT_TIME_START,				// level.time when the start trigger was hit. NULL means timer is disabled
-	STAT_OVERBOUNCE_SCALE,			// Overbounce amount to apply. To pass cvar from g_active.c to pmove functions
+  STAT_TIME_CROUCHSLIDE,  // Amount of msec left for crouchsliding
+  STAT_RAMPSLIDE,         // Active when rampsliding
+  STAT_JUMP_HOLDBOOST,    // Stores current amount of jumphold boost (VJK)
 	//::OSDF end
 } statIndex_t;
 

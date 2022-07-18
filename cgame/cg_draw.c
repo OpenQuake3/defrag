@@ -2556,10 +2556,10 @@ static void CG_DrawSpeed(float x, float y, float alpha){
 
 // Replaces Naming of default function. Default renamed to CG_DrawTimelimit
 static void CG_DrawTimer( float x, float y, float alpha ) {
-  char *s;
-  int  w;
-  int  min, sec, ten;
-  int  msec, timer;
+  char* s;
+  int   w;
+  int   min, sec, ten;
+  int   msec, timer;
 
   x = x*SCREENW;
   y = y*SCREENH;
@@ -2606,7 +2606,24 @@ static void CG_DrawTimerBest( float x, float y, float alpha ) {
   w = CG_DrawStrlen(s) * SMALLCHAR_WIDTH * 0.5;
   CG_DrawSmallString(x-w, y, s, 1.0);
 }
-
+static void CG_DrawSmallIntCentered(int num, float x, float y, float alpha){
+  // Convert [0-1] input range to ui expected range
+  //FIXME: Wrong math. Figure out the proper conversion with cg.scaleX etc
+  x = x*SCREENW;
+  y = y*SCREENH;
+  char* time = va("%i", num);
+  int w = CG_DrawStrlen(time) * SMALLCHAR_WIDTH * 0.5;
+  CG_DrawSmallString(x-w, y, time, alpha); // Draw string to screen
+}
+static void CG_DrawCrouchslideTime(float x, float y, float alpha){
+  CG_DrawSmallIntCentered(cg.snap->ps.stats[STAT_TIME_CROUCHSLIDE], x, y, alpha);
+}
+static void CG_DrawPMTime(float x, float y, float alpha){
+  CG_DrawSmallIntCentered(cg.snap->ps.pm_time, x, y, alpha);
+}
+static void CG_DrawHoldboost(float x, float y, float alpha){
+  CG_DrawSmallIntCentered(cg.snap->ps.stats[STAT_JUMP_HOLDBOOST], x, y, alpha);
+}
 //::::::::::::::
 //::OSDF end
 
@@ -2714,11 +2731,14 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
 	
     //::OSDF modded
     //::::::::::::::
-	if ( !cg.scoreBoardShowing) {    //FIXME: Segmentation fault when drawing the scoreboard while speed is being drawn
-        //TODO: Proper screen allignment
-        CG_DrawSpeed(hud_speed_x.value, hud_speed_y.value, 1.0); //TODO: Add cvar conditional and settings
-        CG_DrawTimer(hud_timerActive_x.value, hud_timerActive_y.value, 1.0F);
-        CG_DrawTimerBest(hud_timerBest_x.value, hud_timerBest_y.value, 1.0F);
+    if ( !cg.scoreBoardShowing) {    //FIXME: Segmentation fault when drawing the scoreboard while speed is being drawn
+      //TODO: Proper screen allignment
+      CG_DrawSpeed(hud_speed_x.value, hud_speed_y.value, 1.0); //TODO: Add cvar conditional and settings
+      CG_DrawTimer(hud_timerActive_x.value, hud_timerActive_y.value, 1.0F);
+      CG_DrawTimerBest(hud_timerBest_x.value, hud_timerBest_y.value, 1.0F);
+      if (cg.snap->ps.stats[STAT_TIME_CROUCHSLIDE]) { CG_DrawCrouchslideTime(0.66666, 0.45, 1.0F); }
+      if (cg.snap->ps.stats[STAT_JUMP_HOLDBOOST])   { CG_DrawHoldboost      (0.66666, 0.45, 1.0F); }
+      if (cg.snap->ps.pm_time)                      { CG_DrawPMTime         (0.66666, 0.50, 1.0F); }
     }
     //::::::::::::::
     //::OSDF end

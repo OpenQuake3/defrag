@@ -30,17 +30,23 @@
 
 // Variables Declaration
 float    phy_stopspeed;
-float    phy_crouch_scale;
 // Acceleration
 // float    phy_ground_accel;
 // float    phy_air_accel;
 float    phy_fly_accel;
+// Slick
+float    phy_slick_accel;
+float    phy_slick_accelscalar;
 // Friction
 float    phy_friction;
 float    phy_fly_friction;
 float    phy_spectator_friction;
 // New variables
+float    phy_crouch_scale;
+int      phy_crouch_feetraise;
 //int   phy_movetype;
+qboolean phy_skim_enable;
+int      phy_step_size;
 // Ground
 float    phy_ground_basespeed;
 float    phy_ground_accel;
@@ -60,12 +66,15 @@ float    phy_aircontrol_amount;
 float    phy_aircontrol_power;
 float    phy_fw_accelerate;
 // Jump
+int      phy_step_maxvel;
 qboolean phy_jump_auto;
 int      phy_jump_type;
 int      phy_jump_velocity;
 float    phy_jump_scalar;
-int      phy_jump_dj_time;
+int      phy_jump_timebuffer;
 int      phy_jump_dj_velocity;
+qboolean phy_jump_holdboost;
+int      phy_jump_hb_amount;
 // Powerups
 //extern float phy_haste_factor;
 //extern float phy_quad_factor;
@@ -77,22 +86,40 @@ float    phy_water_friction;
 qboolean phy_snapvelocity;
 qboolean phy_input_scalefix;
 // float    phy_overbounce_scale;
-float    q1_overbounce_scale;
+float    overbounce_scale;
 // Slidemove 
 int      phy_slidemove_type;
-// Sound
-int      s_jump_interval;
+// Crouchslide
+float    phy_crouchslide_friction;
+int      phy_crouchslide_accel;
+int      phy_crouchslide_timemax;
+int      phy_crouchslide_framecount;
+// Rampslide
+qboolean phy_rampslide;
+int      phy_rampslide_type;
+int      phy_rampslide_speedmin;
+
+
+static void phy_reset(void); // bottom of this file
 
 // Initialize Physics Values
 qboolean phy_initialized = qfalse;
 void phy_init(int movetype) {
+  // Reset all values, in case each init function is missing any
+  phy_reset();
   // Initialize physics variables.
   // TODO: Change to Cvars. Current is a TEMP solution until proper physics cvars support.
-  if      (movetype == VQ3) { vq3_init(); }
-  else if (movetype == CPM) { cpm_init(); } 
-  else if (movetype == VQ1) { vq1_init(); } 
-  else if (movetype == VJK) { vjk_init(); }
-  phy_initialized = qtrue;
+  switch (movetype){
+    case VQ3: vq3_init(); break;
+    case CPM: cpm_init(); break;
+    case VQ1: vq1_init(); break;
+    case VQ4: vq4_init(); break;
+    case VJK: vjk_init(); break;
+    case CQ3: cq3_init(); break;
+    default:  Com_Printf("::ERR physics not initialized:  phy_movetype %i not recognized\n", movetype); break;
+  }
+  Com_Printf("Initialized: phy_movetype %i\n",movetype);
+  phy_initialized  = qtrue;
 }
 
 // VectorReflect
@@ -143,7 +170,27 @@ void VectorReflectBC(vec3_t in, vec3_t normal, vec3_t out, float overbounce) {
 
 // Ground Trace
 //   OBfix is applied here
+// Rampslide happens in GroundTrace, when checking if the player is on the ground
+//   If z velocity is greater than some value, the player is not allowed to be grounded.
+// Forward declare
+void q3a_GroundTrace(void);
+void new_GroundTrace(void);
+static void core_CrashLand(void);
+// Select type
 void core_GroundTrace(void) {
+  switch (pm->movetype) {
+    case CPM: q3a_GroundTrace(); break;
+    case VQ3: q3a_GroundTrace(); break;
+    case VJK: q3a_GroundTrace(); break;
+    case CQ3: q3a_GroundTrace(); break;
+    case VQ1: new_GroundTrace(); break;
+    case VQ2: new_GroundTrace(); break;
+    case VQ4: new_GroundTrace(); break;
+    default: break;
+  }
+}
+// Unmodded Q3A version
+void q3a_GroundTrace(void) {
   vec3_t point;
   trace_t trace;
 
@@ -155,9 +202,7 @@ void core_GroundTrace(void) {
   pml.groundTrace = trace;
 
   // do something corrective if the trace starts in a solid...
-  if (trace.allsolid) {
-    if (!PM_CorrectAllSolid(&trace)) {return;}
-  }
+  if (trace.allsolid) { if (!PM_CorrectAllSolid(&trace)) {return;}}
   // if the trace didn't hit anything, we are in free fall
   if (trace.fraction == 1.0) {
     PM_GroundTraceMissed();
@@ -166,18 +211,11 @@ void core_GroundTrace(void) {
     return;
   }
   // check if getting thrown off the ground
-  if (pm->ps->velocity[2] > 0 
-      && DotProduct(pm->ps->velocity, trace.plane.normal) > 10) {
+  if (pm->ps->velocity[2] > 0 && DotProduct(pm->ps->velocity, trace.plane.normal) > 10) {
     if (pm->debugLevel) { Com_Printf("%i:kickoff\n", c_pmove);}
     // go into jump animation
-    if (pm->cmd.forwardmove >= 0) {
-      PM_ForceLegsAnim(LEGS_JUMP);
-      pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP;
-    } else {
-      PM_ForceLegsAnim(LEGS_JUMPB);
-      pm->ps->pm_flags |= PMF_BACKWARDS_JUMP;
-    }
-
+    if (pm->cmd.forwardmove >= 0) { PM_ForceLegsAnim(LEGS_JUMP);  pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP; }
+    else                          { PM_ForceLegsAnim(LEGS_JUMPB); pm->ps->pm_flags |=  PMF_BACKWARDS_JUMP; }
     pm->ps->groundEntityNum = ENTITYNUM_NONE;
     pml.groundPlane = qfalse;
     pml.walking = qfalse;
@@ -209,7 +247,7 @@ void core_GroundTrace(void) {
     PM_CrashLand();
     // OBfix: Reflect velocity on floor normal when landing
     if (pml.groundTrace.surfaceFlags & SURF_NOOB) {
-      VectorReflect(pm->ps->velocity, trace.plane.normal, pm->ps->velocity, OVERCLIP);
+      VectorReflect(pm->ps->velocity, trace.plane.normal, pm->ps->velocity, overbounce_scale);
     }
 
     // don't do landing time if we were just going down a slope
@@ -229,6 +267,156 @@ void core_GroundTrace(void) {
 
   PM_AddTouchEnt(trace.entityNum);
 }
+// New GroundTrace tech. Adds:
+//   Rampslide
+//   TODO: Skiing (downramp sliding)
+void new_GroundTrace(void) {
+  vec3_t  point;
+  trace_t trace;
+  pm->ps->stats[STAT_RAMPSLIDE] = qfalse; // Init rampslide state
+  // Trace the player bbox down -0.25
+  VectorSet(point, pm->ps->origin[0], pm->ps->origin[1], pm->ps->origin[2]-0.25);
+  pm->trace(&trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask);
+  pml.groundTrace = trace;
+  // do something corrective if the trace starts in a solid...
+  if (trace.allsolid) { if (!PM_CorrectAllSolid(&trace)) {return;}}
+  // if the trace didn't hit anything, we are in free fall
+  if (trace.fraction == 1.0) {
+    PM_GroundTraceMissed();
+    pml.groundPlane = qfalse;
+    pml.walking = qfalse;
+    return;
+  }
+  // The trace hit something
+  // check if getting thrown off the ground
+  if (pm->ps->velocity[2] > 0 && DotProduct(pm->ps->velocity, trace.plane.normal) > 10) {
+    if (pm->debugLevel) { Com_Printf("%i:kickoff\n", c_pmove);}
+    // go into jump animation
+    if (pm->cmd.forwardmove >= 0) { PM_ForceLegsAnim(LEGS_JUMP);  pm->ps->pm_flags &= ~PMF_BACKWARDS_JUMP; }
+    else                          { PM_ForceLegsAnim(LEGS_JUMPB); pm->ps->pm_flags |=  PMF_BACKWARDS_JUMP; }
+    pm->ps->groundEntityNum = ENTITYNUM_NONE;
+    pml.groundPlane = qfalse;
+    pml.walking = qfalse;
+    return;
+  }
+  // slopes that are too steep will not be considered onground
+  if (trace.plane.normal[2] < MIN_WALK_NORMAL) {
+    if (pm->debugLevel) { Com_Printf("%i:steep\n", c_pmove); }
+    // FIXME: if they can't slide down the slope, let them walk (sharp crevices)
+    pm->ps->groundEntityNum = ENTITYNUM_NONE;
+    pml.groundPlane = qtrue;
+    pml.walking = qfalse;
+    return;
+  }
+
+  // We hit something, and its not a steep ramp, so we are on the ground
+  if (pm->ps->pm_flags & PMF_TIME_WATERJUMP) { // hitting solid ground will end a waterjump
+      pm->ps->pm_flags &= ~(PMF_TIME_WATERJUMP | PMF_TIME_LAND);
+      pm->ps->pm_time = 0;
+  }
+  // Set ground state
+  pml.groundPlane = qtrue;
+  pml.walking = qtrue;
+  if (pm->ps->groundEntityNum == ENTITYNUM_NONE) { // If there is no previous frame ground, we just landed
+    qboolean rampslideMin  = (pm->ps->velocity[2] >= phy_rampslide_speedmin)  ? qtrue:qfalse;
+    qboolean slideableRamp = (trace.plane.normal[2] > MIN_WALK_NORMAL)        ? qtrue:qfalse;
+    qboolean notFlatGround = (trace.plane.normal[2] != 1)                     ? qtrue:qfalse;
+    qboolean canRampslide  = (rampslideMin && slideableRamp && notFlatGround) ? qtrue:qfalse;
+    if (phy_rampslide && canRampslide){  // Set rampsliding if enabled and conditions are met
+      pml.walking = qfalse; // Switch it back to midair for rampslides
+      pm->ps->stats[STAT_RAMPSLIDE] = qtrue;
+      qboolean slick     = (pml.groundTrace.surfaceFlags & SURF_SLICK)  ? qtrue:qfalse;
+      qboolean knockback = (pm->ps->pm_flags & PMF_TIME_KNOCKBACK)      ? qtrue:qfalse;
+      qboolean slide     = (slick || knockback)                         ? qtrue:qfalse;
+      qboolean style1    = (phy_rampslide_type == VQ1 && slide)         ? qtrue:qfalse;
+      if (style1){
+        if (pm->debugLevel) { Com_Printf("%i:Land.Rampslide->style1\n", c_pmove); }
+        float spd = VectorLength(pm->ps->velocity);
+        VectorReflect(pm->ps->velocity, trace.plane.normal, pm->ps->velocity, overbounce_scale);
+        VectorNormalize(pm->ps->velocity);
+        VectorScale(pm->ps->velocity, spd, pm->ps->velocity);
+      } else {
+        if (pm->debugLevel) { Com_Printf("%i:Land.Rampslide->style2\n", c_pmove); }
+        float spd = VectorLength(pm->ps->velocity);
+        VectorReflect(pm->ps->velocity, trace.plane.normal, pm->ps->velocity, overbounce_scale);
+        VectorNormalize(pm->ps->velocity);
+        VectorScale(pm->ps->velocity, spd, pm->ps->velocity);
+      }
+    } else {
+      if (pm->debugLevel) { Com_Printf("%i:Land.Ground\n", c_pmove); }
+      // OBfix: Reflect velocity on floor normal when landing. Stops random obs
+      if (pml.groundTrace.surfaceFlags & SURF_NOOB) {
+        VectorReflect(pm->ps->velocity, trace.plane.normal, pm->ps->velocity, overbounce_scale);
+      }
+    }
+    core_CrashLand();  // Apply fall damage
+    // don't do landing time if we were just going down a slope
+    if (pml.previous_velocity[2] < -200) {
+      // don't allow another jump for a little while
+      pm->ps->pm_flags |= PMF_TIME_LAND;
+      pm->ps->pm_time = 250;
+    }
+  }
+  if (!pm->ps->stats[STAT_RAMPSLIDE]){
+    pm->ps->groundEntityNum = trace.entityNum; // Store collided entity as groundEntity
+  }
+  // OBfix: Remove vertical OBs from Flat surfaces
+  if (pml.groundTrace.surfaceFlags & SURF_NOOB && trace.plane.normal[2] == 1.0f) {
+    pm->ps->velocity[2] = 0;
+  }
+  PM_AddTouchEnt(trace.entityNum); // Add collided entity to the touch list
+}
+
+// core_CrashLand
+//   Check for hard landings that generate sound events
+static void core_CrashLand(void) {
+  // decide which landing animation to use
+  if (pm->ps->pm_flags & PMF_BACKWARDS_JUMP) { PM_ForceLegsAnim(LEGS_LANDB); }
+  else                                       { PM_ForceLegsAnim(LEGS_LAND); }
+  pm->ps->legsTimer = TIMER_LAND;
+  // calculate the exact velocity on landing
+  float dist = pm->ps->origin[2] - pml.previous_origin[2];
+  float vel  = pml.previous_velocity[2];
+  float acc  = -pm->ps->gravity;
+
+  float a    = acc / 2;
+  float b    = vel;
+  float c    = -dist;
+
+  float den  = b * b - 4 * a * c;
+  if (den < 0) { return; }
+  float t = (-b - sqrt(den)) / (2 * a);
+
+  float delta = vel + t * acc;
+  delta = delta * delta * 0.0001;
+
+  // ducking while falling doubles damage
+  if (pm->ps->pm_flags & PMF_DUCKED) { delta *= 2; }
+  // never take falling damage if completely underwater
+  if (pm->waterlevel == 3) { return; }
+  // reduce falling damage if there is standing water
+  if (pm->waterlevel == 2) { delta *= 0.25; }
+  if (pm->waterlevel == 1) { delta *= 0.5; }
+  // Dont do crashland if no delta
+  if (delta < 1) { return; }
+
+  // create a local entity event to play the sound
+
+  // SURF_NODAMAGE is used for bounce pads where you don't ever take damage or play a crunch sound
+  if (!(pml.groundTrace.surfaceFlags & SURF_NODAMAGE)) {
+    if (delta > 60) {
+      PM_AddEvent(EV_FALL_FAR);
+    } else if (delta > 40) {
+      if (pm->ps->stats[STAT_HEALTH] > 0) { PM_AddEvent(EV_FALL_MEDIUM); } // pain grunt, so don't play it if dead
+    } else if (delta > 7) { 
+      if (!pm->ps->stats[STAT_RAMPSLIDE]) { PM_AddEvent(EV_FALL_SHORT); } // Don't do fallshort sound during rampsliding
+    } else {
+      PM_AddEvent(PM_FootstepForSurface());
+    }
+  }
+  // start footstep cycle over
+  pm->ps->bobCycle = 0;
+}
 
 
 // Scale factor to apply to inputs (cmd).
@@ -236,12 +424,12 @@ void core_GroundTrace(void) {
 //  .. fix is ignored for VQ3/CPM movetypes.
 float core_CmdScale(usercmd_t *cmd) {
   qboolean fix;
-  int max;
-  float total, scale;
-  float fmove, smove, umove;
+  int      max;
+  float    total, scale;
+  float    fmove, smove, umove;
 
   // Aliases, for readability
-  fix = phy_input_scalefix; // Input scaling fix (active/inactive). For fixing slowdown on jump-hold
+  fix   = phy_input_scalefix; // Input scaling fix (active/inactive). For fixing slowdown on jump-hold
   fmove = (float)abs(cmd->forwardmove);
   smove = (float)abs(cmd->rightmove);
   umove = (float)abs(cmd->upmove);
@@ -264,9 +452,9 @@ float core_CmdScale(usercmd_t *cmd) {
 
 // Changed from q3a-gpl behavior to include basespeed.
 void core_Accelerate(vec3_t wishdir, float wishspeed, float accel, float basespeed) {
-  int i;
-  float addspeed, accelspeed, currentspeed;
-  float wishspeed_c;
+  int    i;
+  float  addspeed, accelspeed, currentspeed;
+  float  wishspeed_c;
   vec3_t accelVelocity;
 
   // Clamp wishpeed to a maximum of basespeed
@@ -289,218 +477,195 @@ void core_Accelerate(vec3_t wishdir, float wishspeed, float accel, float basespe
   }
 }
 
-void core_Friction( void ) {
-	vec3_t	vec;
-	float	*vel;
-	float	speed, newspeed, control;
-	float	drop;
-	
-	vel = pm->ps->velocity;
-	
-	VectorCopy( vel, vec );
-	if ( pml.walking ) {
-		vec[2] = 0;	// ignore slope movement
-	}
+void core_Friction(void) {
+  vec3_t vec;
+  float* vel;
+  float  speed, newspeed, control;
+  float  drop;
 
-	speed = VectorLength(vec);
-	if (speed < 1) {
-		vel[0] = 0;
-		vel[1] = 0;		// allow sinking underwater
-		// FIXME: still have z friction underwater?
-		return;
-	}
+  vel = pm->ps->velocity;
 
-	drop = 0;
+  VectorCopy(vel, vec);
+  if (pml.walking) { vec[2] = 0; } // ignore slope movement
 
-	// apply ground friction
-	if ( pm->waterlevel <= 1 ) {
-		if ( pml.walking && !(pml.groundTrace.surfaceFlags & SURF_SLICK) ) {
-			// if getting knocked back, no friction
-			if ( ! (pm->ps->pm_flags & PMF_TIME_KNOCKBACK) ) {
-				control = speed < phy_stopspeed ? phy_stopspeed : speed;
-				drop += control*phy_friction*pml.frametime;
-			}
-		}
-	}
+  speed = VectorLength(vec);
+  // allow sinking underwater   FIXME: still have z friction underwater?
+  if (speed < 1) { vel[0] = 0; vel[1] = 0; return; }
+  drop = 0;
+  // apply ground friction
+  if ( pm->waterlevel <= 1 ) {
+    if ( pml.walking && !(pml.groundTrace.surfaceFlags & SURF_SLICK) ) {
+      if ( !(pm->ps->pm_flags & PMF_TIME_KNOCKBACK) ) {  // if getting knocked back, no friction
+        control = speed < phy_stopspeed ? phy_stopspeed : speed;
+        drop += control*phy_friction*pml.frametime;
+      }
+    }
+  }
+  // apply water friction even if just wading
+  if ( pm->waterlevel ) { drop += speed*phy_water_friction*pm->waterlevel*pml.frametime; }
+  // apply flying friction
+  if ( pm->ps->powerups[PW_FLIGHT])     { drop += speed*phy_fly_friction*pml.frametime; }
+  if ( pm->ps->pm_type == PM_SPECTATOR) { drop += speed*phy_spectator_friction*pml.frametime; }
 
-	// apply water friction even if just wading
-	if ( pm->waterlevel ) {
-		drop += speed*phy_water_friction*pm->waterlevel*pml.frametime;
-	}
-
-	// apply flying friction
-	if ( pm->ps->powerups[PW_FLIGHT]) {
-		drop += speed*phy_fly_friction*pml.frametime;
-	}
-
-	if ( pm->ps->pm_type == PM_SPECTATOR) {
-		drop += speed*phy_spectator_friction*pml.frametime;
-	}
-
-	// scale the velocity
-	newspeed = speed - drop;
-	if (newspeed < 0) {
-		newspeed = 0;
-	}
-	newspeed /= speed;
-
-	vel[0] = vel[0] * newspeed;
-	vel[1] = vel[1] * newspeed;
-	vel[2] = vel[2] * newspeed;
+  // scale the velocity
+  newspeed = speed - drop;
+  if (newspeed < 0) { newspeed = 0; }
+  newspeed /= speed;
+  VectorScale(vel, newspeed, vel);
 }
 
 static void core_FinishWeaponChange( void ) {
-	int		weapon;
+  int   weapon;
 
-	weapon = pm->cmd.weapon;
-	if ( weapon < WP_NONE || weapon >= WP_NUM_WEAPONS ) { weapon = WP_NONE; }
-	if ( !( pm->ps->stats[STAT_WEAPONS] & ( 1 << weapon ) ) ) { weapon = WP_NONE; }
+  weapon = pm->cmd.weapon;
+  if ( weapon < WP_NONE || weapon >= WP_NUM_WEAPONS ) { weapon = WP_NONE; }
+  if ( !( pm->ps->stats[STAT_WEAPONS] & ( 1 << weapon ) ) ) { weapon = WP_NONE; }
 
-	pm->ps->weapon = weapon;
-	pm->ps->weaponstate = WEAPON_RAISING;
+  pm->ps->weapon = weapon;
+  pm->ps->weaponstate = WEAPON_RAISING;
   pm->ps->weaponTime += pm->movetype == CPM ? 0 : 250;  // Instant weapon switch for cpm
-	PM_StartTorsoAnim( TORSO_RAISE );
+  PM_StartTorsoAnim( TORSO_RAISE );
 }
 
 static void core_BeginWeaponChange( int weapon ) {
-	if ( weapon <= WP_NONE || weapon >= WP_NUM_WEAPONS ) { return; }
-	if ( !( pm->ps->stats[STAT_WEAPONS] & ( 1 << weapon ) ) ) { return; }
-	if ( pm->ps->weaponstate == WEAPON_DROPPING ) { return; }
+  if ( weapon <= WP_NONE || weapon >= WP_NUM_WEAPONS ) { return; }
+  if ( !( pm->ps->stats[STAT_WEAPONS] & ( 1 << weapon ) ) ) { return; }
+  if ( pm->ps->weaponstate == WEAPON_DROPPING ) { return; }
 
-	PM_AddEvent( EV_CHANGE_WEAPON );
-	pm->ps->weaponstate = WEAPON_DROPPING;
-	pm->ps->weaponTime += pm->movetype == CPM ? 0 : 250;
-	PM_StartTorsoAnim( TORSO_DROP );
+  PM_AddEvent( EV_CHANGE_WEAPON );
+  pm->ps->weaponstate = WEAPON_DROPPING;
+  pm->ps->weaponTime += pm->movetype == CPM ? 0 : 250;
+  PM_StartTorsoAnim( TORSO_DROP );
 }
 
 void core_Weapon( void ) {
-	int		addTime;
+  int   addTime;
 
-	// don't allow attack until all buttons are up
-	if ( pm->ps->pm_flags & PMF_RESPAWNED ) { return; }
-	// ignore if spectator
-	if ( pm->ps->persistant[PERS_TEAM] == TEAM_SPECTATOR ) { return; }
-	// check for dead player
-	if ( pm->ps->stats[STAT_HEALTH] <= 0 ) { pm->ps->weapon = WP_NONE; return; }
-	// check for item using
-	if ( pm->cmd.buttons & BUTTON_USE_HOLDABLE ) {
-		if ( ! ( pm->ps->pm_flags & PMF_USE_ITEM_HELD ) ) {
-			if ( bg_itemlist[pm->ps->stats[STAT_HOLDABLE_ITEM]].giTag == HI_MEDKIT
-				&& pm->ps->stats[STAT_HEALTH] >= (pm->ps->stats[STAT_MAX_HEALTH] + 25) ) {
-				// don't use medkit if at max health
-			} else {
-				pm->ps->pm_flags |= PMF_USE_ITEM_HELD;
-				PM_AddEvent( EV_USE_ITEM0 + bg_itemlist[pm->ps->stats[STAT_HOLDABLE_ITEM]].giTag );
-				pm->ps->stats[STAT_HOLDABLE_ITEM] = 0;
-			}
-			return;
-		}
-	} else {
-		pm->ps->pm_flags &= ~PMF_USE_ITEM_HELD;
-	}
+  // don't allow attack until all buttons are up
+  if ( pm->ps->pm_flags & PMF_RESPAWNED ) { return; }
+  // ignore if spectator
+  if ( pm->ps->persistant[PERS_TEAM] == TEAM_SPECTATOR ) { return; }
+  // check for dead player
+  if ( pm->ps->stats[STAT_HEALTH] <= 0 ) { pm->ps->weapon = WP_NONE; return; }
+  // check for item using
+  if ( pm->cmd.buttons & BUTTON_USE_HOLDABLE ) {
+    if ( ! ( pm->ps->pm_flags & PMF_USE_ITEM_HELD ) ) {
+      if ( bg_itemlist[pm->ps->stats[STAT_HOLDABLE_ITEM]].giTag == HI_MEDKIT
+        && pm->ps->stats[STAT_HEALTH] >= (pm->ps->stats[STAT_MAX_HEALTH] + 25) ) {
+        // don't use medkit if at max health
+      } else {
+        pm->ps->pm_flags |= PMF_USE_ITEM_HELD;
+        PM_AddEvent( EV_USE_ITEM0 + bg_itemlist[pm->ps->stats[STAT_HOLDABLE_ITEM]].giTag );
+        pm->ps->stats[STAT_HOLDABLE_ITEM] = 0;
+      }
+      return;
+    }
+  } else {
+    pm->ps->pm_flags &= ~PMF_USE_ITEM_HELD;
+  }
 
-	// make weapon function
-	if ( pm->ps->weaponTime > 0 ) {
-		pm->ps->weaponTime -= pml.msec;
-	}
+  // make weapon function
+  if ( pm->ps->weaponTime > 0 ) {
+    pm->ps->weaponTime -= pml.msec;
+  }
 
-	// check for weapon change
-	// can't change if weapon is firing, but can change
-	// again if lowering or raising
-	if ( pm->ps->weaponTime <= 0 || pm->ps->weaponstate != WEAPON_FIRING ) {
-		if ( pm->ps->weapon != pm->cmd.weapon ) {
-			core_BeginWeaponChange( pm->cmd.weapon );
-		}
-	}
-	if ( pm->ps->weaponTime > 0 ) { return; }
+  // check for weapon change
+  // can't change if weapon is firing, but can change
+  // again if lowering or raising
+  if ( pm->ps->weaponTime <= 0 || pm->ps->weaponstate != WEAPON_FIRING ) {
+    if ( pm->ps->weapon != pm->cmd.weapon ) {
+      core_BeginWeaponChange( pm->cmd.weapon );
+    }
+  }
+  if ( pm->ps->weaponTime > 0 ) { return; }
 
-	// change weapon if time
-	if ( pm->ps->weaponstate == WEAPON_DROPPING ) {
-		core_FinishWeaponChange();
-		return;
-	}
+  // change weapon if time
+  if ( pm->ps->weaponstate == WEAPON_DROPPING ) {
+    core_FinishWeaponChange();
+    return;
+  }
 
-	if ( pm->ps->weaponstate == WEAPON_RAISING ) {
-		pm->ps->weaponstate = WEAPON_READY;
-		if ( pm->ps->weapon == WP_GAUNTLET ) {
-			PM_StartTorsoAnim( TORSO_STAND2 );
-		} else {
-			PM_StartTorsoAnim( TORSO_STAND );
-		}
-		return;
-	}
+  if ( pm->ps->weaponstate == WEAPON_RAISING ) {
+    pm->ps->weaponstate = WEAPON_READY;
+    if ( pm->ps->weapon == WP_GAUNTLET ) {
+      PM_StartTorsoAnim( TORSO_STAND2 );
+    } else {
+      PM_StartTorsoAnim( TORSO_STAND );
+    }
+    return;
+  }
 
-	// check for fire
-	if ( ! (pm->cmd.buttons & BUTTON_ATTACK) ) {
-		pm->ps->weaponTime = 0;
-		pm->ps->weaponstate = WEAPON_READY;
-		return;
-	}
+  // check for fire
+  if ( ! (pm->cmd.buttons & BUTTON_ATTACK) ) {
+    pm->ps->weaponTime = 0;
+    pm->ps->weaponstate = WEAPON_READY;
+    return;
+  }
 
-	// start the animation even if out of ammo
-	if ( pm->ps->weapon == WP_GAUNTLET ) {
-		// the guantlet only "fires" when it actually hits something
-		if ( !pm->gauntletHit ) {
-			pm->ps->weaponTime = 0;
-			pm->ps->weaponstate = WEAPON_READY;
-			return;
-		}
-		PM_StartTorsoAnim( TORSO_ATTACK2 );
-	} else {
-		PM_StartTorsoAnim( TORSO_ATTACK );
-	}
+  // start the animation even if out of ammo
+  if ( pm->ps->weapon == WP_GAUNTLET ) {
+    // the guantlet only "fires" when it actually hits something
+    if ( !pm->gauntletHit ) {
+      pm->ps->weaponTime = 0;
+      pm->ps->weaponstate = WEAPON_READY;
+      return;
+    }
+    PM_StartTorsoAnim( TORSO_ATTACK2 );
+  } else {
+    PM_StartTorsoAnim( TORSO_ATTACK );
+  }
 
-	pm->ps->weaponstate = WEAPON_FIRING;
+  pm->ps->weaponstate = WEAPON_FIRING;
 
-	// check for out of ammo
-	if ( ! pm->ps->ammo[ pm->ps->weapon ] ) {
-		PM_AddEvent( EV_NOAMMO );
-		pm->ps->weaponTime += 500;
-		return;
-	}
+  // check for out of ammo
+  if ( ! pm->ps->ammo[ pm->ps->weapon ] ) {
+    PM_AddEvent( EV_NOAMMO );
+    pm->ps->weaponTime += 500;
+    return;
+  }
 
-	// take an ammo away if not infinite
-	if ( pm->ps->ammo[ pm->ps->weapon ] != -1 ) {
-		pm->ps->ammo[ pm->ps->weapon ]--;
-	}
+  // take an ammo away if not infinite
+  if ( pm->ps->ammo[ pm->ps->weapon ] != -1 ) {
+    pm->ps->ammo[ pm->ps->weapon ]--;
+  }
 
-	// fire weapon
-	PM_AddEvent( EV_FIRE_WEAPON );
+  // fire weapon
+  PM_AddEvent( EV_FIRE_WEAPON );
 
-	switch( pm->ps->weapon ) {
-	default:
-	case WP_GAUNTLET:         addTime = 400;  break;
-	case WP_LIGHTNING:        addTime = 50;   break;
-	case WP_SHOTGUN:      		addTime = 1000;	break;
-	case WP_MACHINEGUN:     	addTime = 100;	break;
-	case WP_GRENADE_LAUNCHER:	addTime = 800;	break;
-	case WP_ROCKET_LAUNCHER:	addTime = 800;	break;
-	case WP_PLASMAGUN:      	addTime = 100;	break;
-	case WP_RAILGUN:      		addTime = 1500;	break;
-	case WP_BFG:          		addTime = 200;	break;
-	case WP_GRAPPLING_HOOK:		addTime = 400;	break;
+  switch( pm->ps->weapon ) {
+  default:
+  case WP_GAUNTLET:         addTime =  400; break;
+  case WP_LIGHTNING:        addTime =   50; break;
+  case WP_SHOTGUN:          addTime = 1000; break;
+  case WP_MACHINEGUN:       addTime =  100; break;
+  case WP_GRENADE_LAUNCHER: addTime =  800; break;
+  case WP_ROCKET_LAUNCHER:  addTime =  800; break;
+  case WP_PLASMAGUN:        addTime =  100; break;
+  case WP_RAILGUN:          addTime = 1500; break;
+  case WP_BFG:              addTime =  200; break;
+  case WP_GRAPPLING_HOOK:   addTime =  400; break;
+
+  #ifdef TEAMARENA
+  case WP_NAILGUN:          addTime = 1000; break;
+  case WP_PROX_LAUNCHER:    addTime =  800; break;
+  case WP_CHAINGUN:         addTime =   30; break;
+  #endif
+  }
+
 #ifdef TEAMARENA
-  case WP_NAILGUN:      		addTime = 1000;	break;
-	case WP_PROX_LAUNCHER:		addTime = 800;	break;
-	case WP_CHAINGUN:     		addTime = 30;		break;
-#endif
-	}
-
-#ifdef TEAMARENA
-	if( bg_itemlist[pm->ps->stats[STAT_PERSISTANT_POWERUP]].giTag == PW_SCOUT ) {
-		addTime /= 1.5;
-	}
-	else
-	if( bg_itemlist[pm->ps->stats[STAT_PERSISTANT_POWERUP]].giTag == PW_AMMOREGEN ) {
-		addTime /= 1.3;
+  if( bg_itemlist[pm->ps->stats[STAT_PERSISTANT_POWERUP]].giTag == PW_SCOUT ) {
+    addTime /= 1.5;
+  }
+  else
+  if( bg_itemlist[pm->ps->stats[STAT_PERSISTANT_POWERUP]].giTag == PW_AMMOREGEN ) {
+    addTime /= 1.3;
   }
   else
 #endif
-	if ( pm->ps->powerups[PW_HASTE] ) {
-		addTime /= 1.3;
-	}
-
-	pm->ps->weaponTime += addTime;
+  if ( pm->ps->powerups[PW_HASTE] ) {
+    addTime /= 1.3;
+  }
+  pm->ps->weaponTime += addTime;
 }
 
 
@@ -510,27 +675,22 @@ void core_Weapon( void ) {
 void phy_PmoveSingle(pmove_t *pmove) {
   pm = pmove;
   // this counter lets us debug movement problems with a journal
-  // by setting a conditional breakpoint fot the previous frame
+  // by setting a conditional breakpoint for the previous frame
   c_pmove++;
   // clear results
-  pm->numtouch = 0;
-  pm->watertype = 0;
+  pm->numtouch   = 0;
+  pm->watertype  = 0;
   pm->waterlevel = 0;
 
    // corpses can fly through bodies
-  if (pm->ps->stats[STAT_HEALTH] <= 0) {
-    pm->tracemask &= ~CONTENTS_BODY;
-  }
+  if (pm->ps->stats[STAT_HEALTH] <= 0) { pm->tracemask &= ~CONTENTS_BODY; }
   // make sure walking button is clear if running, avoids proxy no-footsteps cheats
   if (abs(pm->cmd.forwardmove) > 64 || abs(pm->cmd.rightmove) > 64) {
     pm->cmd.buttons &= ~BUTTON_WALKING;
   }
   // set the talk balloon flag
-  if (pm->cmd.buttons & BUTTON_TALK) {
-    pm->ps->eFlags |= EF_TALK;
-  } else {
-    pm->ps->eFlags &= ~EF_TALK;
-  }
+  if (pm->cmd.buttons & BUTTON_TALK) { pm->ps->eFlags |=  EF_TALK; }
+  else                               { pm->ps->eFlags &= ~EF_TALK; }
   // set the firing flag for continuous beam weapons
   if (!(pm->ps->pm_flags & PMF_RESPAWNED)
       && pm->ps->pm_type != PM_INTERMISSION && pm->ps->pm_type != PM_NOCLIP
@@ -616,11 +776,90 @@ void phy_PmoveSingle(pmove_t *pmove) {
 void phy_move(pmove_t *pmove) {
   if (!phy_initialized) { phy_init(pmove->movetype); }
   switch (pmove->movetype) {
-  case CPM: cpm_move(pmove); break;
-  case VQ1: vq1_move(pmove); break;
-  case VQ3: vq3_move(pmove); break;
-  case VJK: vjk_move(pmove); break;
-  default:  Com_Printf("::ERR phy_movetype %i not recognized\n", pmove->movetype); break;
+    case CPM: cpm_move(pmove); break;
+    case VQ1: vq1_move(pmove); break;
+    case VQ3: vq3_move(pmove); break;
+    case VQ4: vq4_move(pmove); break;
+    case VJK: vjk_move(pmove); break;
+    case CQ3: cq3_move(pmove); break;
+    default:  Com_Printf("::ERR phy_movetype %i not recognized\n", pmove->movetype); break;
+    // case VQ2: vq2_move(pmove); break;
   }
 }
 
+//:::::::::::::
+// phy_reset
+//  Reset all values to vq3 behavior, in case some init function is missing one of them
+//:::::::::::::
+void phy_reset(void) {
+  phy_stopspeed              = pm_stopspeed;
+  // Crouch
+  phy_crouch_scale           = pm_duckScale;
+  phy_crouch_feetraise       = 0;
+  // Slick
+  phy_slick_accel            = 1;
+  phy_slick_accelscalar      = 0;
+  // Acceleration
+  phy_ground_accel           = pm_accelerate;
+  phy_air_accel              = pm_airaccelerate;
+  phy_fly_accel              = pm_flyaccelerate;
+  // Friction
+  phy_friction               = pm_friction;
+  phy_fly_friction           = pm_flightfriction;
+  phy_spectator_friction     = pm_spectatorfriction;
+  // New variables
+  phy_skim_enable            = 1;
+  // Ground
+  phy_ground_basespeed       = 320;
+  phy_ground_accel           = 10;
+  // Air
+  phy_air_basespeed          = 320;
+  phy_air_accel              = 1;
+  // Air deceleration.
+  phy_air_decel              = 0;
+  phy_air_decelAngle         = 0;
+  phy_air_speedscalar        = 0;
+  // AirStrafe (aka AD turning)
+  phy_airstrafe_accel        = 0;
+  phy_airstrafe_basespeed    = 0;
+  // AirControl (aka W turning)
+  phy_aircontrol             = qfalse;
+  phy_aircontrol_amount      = 0;
+  phy_aircontrol_power       = 0;
+  phy_fw_accelerate          = 0;
+  // Stepup
+  phy_step_size              = STEPSIZE;
+  phy_step_maxvel            = JUMP_VELOCITY;
+  // Jump
+  phy_jump_type              = VQ3;
+  phy_jump_auto              = qfalse;
+  phy_jump_velocity          = JUMP_VELOCITY;
+  phy_jump_scalar            = 0;
+  phy_jump_timebuffer        = 0;
+  phy_jump_dj_velocity       = 0;
+  phy_jump_holdboost         = qfalse;
+  phy_jump_hb_amount         = 0;
+  // Powerups
+  // phy_haste_factor        = 0;
+  // phy_quad_factor         = 0;
+  // Water
+  phy_water_accel            = pm_wateraccelerate;
+  phy_water_scale            = pm_swimScale;
+  phy_water_friction         = pm_waterfriction;
+  // q3 math quirks
+  phy_snapvelocity           = qtrue;
+  phy_input_scalefix         = qfalse;
+  overbounce_scale           = OVERCLIP;
+  // Slidemove 
+  phy_slidemove_type         = 0;
+  // Crouchslide
+  phy_crouchslide_friction   = 0;
+  phy_crouchslide_accel      = 0;
+  phy_crouchslide_timemax    = 0;
+  phy_crouchslide_framecount = 0;
+  // Rampslide
+  phy_rampslide              = 0;
+  phy_rampslide_type         = 0;
+  phy_rampslide_speedmin     = 0;
+  Com_Printf("Physics Reset\n");
+}

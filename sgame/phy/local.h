@@ -24,6 +24,7 @@
 #define   PHY_LOCAL_H
 
 #include "../bg_pmove.h"
+#include "../bg_local.h"
 
 // Flow Macros. For quickly selecting differently named functions (if OSDF: thing; else if IOQ3: otherThing; ... etc)
 #define   IOQ3 0 // Select Default named functions (PM_ etc) come from IoQuake3 gamecode
@@ -35,7 +36,6 @@ extern qboolean phy_initialized;
 // TODO: Change to cvars
 //  General
 extern float    phy_stopspeed;
-extern float    phy_crouch_scale;
 // Acceleration
 // extern float    phy_ground_accel;
 // extern float    phy_air_accel;
@@ -46,7 +46,14 @@ extern float    phy_fly_friction;
 extern float    phy_spectator_friction;
 
 // New variables
-//extern int   phy_movetype;           // pm->movetype; // Physics type selection
+extern float    phy_crouch_scale;         // Default renamed
+extern int      phy_crouch_feetraise;     // Amount to raise feet when crouching (default MINS_Z is -24, this will + to that)
+// extern int   phy_movetype;                // pm->movetype; // Physics type selection
+// Skim
+extern qboolean phy_skim_enable;          // Enable/disable skimming
+// Slick
+extern float    phy_slick_accel;          // Acceleration to apply during slick, on modes where this is separate (VQ2/VQ4/CQ3).
+extern float    phy_slick_accelscalar;    // Scales incoming ps->speed from ClientThink_real by this number, to calculate real slick accel. Haste affects slick
 // Ground
 extern float    phy_ground_basespeed;     // Movement speed on the ground (aka maxspeed). Equivalent to the default g_speed
 extern float    phy_ground_accel;         // Acceleration when on the ground. sv_accelerate
@@ -65,13 +72,18 @@ extern qboolean phy_aircontrol;           // Turns aircontrol on or off
 extern float    phy_aircontrol_amount;    // Amount you can control yourself with W/S
 extern float    phy_aircontrol_power;     // Aircontrol formula exponent
 extern float    phy_fw_accelerate;        // How much (ups) to accelerate when holding forwards(W) only
+// Stepup
+extern int      phy_step_size;            // Distance that will be moved up/down for step behavior. (default = STEPSIZE = 18)
+extern int      phy_step_maxvel;          // When set, it limits the maximum vertical speed at which you can multi/double jump. Prevents stairs-climb crazyness
 // Jump
 extern qboolean phy_jump_auto;            // Enable/disable autojump
 extern int      phy_jump_type;            // Jump type selection. Available VQ3, CPM    TODO: DEV
 extern int      phy_jump_velocity;        // Vertical velocity that will be set/added when jumping (default = JUMP_VELOCITY = 270)
 extern float    phy_jump_scalar;          // Factor to scale jump velocity by when pressing "+speed"
-extern int      phy_jump_dj_time;         // Amount of time(ms) since last jump, where CPM dj behavior can happen. (default CPM = 400)
+extern int      phy_jump_timebuffer;         // Amount of time(ms) since last jump, where CPM dj behavior can happen. (default CPM = 400)
 extern int      phy_jump_dj_velocity;     // Amount of velocity to add to CPM dj behavior. (default CPM = 100)
+extern qboolean phy_jump_holdboost;       // Enable/disable holdboost mechanic. Gives more height the longer jump key is held.
+extern int      phy_jump_hb_amount;       // Amount of ups to add on each frame that jump key is held
 // Powerups
 //extern float phy_haste_factor;           // Multiplier to apply during haste powerup (q3 default = 1.3)
 //extern float phy_quad_factor;            // Multiplier to apply during quad powerup  (q3 default = 3)
@@ -83,42 +95,55 @@ extern float    phy_water_friction;
 extern qboolean phy_snapvelocity;         // Enables rounding velocity to ints every frame (default q3a = qtrue)
 extern qboolean phy_input_scalefix;       // Fixes slowdown on jump input if enabled (default q3a = qfalse)
 // extern float    phy_overbounce_scale;     // OVERCLIP value. Removed to 1.000f for QW
-extern float    q1_overbounce_scale;      // OVERCLIP value. Removed to 1.000f for QW
-// Slidemove 
-extern int      phy_slidemove_type;       // Slidemove function type. For controlling general movement behavior (not slick_type)
-// Sound
-extern int      s_jump_interval;          // Dictates how often (ms) the jump sound can be played. Used to stop it from playing every tick/frame
+extern float    overbounce_scale;      // OVERCLIP value. Removed to 1.000f for QW
+// Crouchslide
+extern qboolean phy_crouchlide;           // Enable/disable crouchslide
+extern float    phy_crouchslide_friction; // Friction that will be applied during crouchslide
+extern int      phy_crouchslide_accel;    // Acceleration that will be used for crouchsliding
+extern int      phy_crouchslide_timemax;  // Maximum crouchsliding time cap
+extern int      phy_crouchslide_framecount; // Amount of frames of crouchsliding earned on each air frame
+// Rampslide
+extern qboolean phy_rampslide;            // Enable/disable rampslide
+extern int      phy_rampslide_type;       // 1: VQ1, 2:VQ2
+extern int      phy_rampslide_speedmin;   // Minimum vertical speed at which rampslides can happen
 
 
 // Physics indexes
 #define   CPM  0 // CPM
 #define   VQ1  1 // Q1/QW/AG
 #define   VQ3  3 // Unmodded q3a
+#define   VQ4  4 // Q4 inspired
 #define   VJK  5 // Star Knight Physics
-#define   EXP  6 // New physics
+#define   CQ3  6 // VQ3 with CPM doublejumps and rampjumps
 //TODO
 #define   VQ2  2 // Q2 inspired
-#define   VQ4  4 // Q4 inspired
+#define   DIF  7 // New physics
 
 // Initialize
 void     phy_init          (int movetype);    // Calls all other initializer functions
 void     cpm_init          (void);
 void     vq1_init          (void);
 void     vq3_init          (void);
+void     vq4_init          (void);
 void     vjk_init          (void);
+void     cq3_init          (void);
 
 // Movement
-void     phy_PmoveSingle   (pmove_t *pmove);  // Core movement entrypoint
-void     phy_move          (pmove_t *pmove);  // Calls all other movement functions
-void     cpm_move          (pmove_t *pmove);
-void     vq1_move          (pmove_t *pmove);
-void     vq3_move          (pmove_t *pmove);
-void     vjk_move          (pmove_t *pmove);
+void     phy_PmoveSingle   (pmove_t* pmove);  // Core movement entrypoint
+void     phy_move          (pmove_t* pmove);  // Calls all other movement functions
+void     cpm_move          (pmove_t* pmove);
+void     vq1_move          (pmove_t* pmove);
+void     vq3_move          (pmove_t* pmove);
+void     vq4_move          (pmove_t* pmove);
+void     vjk_move          (pmove_t* pmove);
+void     cq3_move          (pmove_t* pmove);
+
 // Core functions (common to all/most)
 void     core_Accelerate   (vec3_t wishdir, float wishspeed, float accel, float basespeed);
 void     core_Friction     (void);
 void     core_Weapon       (void);
-float    core_CmdScale     (usercmd_t *cmd);
+void     core_GroundTrace  (void);
+float    core_CmdScale     (usercmd_t* cmd);
 qboolean core_SlideMove    (qboolean gravity);
 void     core_StepSlideMove(qboolean gravity);
 
