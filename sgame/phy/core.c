@@ -419,40 +419,35 @@ static void core_CrashLand(void) {
 }
 
 
-// Scale factor to apply to inputs (cmd).
-// Modified to (optionally) allow fixing slowdown when holding jump.
-//  .. fix is ignored for VQ3/CPM movetypes.
-float core_CmdScale(usercmd_t *cmd) {
-  qboolean fix;
-  int      max;
-  float    total, scale;
-  float    fmove, smove, umove;
-
+//:::::::::::::::::::::::::::::::::::::::::
+// core_CmdScale
+//   Scale factor to apply to inputs (cmd).
+//   Modified to (optionally) allow fixing slowdown when holding jump.
+//   fix = Input scaling fix (active/inactive). For fixing slowdown on jump-hold
+//   .. fix is ignored for VQ3/CPM movetypes.
+float core_CmdScale(usercmd_t *cmd, qboolean fix) {
   // Aliases, for readability
-  fix   = phy_input_scalefix; // Input scaling fix (active/inactive). For fixing slowdown on jump-hold
-  fmove = (float)abs(cmd->forwardmove);
-  smove = (float)abs(cmd->rightmove);
-  umove = (float)abs(cmd->upmove);
+  float fmove = (float)abs(cmd->forwardmove);
+  float smove = (float)abs(cmd->rightmove);
+  float umove = (float)abs(cmd->upmove);
 
   // Select maximum input value (absolute)
-  max = fmove;
+  int max = fmove;
   if (smove > max)         { max = smove; }
   if (umove > max && !fix) { max = umove; } // Ignore umove for scalefix
   if (!max)                { return 0; }
 
   // Calculate total input value
+  float total;
   if (fix) { total = sqrt(fmove * fmove + smove * smove); } // Ignore umove for scalefix
   else     { total = sqrt(fmove * fmove + smove * smove + umove * umove); }
 
   // Calculate scale value and return it
-  //scale = basespeed * max / (127.0 * total);
-  scale = (float)pm->ps->speed * max / (127.0 * total);  // This is default behavior, without a   basespeed   input
-  return scale;
+  return (float)pm->ps->speed * max / (127.0 * total);
 }
 
 // Changed from q3a-gpl behavior to include basespeed.
 void core_Accelerate(vec3_t wishdir, float wishspeed, float accel, float basespeed) {
-  int    i;
   float  addspeed, accelspeed, currentspeed;
   float  wishspeed_c;
   vec3_t accelVelocity;
@@ -471,10 +466,12 @@ void core_Accelerate(vec3_t wishdir, float wishspeed, float accel, float basespe
   // Cap it
   if (accelspeed > addspeed) { accelspeed = addspeed; }
   // Adjust player velocity
-  for (i = 0; i < 3; i++) {
+  for (int i = 0; i < 3; i++) {
     accelVelocity[i] = accelspeed * wishdir[i]; // dir*speed = velocity
     pm->ps->velocity[i] += accelVelocity[i];    // Vector addition, the typical visualization explained in videos of strafing math theory
   }
+  // Store (internal) pmoveData
+  pm->pmd.wishspeed  = wishspeed_c;  // Wishspeed, as calculated in pmove
 }
 
 void core_Friction(void) {
@@ -673,6 +670,10 @@ void core_Weapon( void ) {
 // PmoveSingle
 //================
 void phy_PmoveSingle(pmove_t *pmove) {
+  //::::::::::::::
+  memset(&pmove->pmd, 0, sizeof(pmove->pmd)); // Zero out (internal) pmoveData before PmoveSingle happens
+  //::::::::::::::
+  // Initialize
   pm = pmove;
   // this counter lets us debug movement problems with a journal
   // by setting a conditional breakpoint for the previous frame
@@ -768,6 +769,17 @@ void phy_PmoveSingle(pmove_t *pmove) {
 
   // do physics movement
   phy_move(pm);
+  // Store updated pmoveData
+  pm->pmd.movetype   = pm->movetype;
+  pm->pmd.cmd        = pm->cmd;
+  pm->pmd.tracemask  = pm->tracemask;
+  pm->pmd.v          = 0.0;  // norm velocity (starts as prev_velocity)
+  pm->pmd.vf         = 0.0;  // norm velocity (friction)
+  pm->pmd.a_squared  = 0.0;  // Accel squared
+  pm->pmd.v_squared  = 0.0;  // norm velocity squared (starts as previous_velocity)
+  pm->pmd.vf_squared = 0.0;  // norm velocity (friction), squared
+  pm->pmd.g_squared  = 0.0;  // gravity squared.  0 when not on slick.
+  // Finish
   return;
 }
 

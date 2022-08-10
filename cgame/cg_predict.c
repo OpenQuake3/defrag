@@ -595,11 +595,13 @@ void CG_PredictPlayerState( void ) {
 		}
 		
 		//::OSDF modded
-		cg_pmove.movetype = phy_movetype.integer; //TODO: Is a systeminfo cvar enough to get g_ cvars into the client pmove?
+		cg_pmove.movetype = phy_movetype.integer;  // Set movetype based on the Cvar
+    memset(&cg.pmd, 0, sizeof(cg.pmd));        // Zero out (external) pmoveData before Pmove happens
 		//::OSDF end
 
 		Pmove (&cg_pmove);
 
+    cg.pmd = cg_pmove.pmd;  //::OSDF added.  Extract pmd data out of cg_pmove (copy internal to external)
 		moved = qtrue;
 
 		// add push trigger movement effects

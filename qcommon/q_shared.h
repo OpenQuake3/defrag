@@ -122,6 +122,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define UNUSED_VAR
 #endif
 
+//::OSDF comment:   Q_EXPORT = Function that always exports as visible (even with -fvisibility=hidden)
 #if (defined _MSC_VER)
 #define Q_EXPORT __declspec(dllexport)
 #elif (defined __SUNPRO_C)
@@ -588,6 +589,7 @@ typedef struct {
 #define VectorClear(a)			((a)[0]=(a)[1]=(a)[2]=0)
 #define VectorNegate(a,b)		((b)[0]=-(a)[0],(b)[1]=-(a)[1],(b)[2]=-(a)[2])
 #define VectorSet(v, x, y, z)	((v)[0]=(x), (v)[1]=(y), (v)[2]=(z))
+#define Vector4Set(v, r, g, b, a)	((v)[0]=(r), (v)[1]=(g), (v)[2]=(b), (v)[3]=(a))
 #define Vector4Copy(a,b)		((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
 
 #define Byte4Copy(a,b)			((b)[0]=(a)[0],(b)[1]=(a)[1],(b)[2]=(a)[2],(b)[3]=(a)[3])
@@ -1298,23 +1300,21 @@ typedef struct usercmd_s {
 //   It is cleared before the client's call to Pmove() inside cg_predict.c
 //   Renamed from state_t
 typedef struct { 
-  float g_squared;  // gravity squared.  0 when not on slick.
-  float v_squared;  // velocity squared (starts as previous_velocity)
-  float vf_squared; // this frame's velocity, squared
-  float a_squared;  // Accel squared
-  float v;          // Velocity (starts as previous_velocity)
-  float vf;         // this frame's velocity
-  float a;          // Accel
-  float wishspeed;  // Wishspeed, as calculated in Pmove()
-  // New
-  float accel;      // TODO: Is this different than `a` ?
+  float     g_squared;  // gravity squared.  0 when not on slick.
+  float     v_squared;  // norm velocity squared (starts as previous_velocity)
+  float     vf_squared; // norm velocity (friction), squared
+  float     a_squared;  // Accel squared
+  float     v;          // norm Velocity (starts as previous_velocity)
+  float     vf;         // this frame's norm velocity
+  float     a;          // Accel corresponding to this frame (airaccel, groundaccel, etc)  Extracted from walkmove, airmove, etc
+  float     wishspeed;  // Wishspeed, as calculated in Pmove().   Extracted from X_Accelerate()
   // pm specific
-  int   movetype;   // Physics movetype index
-  int   tracemask;  // Collides against these types of surfaces
+  int       movetype;   // Physics movetype index
+  int       tracemask;  // Collides against these types of surfaces
   usercmd_t cmd;
 } pmoveData_t;  //TODO: Get this data out of pm. Should be extern for all CG
-//::OSDF end
 //:::::::::::::::::
+//::OSDF end
 
 //===================================================================
 

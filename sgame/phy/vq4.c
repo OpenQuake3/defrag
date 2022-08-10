@@ -180,7 +180,7 @@ void vq4_AirMove(void) {
   // We do haste in xxx_move. Default is: pm->ps->speed  , which comes from g_active.c and has haste factor included in it.
   realAccel = phy_air_accel;
   realSpeed = pm->ps->speed;
-  realWishSpd = wishspeed * core_CmdScale(&cmd);
+  realWishSpd = wishspeed * core_CmdScale(&cmd, phy_input_scalefix);
   //::::::::::::::::::
 
   // not on ground, so little effect on velocity
@@ -219,7 +219,7 @@ void vq4_WalkMove(void) {
   fmove = pm->cmd.forwardmove;
   smove = pm->cmd.rightmove;
   cmd = pm->cmd;
-  scale = core_CmdScale(&cmd);
+  scale = core_CmdScale(&cmd, phy_input_scalefix);
 
   // set the movementDir so clients can rotate the legs for strafing
   PM_SetMovementDir();

@@ -117,7 +117,7 @@ void vjk_WalkMove(void) {
   fmove = pm->cmd.forwardmove;
   smove = pm->cmd.rightmove;
   cmd = pm->cmd;
-  scale = core_CmdScale(&cmd);
+  scale = core_CmdScale(&cmd, phy_input_scalefix);
 
   // set the movementDir so clients can rotate the legs for strafing
   PM_SetMovementDir();

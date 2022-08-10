@@ -246,7 +246,7 @@ static void q1_AirMove(void) {
   // pm->ps->speed comes from g_active.c and has haste factor included in it.
   realAccel = phy_air_accel;
   realSpeed = (int)(pm->ps->speed * phy_air_speedscalar); // Reduce to airstrafe speed (~30) but still apply haste from pm->ps->speed
-  realWishSpd = wishspeed * core_CmdScale(&cmd);
+  realWishSpd = wishspeed * core_CmdScale(&cmd, phy_input_scalefix);
 
   // not on ground, so little effect on velocity
   core_Accelerate(wishdir, realWishSpd, realAccel, realSpeed);
@@ -297,7 +297,7 @@ static void q1_WalkMove(void) {
   fmove = pm->cmd.forwardmove;
   smove = pm->cmd.rightmove;
   cmd = pm->cmd;
-  scale = core_CmdScale(&cmd);
+  scale = core_CmdScale(&cmd, phy_input_scalefix);
 
   // set the movementDir so clients can rotate the legs for strafing
   PM_SetMovementDir();

@@ -28,11 +28,32 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #error "Do not use in VM build"
 #endif
 
-static intptr_t (QDECL *syscall)( intptr_t arg, ... ) = (intptr_t (QDECL *)( intptr_t, ...))-1;
 
-Q_EXPORT void dllEntry( intptr_t (QDECL *syscallptr)( intptr_t arg,... ) ) {
-	syscall = syscallptr;
+//::OSDF change
+//  Removed syntax mindfuck
+//:::::::::::::::::
+// dllSyscall_t
+//   Pointer to a function that returns an intptr and takes arg with varargs  (aka callNum)
+//   Abstracts away the confusion from repeating this prototype syntax everywhere
+typedef intptr_t (QDECL *dllSyscall_t) (intptr_t arg, ...);
+//:::::::::::::::::
+// syscall
+//   Will store a function pointer of shape dllSyscall_t
+//   Dummy initializer value. -1 is just a placeholder that will be erased
+//   Typecasts -1 into the correct dll pointer prototype.
+//   This means the pointer starting value is 0xFFFF(etc) instead of 0x0000(etc) (aka NULL)
+static dllSyscall_t syscall = (dllSyscall_t)-1;
+//:::::::::::::::::
+// dllEntry
+//   Function that always exports as visible (even with -fvisibility=hidden)
+//   Takes a function pointer (remote), and assigns it to a (local) function pointer
+//   Will be called inside the engine (from its dlsym handle),
+//    and will assign to the library local variable (static function pointer)
+Q_EXPORT void dllEntry( dllSyscall_t syscallptr ) {
+  syscall = syscallptr;
 }
+//:::::::::::::::::
+//::OSDF end
 
 int PASSFLOAT( float x ) {
 	floatint_t fi;

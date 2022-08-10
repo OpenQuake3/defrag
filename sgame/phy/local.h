@@ -143,7 +143,7 @@ void     core_Accelerate   (vec3_t wishdir, float wishspeed, float accel, float 
 void     core_Friction     (void);
 void     core_Weapon       (void);
 void     core_GroundTrace  (void);
-float    core_CmdScale     (usercmd_t* cmd);
+float    core_CmdScale     (usercmd_t* cmd, qboolean fix);
 qboolean core_SlideMove    (qboolean gravity);
 void     core_StepSlideMove(qboolean gravity);
 

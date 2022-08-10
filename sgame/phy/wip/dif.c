@@ -210,11 +210,11 @@ void q3a_AirMove(void) {
     if (doSideMove && !doForwMove) {
       realAccel = phy_airstrafe_accel;
       realSpeed = phy_airstrafe_basespeed;
-      realWishSpd = wishspeed * core_CmdScale(&cmd);
+      realWishSpd = wishspeed * core_CmdScale(&cmd, phy_input_scalefix);
     } else {
       realAccel = phy_air_accel;
       realSpeed = pm->ps->speed;
-      realWishSpd = wishspeed * core_CmdScale(&cmd);
+      realWishSpd = wishspeed * core_CmdScale(&cmd, phy_input_scalefix);
 
       // Deceleration behavior
       /*
@@ -231,12 +231,12 @@ void q3a_AirMove(void) {
   } else if (pm->movetype == VQ3) {
     realAccel = phy_air_accel;
     realSpeed = pm->ps->speed;
-    realWishSpd = wishspeed * core_CmdScale(&cmd);
+    realWishSpd = wishspeed * core_CmdScale(&cmd, phy_input_scalefix);
 
   } else if (pm->movetype == VJK) {
     realAccel = phy_air_accel;
     realSpeed = pm->ps->speed;
-    realWishSpd = wishspeed * core_CmdScale(&cmd);   // Some games don't scale inputs
+    realWishSpd = wishspeed * core_CmdScale(&cmd, phy_input_scalefix);   // Some games don't scale inputs
 
   } else { Com_Printf("Undefined movetype in q3a_ function. pm->movetype = %i", pm->movetype); return; }  // Undefined physics
   //::::::::::::::::::
@@ -291,7 +291,7 @@ void q3a_WalkMove(void) {
   fmove = pm->cmd.forwardmove;
   smove = pm->cmd.rightmove;
   cmd = pm->cmd;
-  scale = core_CmdScale(&cmd);
+  scale = core_CmdScale(&cmd, phy_input_scalefix);
 
   // set the movementDir so clients can rotate the legs for strafing
   PM_SetMovementDir();

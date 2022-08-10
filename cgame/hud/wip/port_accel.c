@@ -151,6 +151,52 @@ static void hud_AirMove(void) {
 ===================
 hud_WalkMove
 ===================*/
+float PM_CmdScale(playerState_t const* ps, usercmd_t const* cmd) {
+  int32_t max = abs(cmd->forwardmove);
+  if (abs(cmd->rightmove) > max) { max = abs(cmd->rightmove); }
+  if (abs(cmd->upmove) > max)    { max = abs(cmd->upmove); }
+  if (!max)                      { return 0; }
+  const float total = sqrtf((float)(cmd->forwardmove * cmd->forwardmove + cmd->rightmove * cmd->rightmove + cmd->upmove * cmd->upmove));
+  return (float)ps->speed * max / (127.f * total);
+}
+/* PM_CmdScale without upmove */
+float PM_AltCmdScale(playerState_t const* ps, usercmd_t const* cmd) {
+  int32_t max = abs(cmd->forwardmove);
+  if (abs(cmd->rightmove) > max) { max = abs(cmd->rightmove); }
+  // Skips upmove
+  if (!max)                      { return 0; }
+  const float total = sqrtf((float)(cmd->forwardmove * cmd->forwardmove + cmd->rightmove * cmd->rightmove));
+  return (float)ps->speed * max / (127.f * total);
+}
+
+void pmd_updateAccel(pmoveData_t* pmd) {
+  const float scaletr = core_CmdScale(&pm->cmd, accel_trueness.integer & ACCEL_JUMPCROUCH)
+
+  // wishspeed = scaletr * VectorLength2D(s.wishvel);
+  // if (s.ps.pm_flags & PMF_DUCKED && wishspeed > s.ps.speed * pm_duckScale) {
+  //   wishspeed = s.ps.speed * pm_duckScale;  }
+  // // clamp the speed lower if wading or walking on the bottom
+  // if (s.pm.waterlevel) {
+  //   float const waterScale = 1.f - (1.f - pm_swimScale) * s.pm.waterlevel / 3.f;
+  //   if (wishspeed > s.ps.speed * waterScale) {
+  //     wishspeed = s.ps.speed * waterScale;
+  //   }
+  // }
+
+  float gravity = (pml.groundTrace.surfaceFlags & SURF_SLICK || pm->ps->pm_flags & PMF_TIME_KNOCKBACK) ? pm->ps->gravity * pm_frametime : 0;
+  dir_update(wishspeed, accel, gravity);
+  // when a player gets hit, they temporarily lose full control, which allows them to be moved a bit
+  // if (s.pml.groundTrace.surfaceFlags & SURF_SLICK || s.ps.pm_flags & PMF_TIME_KNOCKBACK) {
+    // hud_Accelerate(wishspeed, s.ps.pm_flags & PMF_PROMODE ? cpm_slickaccelerate : pm_slickaccelerate);
+    // g_syscall(CG_PRINT, vaf("a: %1.3f %1.3f %1.3f %1.3f\n", s.slowDir, s.fastDir, s.stopDir, s.turnDir));
+    // hud_SlickAccelerate(wishspeed, s.ps.pm_flags & PMF_PROMODE ? cpm_slickaccelerate : pm_slickaccelerate);
+        // dir_update(wishspeed, accel, s.ps.gravity * pm_frametime);
+    // g_syscall(CG_PRINT, vaf("a: %1.3f %1.3f %1.3f %1.3f\n", s.slowDir, s.fastDir, s.stopDir, s.turnDir));
+  // } else {
+    // hud_Accelerate(wishspeed, s.ps.pm_flags & PMF_PROMODE ? cpm_accelerate : pm_accelerate);
+        // dir_update(wishspeed, accel, 0);
+  }
+}
 static void hud_WalkMove(void) {
   // if (s.pm.waterlevel > 2 && DotProduct(s.pml.forward, s.pml.groundTrace.plane.normal) > 0) {
   //   // // begin swimming
@@ -173,7 +219,7 @@ static void hud_WalkMove(void) {
   // skips fmove, smove and cmd
   // Scale cmd based on trueness
   float const scale = accel_trueness.integer & ACCEL_JUMPCROUCH ? PM_CmdScale(&s.ps, &s.pm.cmd)
-                                                              : PM_AltCmdScale(&s.ps, &s.pm.cmd);
+                                                                : PM_AltCmdScale(&s.ps, &s.pm.cmd);
   // Skips setmovedir
   // project moves down to flat plane
   // s.pml.forward[2] = 0;
