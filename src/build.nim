@@ -1,6 +1,7 @@
 # @deps std
 from std/sequtils import filterIt
 # @deps ndk
+import nstd/shell
 import confy
 
 
@@ -105,8 +106,9 @@ proc copyCfg (trgDir :Path) :void=
   # Ensure the target folder exists
   if dirExists(trgDir): md trgDir
   # Copy all files in the src/cfg folder into trgDir
-  for file in cfgDir.walkDirRec:
-    cp file, trgDir/file.string.replace(cfgDir.string, "")
+  for it in cfgDir.walkDir:
+    if   it.kind == pcFile : cp    it.path, trgDir/it.path.lastPathPart
+    elif it.kind == pcdir  : cpDir it.path, trgDir/it.path.lastPathPart
 #___________________
 # Cross-Compilation
 proc buildFor (trg :confy.BuildTrg; args :varargs[confy.System]) :void=
