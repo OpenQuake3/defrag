@@ -5,12 +5,18 @@ import confy
 
 
 #_______________________________________
+# @section Buildsystem Control
+#_____________________________
+const distribute = off  ## Change to `on` to build+pack everything for all platforms
+
+
+#_______________________________________
 # @section Configuration
 #_____________________________
 cfg.nim.systemBin = off
 cfg.libDir  = cfg.srcDir/"lib"
 let ioq3Dir = cfg.libDir/"ioq3"/"code"
-
+let cfgDir  = cfg.srcDir/"cfg"
 
 #_______________________________________
 # @section Source code
@@ -93,70 +99,81 @@ let q3_noErr = @[
 #_____________________________
 # Submodules
 let ioq3 = submodule("ioq3", "https://github.com/ioquake/ioq3", "code")
+#___________________
+# Configuration Generation
+proc copyCfg (trgDir :Path) :void=
+  # Ensure the target folder exists
+  if dirExists(trgDir): md trgDir
+  # Copy all files in the src/cfg folder into trgDir
+  for file in cfgDir.walkDirRec:
+    cp file, trgDir/file.string.replace(cfgDir.string, "")
+#___________________
 # Cross-Compilation
 proc buildFor (trg :confy.BuildTrg; args :varargs[confy.System]) :void=
   var tmp = trg
   for sys in args:
     tmp.syst = sys
-    echo $sys.os
     tmp.sub = Path &"{sys.os}-{sys.cpu}"
+    # Build for the target
     tmp.build()
+    # Copy the mod's configuration files to the target folder
+    copyCfg cfg.binDir/tmp.sub
 
+
+#_______________________________________
+# Build: Game Base BuildTarget
+#_____________________________
+let game = SharedLibrary.new(
+  src   = cfg.srcDir/"tst.c", # Dummy path. Just for init
+  deps  = Dependencies.new(ioq3),
+  flags = confy.flags(C) & q3_noErr,
+  ) # << SharedLibrary.new( ... )
 
 #_______________________________________
 # Build: Game Client
 #_____________________________
-let cgame = SharedLibrary.new(
-  src   = src_cgame,
-  trg   = "cgame"&arch,
-  deps  = Dependencies.new(ioq3),
-  flags = confy.flags(C) & q3_noErr,
-  syst  = confy.getHost(),
-  ) # << Program.new( ... )
-# cgame.buildFor( confy.getHost() )
-cgame.buildFor(
+var cgame = game
+cgame.src = src_cgame
+cgame.trg = ("cgame"&arch).Path
+#___________________
+when distribute: cgame.buildFor(
   System(os: OS.Linux,   cpu: CPU.x86_64),
   System(os: OS.Windows, cpu: CPU.x86_64),
   System(os: OS.Mac,     cpu: CPU.x86_64),
   System(os: OS.Mac,     cpu: CPU.arm64),
   ) # << cgame.buildFor( ... )
+else: cgame.buildFor( confy.getHost() )
 
 
 #_______________________________________
 # Build: Game Server
 #_____________________________
-let sgame = SharedLibrary.new(
-  src   = src_sgame,
-  trg   = "qagame"&arch,
-  deps  = Dependencies.new(ioq3),
-  flags = confy.flags(C) & q3_noErr,
-  syst  = confy.getHost(),
-  ) # << Program.new( ... )
-# sgame.buildFor( confy.getHost() )
-sgame.buildFor(
+var sgame = game
+sgame.src = src_sgame
+sgame.trg = ("qagame"&arch).Path
+#___________________
+when distribute: sgame.buildFor(
   System(os: OS.Linux,   cpu: CPU.x86_64),
   System(os: OS.Windows, cpu: CPU.x86_64),
   System(os: OS.Mac,     cpu: CPU.x86_64),
   System(os: OS.Mac,     cpu: CPU.arm64),
   ) # << sgame.buildFor( ... )
+else: sgame.buildFor( confy.getHost() )
 
 
 #_______________________________________
 # Build: Game UI
 #_____________________________
-let ui = SharedLibrary.new(
-  src   = src_ui,
-  trg   = "ui"&arch,
-  deps  = Dependencies.new(ioq3),
-  flags = confy.flags(C) & q3_noErr,
-  syst  = confy.getHost(),
-  ) # << Program.new( ... )
-# ui.buildFor( confy.getHost() )
-ui.buildFor(
+var ui = game
+ui.src = src_ui
+ui.trg = ("ui"&arch).Path
+#___________________
+when distribute: ui.buildFor(
   System(os: OS.Linux,   cpu: CPU.x86_64),
   System(os: OS.Windows, cpu: CPU.x86_64),
   System(os: OS.Mac,     cpu: CPU.x86_64),
   System(os: OS.Mac,     cpu: CPU.arm64),
   ) # << ui.buildFor( ... )
+else: ui.buildFor( confy.getHost() )
 
 
