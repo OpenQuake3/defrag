@@ -2,6 +2,7 @@
 from std/sequtils import filterIt
 # @deps ndk
 import nstd/shell
+import nstd/logger as l
 import confy
 
 
@@ -18,6 +19,7 @@ cfg.nim.systemBin = off
 cfg.libDir  = cfg.srcDir/"lib"
 let ioq3Dir = cfg.libDir/"ioq3"/"code"
 let cfgDir  = cfg.srcDir/"cfg"
+l.init(name="osdf", threshold=l.Log.Err)
 
 #_______________________________________
 # @section Source code
@@ -89,9 +91,9 @@ let q3_noErr = @[
   "-Wno-unused-but-set-variable",
   "-Wno-shadow",
   "-Wno-empty-translation-unit",
+  "-Wno-error=macro-redefined",
   # Stop ZigCC from crashing the game due to UBSAN traps
-  "-fno-sanitize-trap=all",
-  "-lubsan",
+  "-fno-sanitize=all",
   ].toCC # << args_libs = @[ ... ]
 
 
@@ -114,9 +116,17 @@ proc copyCfg (trgDir :Path) :void=
 proc buildFor (trg :confy.BuildTrg; args :varargs[confy.System]) :void=
   var tmp = trg
   for sys in args:
+    let arch = case sys.cpu
+      of CPU.x86_64: "x86_64"
+      else: $sys.cpu
     tmp.syst = sys
+    tmp.trg  =
+      if arch notin tmp.trg.string : Path tmp.trg.string.replace("x86_64","") & arch
+      else                         : tmp.trg
     tmp.sub = Path &"{sys.os}-{sys.cpu}"
+    if sys.cpu == CPU.arm64: tmp.flags.cc = tmp.flags.cc.filterIt( "ARCH_STRING=" notin it )
     # Build for the target
+    if not dirExists(cfg.binDir/tmp.sub): md cfg.binDir/tmp.sub
     tmp.build()
     # Copy the mod's configuration files to the target folder
     copyCfg cfg.binDir/tmp.sub
