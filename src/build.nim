@@ -11,9 +11,9 @@ import nstd/logger
 #_______________________________________
 # @section Buildsystem Control
 #_____________________________
-const distribute  = on                  ## `on` will build+pack everything for all platforms
-const buildGame   = on                  ## Whether to build the gamecode or not
-const buildEngine = on                  ## Whether to build the gamecode or not
+const distribute  = off  ## `on` will build+pack everything for all platforms
+const buildGame   = on   ## Whether to build the gamecode or not
+const buildEngine = on   ## Whether to build the gamecode or not
 
 
 #_______________________________________
