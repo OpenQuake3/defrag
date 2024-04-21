@@ -1,3 +1,44 @@
+#:___________________________________________________________________
+#  osdf  |  Copyright (C) Ivan Mar (sOkam!)  |  GNU GPLv2 or later  |
+#:___________________________________________________________________
+# @deps ndk
+import nstd/logger
+import confy
+# @deps build
+import ./types
+
+#___________________________________________________________________________________________________
+from std/os import parentDir, `/`, dirExists
+static:  # Ensure the engine's buildsystem folder exists at compile time
+  const thisDir        = currentSourcePath.parentDir()
+  const buildsystemDir = thisDir/"system"
+  if not dirExists(buildsystemDir):
+    let output = gorge "git clone https://github.com/OpensourceQuake3/buildsystem "&buildsystemDir
+    echo output
+#___________________________________________________________________________________________________
+# @deps build.engine
+import ./system/engine/src
+import ./system/engine/dir
+
+
+#_______________________________________
+# @section Entry Point: Order to build
+#_____________________________
+proc build *(
+    name       : Name;
+    distribute : bool = off;
+  ) :void=
+  info "This will build id-Tech3 with name:  " & $name
+  # Clone the repo   or   Pull latest changes
+  # Apply custom patches
+  #   -> patches/NAME/code/dir/file.c.patch
+  # Move files/folders into the new structure
+  # Create a local commit with `thisRepo/commitHash`
+  # Build it with confy
+
+
+
+
 
 #___________________________________________________________________________________________________
 # @section Old Buildsystem: References
@@ -15,7 +56,7 @@ use_local_jpeg    = True   # Links to local jpeg (windows only). Binaries are ha
 use_local_pcre    = True   # Links to local pcre (windows only). Binaries are hard to find
 #use_sdl           = True  # Disabled. Always True
 #use_curl          = True  # Disabled. Always True
-#use_local_headers = False # Disabled. Always False 
+#use_local_headers = False # Disabled. Always False
 #use_ccache        = True  # Deprecated. Scons has a compiler cache system
 # Render compile settings
 render_default    = 'opengl' # valid options: opengl, vulkan, opengl2
