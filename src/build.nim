@@ -189,3 +189,41 @@ when distribute: ui.buildFor(
 else: ui.buildFor( confy.getHost() )
 
 
+
+
+
+
+#___________________________________________________________________________________________________
+# @section Old Buildsystem: References
+##[
+# SCons
+scPlatforms    = ['posix', 'win32', 'cygwin', 'darwin', 'aix', 'hpux', 'irix', 'os2', 'sunos']
+scArchs        = { 64:['x86_64','amd64'], 32:['x86','arm']}
+def mkTruArch(bits,dic):  # Creates and returns a list of (64 or 32) platform aliases contained within the values of `dic`
+  #explanation            [val.iterable (for sublist in list_of_lists:  for val in sublist: if     condition:                    )]
+  if   bits == 64: return [val           for key,lst in dic.items()     for val in lst      if not any(ch.isdigit() for ch in val)]  # Dictionary value = list of 64bit platforms
+  elif bits == 32: return [val           for key,lst in dic.items()     for val in lst      if     any(ch.isdigit() for ch in val)]  # Dictionary value = list of 32bit platforms
+  else: sys.exit('::ERR Unsupported bits input for the function mkTruArch')
+truPlatform    = {'win32':['w','win','w32','win32'],                   # Accepted win32 aliases in p=X, platform=X
+                  'posix':['l','lnx','linux','l32','lnx32','linux32']} # Accepted posix aliases
+truArch        = {'x86_64':mkTruArch(64,truPlatform), 'x86':mkTruArch(32,truPlatform)}        # Generated. Each value contains a list of valid platform aliases, with arch assigned as its dict key
+
+# Supported Lists
+validTargets = [  # make-like target selection
+  # @todo Figure out what to do with these, and how (or if) they fit confy
+  'release','debug',      'distribute',  'all',
+  'engine', 'engine-dbg', 'engine-dist', 'engine-sdl',
+  # 'server', 'server-dbg', 'server-dist',  #TODO: 'server',
+  'game',   'game-dbg',   'game-dist',
+  'q3ui',   'nui'  # New UI (wip)  #TODO: merge to game when done
+  ]
+# Aliases
+  # Q3 renames  (not using them, keeping only as reference for future support implementation)
+  # q3Platforms  = ['x86_64', 'x86', 'mingw32', 'mingw64','darwin', 'aarch64']
+  # remaps:        'arm64':'aarch64',  'mingw32'+'i386':'x86',   'cygwin':'mingw32',   'arm':'aarch64'
+  # q3Archs      = ['i86pc','x86','x86_64','x64']
+  # remaps:        'i86pc':'x86',   'x86_64'or'x64':'x86_64'
+# Other
+vmArchs = ['x86_64', 'x86', 'arm', 'aarch64'] # List of architectures compatible with vm compiling  #TEMP: Q3 names. fix this
+]##
+
