@@ -1,3 +1,6 @@
+#:___________________________________________________________________
+#  osdf  |  Copyright (C) Ivan Mar (sOkam!)  |  GNU GPLv2 or later  |
+#:___________________________________________________________________
 # @deps std
 from std/sequtils import filterIt
 # @deps ndk
