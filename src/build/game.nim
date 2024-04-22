@@ -114,18 +114,18 @@ proc copyCfg (trgDir :Path) :void=
     elif it.kind == pcdir  : cpDir it.path, trgDir/it.path.lastPathPart
 #___________________
 # Cross-Compilation
-proc buildFor (trg :confy.BuildTrg; args :varargs[confy.System]) :void=
+proc buildFor (trg :confy.BuildTrg; args :openArray[confy.System]) :void=
   var tmp = trg
   for sys in args:
     let arch = case sys.cpu
-      of CPU.x86_64: "x86_64"
+      of x86_64: "x86_64"
       else: $sys.cpu
     tmp.syst = sys
     tmp.trg  =
       if arch notin tmp.trg.string : Path tmp.trg.string.replace("x86_64","") & arch
       else                         : tmp.trg
     tmp.sub = Path &"{sys.os}-{sys.cpu}"
-    if sys.cpu == CPU.arm64: tmp.flags.cc = tmp.flags.cc.filterIt( "ARCH_STRING=" notin it )
+    if sys.cpu == arm64: tmp.flags.cc = tmp.flags.cc.filterIt( "ARCH_STRING=" notin it )
     # Build for the target
     if not dirExists(cfg.binDir/tmp.sub): md cfg.binDir/tmp.sub
     tmp.build()
@@ -137,20 +137,21 @@ proc buildFor (trg :confy.BuildTrg; args :varargs[confy.System]) :void=
 # @section Entry Point: Game Buildsystem
 #_____________________________
 proc build *(
-    name       : Name;
-    distribute : bool = off;
+    name  : Name;
+    cross : bool = off;
+    pack  : bool = off;
   ) :void=
-
-  # Init: Submodules
+  # Find the systems we compile/pack for
+  let systems = if cross: @[
+    System(os: Linux,   cpu: x86_64),
+    System(os: Windows, cpu: x86_64),
+    System(os: Mac,     cpu: x86_64),
+    System(os: Mac,     cpu: arm64),
+    ] else: @[confy.getHost()]
   #_____________________________
-  let ioq3 = submodule("ioq3", "https://github.com/ioquake/ioq3", "code")
-
-
-  # Build: Game Base BuildTarget
-  #_____________________________
+  # Define the Game Base BuildTarget
   let game = SharedLibrary.new(
     src   = cfg.srcDir/"tst.c", # Dummy path. Just for init
-    deps  = Dependencies.new(ioq3),
     flags = confy.flags(C) & q3_noErr,
     ) # << SharedLibrary.new( ... )
 
@@ -161,13 +162,8 @@ proc build *(
   cgame.src = src_cgame
   cgame.trg = ("cgame"&arch).Path
   #___________________
-  if distribute: cgame.buildFor(
-    System(os: OS.Linux,   cpu: CPU.x86_64),
-    System(os: OS.Windows, cpu: CPU.x86_64),
-    System(os: OS.Mac,     cpu: CPU.x86_64),
-    System(os: OS.Mac,     cpu: CPU.arm64),
-    ) # << cgame.buildFor( ... )
-  else: cgame.buildFor( confy.getHost() )
+  cgame.buildFor(systems)
+  if pack: cgame.packFor(systems)
 
 
   # Build: Game Server
@@ -176,13 +172,8 @@ proc build *(
   sgame.src = src_sgame
   sgame.trg = ("qagame"&arch).Path
   #___________________
-  if distribute: sgame.buildFor(
-    System(os: OS.Linux,   cpu: CPU.x86_64),
-    System(os: OS.Windows, cpu: CPU.x86_64),
-    System(os: OS.Mac,     cpu: CPU.x86_64),
-    System(os: OS.Mac,     cpu: CPU.arm64),
-    ) # << sgame.buildFor( ... )
-  else: sgame.buildFor( confy.getHost() )
+  sgame.buildFor(systems)
+  if pack: sgame.packFor(systems)
 
 
   # Build: Game UI
@@ -191,13 +182,8 @@ proc build *(
   ui.src = src_ui
   ui.trg = ("ui"&arch).Path
   #___________________
-  if distribute: ui.buildFor(
-    System(os: OS.Linux,   cpu: CPU.x86_64),
-    System(os: OS.Windows, cpu: CPU.x86_64),
-    System(os: OS.Mac,     cpu: CPU.x86_64),
-    System(os: OS.Mac,     cpu: CPU.arm64),
-    ) # << ui.buildFor( ... )
-  else: ui.buildFor( confy.getHost() )
+  ui.buildFor(systems)
+  if pack: ui.packFor(systems)
 
 
 

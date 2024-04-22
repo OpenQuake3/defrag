@@ -25,8 +25,9 @@ import ./system/engine/dir
 # @section Entry Point: Order to build
 #_____________________________
 proc build *(
-    name       : Name;
-    distribute : bool = off;
+    name  : Name;
+    cross : bool = off;
+    pack  : bool = off;
   ) :void=
   info "This will build id-Tech3 with name:  " & $name
   # Clone the repo   or   Pull latest changes
