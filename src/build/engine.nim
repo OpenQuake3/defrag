@@ -13,7 +13,7 @@ static:  # Ensure the engine's buildsystem folder exists at compile time
   const thisDir        = currentSourcePath.parentDir()
   const buildsystemDir = thisDir/"system"
   if not dirExists(buildsystemDir):
-    let output = gorge "git clone https://github.com/OpensourceQuake3/buildsystem "&buildsystemDir
+    let output = gorge "git clone https://github.com/OpenQuake3/buildsystem "&buildsystemDir
     echo output
 #___________________________________________________________________________________________________
 # @deps build.engine
