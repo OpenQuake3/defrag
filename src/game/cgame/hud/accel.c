@@ -181,7 +181,7 @@ static void hud_accel_getData(void){
   // Does Normal airmove, except for trueness
   // Selects AD, W or Diagonal. Gets correct values and does trueness
   // Else:
-  dir_update(s.pmd->wishspeed, s.pmd->accel, 0);  // TODO: Slick
+  //dir_update(s.pmd->wishspeed, s.pmd->accel, 0);  // TODO: Slick
 
   //::::::::::::::::::::::::::::::::::::
 }

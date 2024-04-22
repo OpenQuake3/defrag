@@ -4,6 +4,7 @@
 # @deps std
 from std/sequtils import filterIt
 # @deps ndk
+import nstd/strings
 import nstd/shell
 import confy
 # @deps build
@@ -15,7 +16,7 @@ import ./types
 #_____________________________
 cfg.nim.systemBin = off
 cfg.libDir  = cfg.srcDir/"lib"
-let ioq3Dir = cfg.libDir/"ioq3"/"code"
+let gameDir = cfg.srcDir/"game"
 let cfgDir  = cfg.srcDir/"cfg"
 
 #_______________________________________
@@ -23,34 +24,35 @@ let cfgDir  = cfg.srcDir/"cfg"
 #_____________________________
 # Game: Common to all Libraries
 let src_libAll = @[
-  ioq3Dir/"qcommon"/"q_shared.c",
-  ioq3Dir/"qcommon"/"q_math.c",
-  #ioq3Dir/"qcommon"/"common.c",
+  gameDir/"qcommon"/"q_shared.c",
+  gameDir/"qcommon"/"q_math.c",
   ].toDirFile # << src_libAll = @[ ... ]
 #___________________
 # Game: Client
-let src_cgame = glob(ioq3Dir/"cgame").filterIt(
+let src_phy   = glob(gameDir/"sgame"/"phy")
+let src_hud   = glob(gameDir/"cgame"/"hud")
+let src_cgame = glob(gameDir/"cgame").filterIt(
   # Excludes
   it.path.lastPathPart.string != "cg_newdraw.c"
-  ) & @[
   # Explicit Includes
-  ioq3Dir/"game"/"bg_misc.c",
-  ioq3Dir/"game"/"bg_pmove.c",
-  ioq3Dir/"game"/"bg_slidemove.c",
+  ) & src_phy & src_hud & @[
+  gameDir/"sgame"/"bg_misc.c",
+  gameDir/"sgame"/"bg_pmove.c",
+  gameDir/"sgame"/"bg_slidemove.c",
   # Common to all Libraries
   ].toDirFile  & src_libAll # << src_cgame = ...
 #___________________
 # Game: Server
-let src_sgame = glob(ioq3Dir/"game").filterIt(
+let src_sgame = glob(gameDir/"sgame").filterIt(
   #not it.path.lastPathPart.string.startsWith("ai_") and
   it.path.lastPathPart.string != "g_rankings.c"
   # Explicit Includes
-  ) & @[
+  ) & src_phy & @[
   # Common to all Libraries
   ].toDirFile & src_libAll # << src_sgame = ...
 #___________________
 # Game: UI
-let src_ui = glob(ioq3Dir/"q3_ui").filterIt(
+let src_ui = glob(gameDir/"ui_q3").filterIt(
   it.path.lastPathPart.string != "ui_signup.c" and
   it.path.lastPathPart.string != "ui_specifyleague.c" and
   it.path.lastPathPart.string != "ui_rankings.c" and
@@ -58,8 +60,7 @@ let src_ui = glob(ioq3Dir/"q3_ui").filterIt(
   it.path.lastPathPart.string != "ui_login.c"
   # Explicit Includes
   ) & @[
-  ioq3Dir/"game"/"bg_misc.c",
-  ioq3Dir/"ui"/"ui_syscalls.c",
+  gameDir/"sgame"/"bg_misc.c",
   # Common to all Libraries
   ].toDirFile & src_libAll # << src_ui = ...
 
@@ -71,6 +72,13 @@ let arch = "x86_64"
 let q3_noErr = @[
   # Quake3 Requirements
   &"-DARCH_STRING=\\\"{arch}\\\"",
+  # Recoverable warnings
+  "-Wno-error=extra-semi",
+  "-Wno-error=unused-function",
+  "-Wno-error=unused-variable",
+  "-Wno-error=strict-prototypes",
+  "-Wno-unused-parameter",
+  "-Wno-unused-but-set-variable",
   # Type Coercion
   "-Wno-sign-conversion",
   "-Wno-sign-compare",
@@ -84,8 +92,6 @@ let q3_noErr = @[
   # Strict Warnings
   "-Wno-missing-prototypes",
   "-Wno-missing-field-initializers",
-  "-Wno-unused-parameter",
-  "-Wno-unused-but-set-variable",
   "-Wno-shadow",
   "-Wno-empty-translation-unit",
   "-Wno-error=macro-redefined",
@@ -103,6 +109,7 @@ proc copyCfg (trgDir :Path) :void=
   if dirExists(trgDir): md trgDir
   # Copy all files in the src/cfg folder into trgDir
   for it in cfgDir.walkDir:
+    if it.path.string.startsWith("bundle", "bkp", "defrag"): continue
     if   it.kind == pcFile : cp    it.path, trgDir/it.path.lastPathPart
     elif it.kind == pcdir  : cpDir it.path, trgDir/it.path.lastPathPart
 #___________________

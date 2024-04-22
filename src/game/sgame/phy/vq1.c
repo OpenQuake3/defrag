@@ -157,7 +157,7 @@ void q1_AirMoveQW (void) {
 	vec3_t    wishvel;
 	float     fmove, smove;
 	vec3_t		wishdir;
-	float     wishspeed;
+	float     wishspeed = 0.0f;
   //usercmd_t cmd;
 
     // fmove & smove = -127 to 127

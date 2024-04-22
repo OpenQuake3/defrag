@@ -44,6 +44,7 @@ qboolean core_SlideMove(qboolean gravity) {
     case VQ4: return new_SlideMove(gravity);
     case VJK: return q3a_SlideMove(gravity);
     case CQ3: return q3a_SlideMove(gravity);
+    default:  return q3a_SlideMove(gravity);
   }
 }
 // Unmodded Q3A version
