@@ -15,10 +15,11 @@ import ./types
 #_______________________________________
 # @section Configuration
 #_____________________________
-cfg.nim.systemBin = off
-cfg.libDir  = cfg.srcDir/"lib"
-let gameDir = cfg.srcDir/"game"
-let cfgDir  = cfg.srcDir/"cfg"
+nim.systemBin = off
+cfg.libDir    = cfg.srcDir/"lib"
+let gameDir   = cfg.srcDir/"game"
+let cfgDir    = cfg.srcDir/"cfg"
+let assetsDir = cfg.rootDir/"assets"
 
 #_______________________________________
 # @section Source code
@@ -141,14 +142,38 @@ proc packFor (trg :confy.BuildTrg; args :openArray[confy.System]) :void=
     let dir   = cfg.binDir/sub
     let files = trg.src.getFileList( cfg.srcDir/"game" )
     files.zip( dir/"tst.pk3", rel=cfg.srcDir )
+#___________________
+const DefaultAssetIgnores = @["src".Path]  ## Subfolders of the assets folder that should be ignored by default
+proc packAssetsFor *(
+    trg        : confy.BuildTrg;
+    args       : openArray[confy.System];
+    assetsDir  : Path;
+    name       : Name;
+    ignoreList : openArray[Path] = DefaultAssetIgnores;
+  ) :void=
+  var tmp = trg
+  var dirs :seq[Path]
+  for it in assetsDir.walkDir:
+    if it.kind != pcDir      : continue
+    if it.path in ignoreList : continue
+    dirs.add it.path
+  for sys in args:
+    for dir in dirs:
+      var files :seq[Path]
+      for file in dir.walkDirRec: files.add file.Path
+      let name = &"y.{name.short}-{dir.lastPathPart}.pk3"
+      tmp.sub = Path &"{sys.os}-{sys.cpu}"
+      files.zip( cfg.binDir/tmp.sub/name )
+
 
 #_______________________________________
 # @section Entry Point: Game Buildsystem
 #_____________________________
 proc build *(
-    name  : Name;
-    cross : bool = off;
-    pack  : bool = off;
+    name       : Name;
+    cross      : bool = off;
+    pack       : bool = off;
+    assetsDir  : Path = assetsDir;
   ) :void=
   # Find the systems we compile/pack for
   let systems = if cross: @[
@@ -163,6 +188,9 @@ proc build *(
     src   = cfg.srcDir/"tst.c", # Dummy path. Just for init
     flags = confy.flags(C) & q3_noErr,
     ) # << SharedLibrary.new( ... )
+  for sys in systems:
+    if not pack: break
+    game.packAssetsFor(systems, assetsDir, name)
 
 
   # Build: Game Client
