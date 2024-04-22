@@ -1,19 +1,25 @@
 #:___________________________________________________________________
 #  osdf  |  Copyright (C) Ivan Mar (sOkam!)  |  GNU GPLv2 or later  |
 #:___________________________________________________________________
+# @deps ndk
+import nstd/logger
+import nstd/opts as cli
 # @deps buildsystem
 import ./build/types
 import ./build/engine
 import ./build/game
-import nstd/logger
+import ./build/git
 
 
 #_______________________________________
 # @section Buildsystem Control
 #_____________________________
-const distribute  = off  ## `on` will build+pack everything for all platforms
 const buildGame   = on   ## Whether to build the gamecode or not
-const buildEngine = on   ## Whether to build the gamecode or not
+const buildEngine = on   ## Whether to build the engine or not
+# CLI Control
+let release    = cli.getOpt("r")                ## `./bin/build -r` to run the automatic GitHub release process
+let distribute = cli.getOpt("d") or release     ## `./bin/build -d` to build the distributable version
+let pack       = on or cli.getOpt("p") or distribute  ## `./bin/build -p` to pack everything
 
 
 #_______________________________________
@@ -26,6 +32,10 @@ const name = Name(
   long  : "opensource-defrag",
   human : "Opensource Defrag"
   ) # << name = (... )
+const repo = Repository(
+  owner : "OpenQuake3",
+  name  : "defrag"
+  ) # << Repository( ... )
 
 
 #_______________________________________
@@ -36,6 +46,7 @@ logger.init(name=name.short, threshold=
   ) # << logger.init( ... )
 #___________________
 # Run each buildsystem module
-when buildEngine : engine.build( name= name, distribute= distribute )
-when buildGame   :   game.build( name= name, distribute= distribute )
+when buildEngine : engine.build( name= name, cross= distribute, pack= pack )
+when buildGame   :   game.build( name= name, cross= distribute, pack= pack )
+if release       :  git.release( name= name, repo=  repo                   )
 

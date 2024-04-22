@@ -6,6 +6,7 @@ from std/sequtils import filterIt
 # @deps ndk
 import nstd/strings
 import nstd/shell
+import nstd/zip as z
 import confy
 # @deps build
 import ./types
@@ -131,7 +132,15 @@ proc buildFor (trg :confy.BuildTrg; args :openArray[confy.System]) :void=
     tmp.build()
     # Copy the mod's configuration files to the target folder
     copyCfg cfg.binDir/tmp.sub
-
+#___________________
+# Automated Packing
+proc packFor (trg :confy.BuildTrg; args :openArray[confy.System]) :void=
+  var tmp = trg
+  for sys in args:
+    let sub   = &"{sys.os}-{sys.cpu}"
+    let dir   = cfg.binDir/sub
+    let files = trg.src.getFileList( cfg.srcDir/"game" )
+    files.zip( dir/"tst.pk3", rel=cfg.srcDir )
 
 #_______________________________________
 # @section Entry Point: Game Buildsystem
