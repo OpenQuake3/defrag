@@ -8,7 +8,7 @@ import nstd/opts as cli
 import ./build/types
 import ./build/engine
 import ./build/game
-import ./build/git
+#import ./build/release as rls
 
 
 #_______________________________________
@@ -17,7 +17,8 @@ import ./build/git
 const buildGame   = on   ## Whether to build the gamecode or not
 const buildEngine = on   ## Whether to build the engine or not
 # CLI Control
-let release    = cli.getOpt("r")                ## `./bin/build -r` to run the automatic GitHub release process
+let publish    = cli.getOpt("publish")          ## `./bin/build --publish` to publish the result to GitHub
+let release    = cli.getOpt("r") or publish     ## `./bin/build -r` to run the automatic release generation process
 let distribute = cli.getOpt("d") or release     ## `./bin/build -d` to build the distributable version
 let pack       = cli.getOpt("p") or distribute  ## `./bin/build -p` to pack everything
 
@@ -46,7 +47,8 @@ logger.init(name=name.short, threshold=
   ) # << logger.init( ... )
 #___________________
 # Run each buildsystem module
-when buildEngine : engine.build( name= name, cross= distribute, pack= pack )
-when buildGame   :   game.build( name= name, cross= distribute, pack= pack )
-if release       :  git.release( name= name, repo=  repo                   )
+when buildEngine : engine.build( name= name, cross=   distribute, pack= pack       )
+when buildGame   :   game.build( name= name, cross=   distribute, pack= pack       )
+#if release       :    rls.local( name= name, systems= systems                      )
+#if publish       :   rls.github( name= name, repo=    repo,       systems= systems )
 

@@ -106,28 +106,33 @@ let q3_noErr = @[
 # @section Buildsystem Management
 #_____________________________
 # Configuration Generation
-proc copyCfg (trgDir :Path) :void=
+const DefaultConfigIgnores = @["bundle".Path, "bkp".Path, "defrag".Path]  ## Subfolders of the config folder that should be ignored by default
+proc copyCfg *(
+    trgDir     : Path;
+    ignoreList : openArray[Path] = DefaultConfigIgnores;
+  ) :void=
   # Ensure the target folder exists
   if dirExists(trgDir): md trgDir
   # Copy all files in the src/cfg folder into trgDir
   for it in cfgDir.walkDir:
-    if it.path.string.startsWith("bundle", "bkp", "defrag"): continue
+    if it.path.lastPathPart in ignoreList: continue
     if   it.kind == pcFile : cp    it.path, trgDir/it.path.lastPathPart
     elif it.kind == pcdir  : cpDir it.path, trgDir/it.path.lastPathPart
 #___________________
 # Cross-Compilation
-proc buildFor (trg :confy.BuildTrg; args :openArray[confy.System]) :void=
+proc buildFor *(trg :confy.BuildTrg; systems :openArray[confy.System]) :void=
+  ## @descr Compiles the {@arg trg} for all the given {@arg systems}
   var tmp = trg
-  for sys in args:
-    let arch = case sys.cpu
-      of x86_64: "x86_64"
-      else: $sys.cpu
-    tmp.syst = sys
-    tmp.trg  =
+  for sys in systems:
+    let arch = case sys.cpu  # Architecture name that id-Tech3 understands
+      of x86_64 : "x86_64"   # Rename `amd64` to id-Tech3's `x86_64`
+      else      : $sys.cpu   # Use confy's name otherwise
+    tmp.syst = sys           # The system we are building for
+    tmp.trg  =               # Real target file we are building
       if arch notin tmp.trg.string : Path tmp.trg.string.replace("x86_64","") & arch
       else                         : tmp.trg
-    tmp.sub = Path &"{sys.os}-{sys.cpu}"
-    if sys.cpu == arm64: tmp.flags.cc = tmp.flags.cc.filterIt( "ARCH_STRING=" notin it )
+    tmp.sub = Path &"{sys.os}-{sys.cpu}"  # Subfolder of cfg.bindir where the resulting binaries will be output
+    if sys.cpu == arm64: tmp.flags.cc = tmp.flags.cc.filterIt( "ARCH_STRING=" notin it )  # Fix ARCH_STRING bug when compiling for arm64
     # Build for the target
     if not dirExists(cfg.binDir/tmp.sub): md cfg.binDir/tmp.sub
     tmp.build()
@@ -135,35 +140,43 @@ proc buildFor (trg :confy.BuildTrg; args :openArray[confy.System]) :void=
     copyCfg cfg.binDir/tmp.sub
 #___________________
 # Automated Packing
-proc packFor (trg :confy.BuildTrg; args :openArray[confy.System]) :void=
-  var tmp = trg
-  for sys in args:
-    let sub   = &"{sys.os}-{sys.cpu}"
-    let dir   = cfg.binDir/sub
-    let files = trg.src.getFileList( cfg.srcDir/"game" )
-    files.zip( dir/"tst.pk3", rel=cfg.srcDir )
+proc packCodeFor *(trg :confy.BuildTrg; systems :openArray[confy.System]) :void=
+  ## @descr Packs the source code for {@arg trg} into the subfolders of all given {@arg systems}
+  for sys in systems: # For every system we compile for
+    let sub     = &"{sys.os}-{sys.cpu}"                     # Name of the subfolder where the .pk3 will be output
+    let dir     = cfg.binDir/sub                            # Path of the folder where the .zip file will be output
+    let files   = trg.src.getFileList( cfg.srcDir/"game" )  # Find the list of files from the BuildTrg object
+    let trgFile = dir/trg.trg.addFileExt(".code.zip")       # Full Path of the final .zip file
+    if not dirExists(dir): md dir
+    files.zip( trgFile, rel=cfg.srcDir/"game" )
 #___________________
 const DefaultAssetIgnores = @["src".Path]  ## Subfolders of the assets folder that should be ignored by default
 proc packAssetsFor *(
-    trg        : confy.BuildTrg;
-    args       : openArray[confy.System];
     assetsDir  : Path;
+    systems    : openArray[confy.System];
     name       : Name;
     ignoreList : openArray[Path] = DefaultAssetIgnores;
   ) :void=
-  var tmp = trg
+  ## @descr
+  ##  Packs all asset folders contained in {@arg assetsDir} into the subfolders of all given {@arg systems}
+  ##  The resulting file will contain the {@arg name}'s short name
+  ##  Accepts an optional {@arg ignoreList} that specifies the list of filenames contained in {@arg assetsDir} that should be skipped from the resulting .pk3
+  # Find the list of folders we should be packing
   var dirs :seq[Path]
   for it in assetsDir.walkDir:
-    if it.kind != pcDir      : continue
-    if it.path in ignoreList : continue
+    if it.kind != pcDir      : continue  # Skip all files at the root of assetsDir
+    if it.path in ignoreList : continue  # Skip all paths that are part of the ignoreList
     dirs.add it.path
-  for sys in args:
-    for dir in dirs:
+  # Pack for every system + assets/subfolder
+  for sys in systems:  # For every system we compile for
+    for dir in dirs:   # For every folder in assetsDir
       var files :seq[Path]
-      for file in dir.walkDirRec: files.add file.Path
-      let name = &"y.{name.short}-{dir.lastPathPart}.pk3"
-      tmp.sub = Path &"{sys.os}-{sys.cpu}"
-      files.zip( cfg.binDir/tmp.sub/name )
+      for file in dir.walkDirRec: files.add file.Path      # Add every file in the assets subfolder to the list
+      let name = &"y.{name.short}-{dir.lastPathPart}.pk3"  # Name of the final .pk3 that the user will see
+      let sub  = Path &"{sys.os}-{sys.cpu}"                # Name of the subfolder where the .pk3 will be output
+      let trgDir = cfg.binDir/sub
+      if not dirExists(trgDir): md trgDir
+      files.zip( trgDir/name )
 
 
 #_______________________________________
@@ -188,9 +201,6 @@ proc build *(
     src   = cfg.srcDir/"tst.c", # Dummy path. Just for init
     flags = confy.flags(C) & q3_noErr,
     ) # << SharedLibrary.new( ... )
-  for sys in systems:
-    if not pack: break
-    game.packAssetsFor(systems, assetsDir, name)
 
 
   # Build: Game Client
@@ -200,7 +210,6 @@ proc build *(
   cgame.trg = ("cgame"&arch).Path
   #___________________
   cgame.buildFor(systems)
-  if pack: cgame.packFor(systems)
 
 
   # Build: Game Server
@@ -210,7 +219,6 @@ proc build *(
   sgame.trg = ("qagame"&arch).Path
   #___________________
   sgame.buildFor(systems)
-  if pack: sgame.packFor(systems)
 
 
   # Build: Game UI
@@ -220,7 +228,15 @@ proc build *(
   ui.trg = ("ui"&arch).Path
   #___________________
   ui.buildFor(systems)
-  if pack: ui.packFor(systems)
+
+
+  # Pack the assets
+  #_____________________________
+  if pack:
+    assetsDir.packAssetsFor(systems, name)  # rootDir/assets/*
+    cgame.packCodeFor(systems)              # cgameARCH.code.zip
+    sgame.packCodeFor(systems)              # sgameARCH.code.zip
+    ui.packCodeFor(systems)                 #    uiARCH.code.zip
 
 
 
@@ -230,18 +246,6 @@ proc build *(
 #___________________________________________________________________________________________________
 # @section Old Buildsystem: References
 ##[
-# SCons
-scPlatforms    = ['posix', 'win32', 'cygwin', 'darwin', 'aix', 'hpux', 'irix', 'os2', 'sunos']
-scArchs        = { 64:['x86_64','amd64'], 32:['x86','arm']}
-def mkTruArch(bits,dic):  # Creates and returns a list of (64 or 32) platform aliases contained within the values of `dic`
-  #explanation            [val.iterable (for sublist in list_of_lists:  for val in sublist: if     condition:                    )]
-  if   bits == 64: return [val           for key,lst in dic.items()     for val in lst      if not any(ch.isdigit() for ch in val)]  # Dictionary value = list of 64bit platforms
-  elif bits == 32: return [val           for key,lst in dic.items()     for val in lst      if     any(ch.isdigit() for ch in val)]  # Dictionary value = list of 32bit platforms
-  else: sys.exit('::ERR Unsupported bits input for the function mkTruArch')
-truPlatform    = {'win32':['w','win','w32','win32'],                   # Accepted win32 aliases in p=X, platform=X
-                  'posix':['l','lnx','linux','l32','lnx32','linux32']} # Accepted posix aliases
-truArch        = {'x86_64':mkTruArch(64,truPlatform), 'x86':mkTruArch(32,truPlatform)}        # Generated. Each value contains a list of valid platform aliases, with arch assigned as its dict key
-
 # Supported Lists
 validTargets = [  # make-like target selection
   # @todo Figure out what to do with these, and how (or if) they fit confy
@@ -251,13 +255,9 @@ validTargets = [  # make-like target selection
   'game',   'game-dbg',   'game-dist',
   'q3ui',   'nui'  # New UI (wip)  #TODO: merge to game when done
   ]
-# Aliases
-  # Q3 renames  (not using them, keeping only as reference for future support implementation)
-  # q3Platforms  = ['x86_64', 'x86', 'mingw32', 'mingw64','darwin', 'aarch64']
-  # remaps:        'arm64':'aarch64',  'mingw32'+'i386':'x86',   'cygwin':'mingw32',   'arm':'aarch64'
-  # q3Archs      = ['i86pc','x86','x86_64','x64']
-  # remaps:        'i86pc':'x86',   'x86_64'or'x64':'x86_64'
-# Other
-vmArchs = ['x86_64', 'x86', 'arm', 'aarch64'] # List of architectures compatible with vm compiling  #TEMP: Q3 names. fix this
+# Q3 os+cpu renames    (not using them, keeping only as reference for future support implementation)
+# q3Platforms.remaps:  'arm64':'aarch64', 'mingw32'+'i386':'x86',   'cygwin':'mingw32',   'arm':'aarch64'
+#     q3Archs.remaps:  'i86pc':'x86',      'x86_64'or'x64':'x86_64'
+#            vmArchs:  ['x86_64', 'x86', 'arm', 'aarch64'] # List of architectures compatible with vm compiling  #TEMP: Q3 names
 ]##
 
