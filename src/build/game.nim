@@ -144,8 +144,8 @@ proc buildFor *(
     if not dirExists(trgDir): md trgDir
     tmp.build()
     # Copy the mod's configuration files to the target folder
-    copyCfg trgDir       # Copy the configuration folder into the target dir
-    version.apply trgDir # Apply the given version into the files at target dir
+    copyCfg trgDir             # Copy the configuration folder into the target dir
+    version.apply trgDir, name # Apply the given (version,name) into the files at target dir
 #___________________
 # Automated Packing
 proc packCodeFor *(

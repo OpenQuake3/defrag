@@ -6,14 +6,17 @@ import nstd/paths
 import nstd/strings
 import confy/types
 import confy/tool/version as confy
+# @deps build
+import ./types
 
 
 #_______________________________________
 # @section Version Management
 #_____________________________
 proc apply *(
-    v   : Version;
-    dir : Path;
+    v    : Version;
+    dir  : Path;
+    name : Name;
   ) :void=
   ## @descr Applies {@arg v} version to the files at {@arg dir} that require it
   let description = dir/"description.txt"
@@ -21,6 +24,9 @@ proc apply *(
     ("[M]", $v.M),
     ("[m]", $v.m),
     ("[p]", $v.p),
+    ("[MOD_VERSION]",    $v        ),
+    ("[MOD_HUMAN_NAME]", name.human),
+    ("[SEP]",            " "       ),
     ) # << description.writeFile( ... )
 
 
