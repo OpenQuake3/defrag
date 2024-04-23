@@ -1,6 +1,28 @@
 #:___________________________________________________________________
 #  osdf  |  Copyright (C) Ivan Mar (sOkam!)  |  GNU GPLv2 or later  |
 #:___________________________________________________________________
+# @deps ndk
+import nstd/paths
+import nstd/strings
+import confy/types
+import confy/tool/version as confy
+
+
+#_______________________________________
+# @section Version Management
+#_____________________________
+proc apply *(
+    v   : Version;
+    dir : Path;
+  ) :void=
+  ## @descr Applies {@arg v} version to the files at {@arg dir} that require it
+  let description = dir/"description.txt"
+  description.writeFile description.readFile.multiReplace(
+    ("[M]", $v.M),
+    ("[m]", $v.m),
+    ("[p]", $v.p),
+    ) # << description.writeFile( ... )
+
 
 #___________________________________________________________________________________________________
 # @section Old Buildsystem: References

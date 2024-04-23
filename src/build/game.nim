@@ -10,6 +10,7 @@ import nstd/zip as z
 import confy
 # @deps build
 import ./types
+import ./version
 
 
 #_______________________________________
@@ -120,7 +121,12 @@ proc copyCfg *(
     elif it.kind == pcdir  : cpDir it.path, trgDir/it.path.lastPathPart
 #___________________
 # Cross-Compilation
-proc buildFor *(trg :confy.BuildTrg; systems :openArray[confy.System]) :void=
+proc buildFor *(
+    trg     : confy.BuildTrg;
+    systems : openArray[confy.System];
+    version : Version;
+    name    : Name;
+  ) :void=
   ## @descr Compiles the {@arg trg} for all the given {@arg systems}
   var tmp = trg
   for sys in systems:
@@ -131,19 +137,25 @@ proc buildFor *(trg :confy.BuildTrg; systems :openArray[confy.System]) :void=
     tmp.trg  =               # Real target file we are building
       if arch notin tmp.trg.string : Path tmp.trg.string.replace("x86_64","") & arch
       else                         : tmp.trg
-    tmp.sub = Path &"{sys.os}-{sys.cpu}"  # Subfolder of cfg.bindir where the resulting binaries will be output
+    tmp.sub = Path(&"{sys.os}-{sys.cpu}")/name.short # Subfolder of cfg.bindir where the resulting binaries will be output
     if sys.cpu == arm64: tmp.flags.cc = tmp.flags.cc.filterIt( "ARCH_STRING=" notin it )  # Fix ARCH_STRING bug when compiling for arm64
     # Build for the target
-    if not dirExists(cfg.binDir/tmp.sub): md cfg.binDir/tmp.sub
+    let trgDir = cfg.binDir/tmp.sub
+    if not dirExists(trgDir): md trgDir
     tmp.build()
     # Copy the mod's configuration files to the target folder
-    copyCfg cfg.binDir/tmp.sub
+    copyCfg trgDir       # Copy the configuration folder into the target dir
+    version.apply trgDir # Apply the given version into the files at target dir
 #___________________
 # Automated Packing
-proc packCodeFor *(trg :confy.BuildTrg; systems :openArray[confy.System]) :void=
+proc packCodeFor *(
+    trg     : confy.BuildTrg;
+    systems : openArray[confy.System];
+    name       : Name;
+  ) :void=
   ## @descr Packs the source code for {@arg trg} into the subfolders of all given {@arg systems}
   for sys in systems: # For every system we compile for
-    let sub     = &"{sys.os}-{sys.cpu}"                     # Name of the subfolder where the .pk3 will be output
+    let sub     = Path(&"{sys.os}-{sys.cpu}")/name.short    # Name of the subfolder where the .pk3 will be output
     let dir     = cfg.binDir/sub                            # Path of the folder where the .zip file will be output
     let files   = trg.src.getFileList( cfg.srcDir/"game" )  # Find the list of files from the BuildTrg object
     let trgFile = dir/trg.trg.addFileExt(".code.zip")       # Full Path of the final .zip file
@@ -172,31 +184,26 @@ proc packAssetsFor *(
     for dir in dirs:   # For every folder in assetsDir
       var files :seq[Path]
       for file in dir.walkDirRec: files.add file.Path      # Add every file in the assets subfolder to the list
-      let name = &"y.{name.short}-{dir.lastPathPart}.pk3"  # Name of the final .pk3 that the user will see
-      let sub  = Path &"{sys.os}-{sys.cpu}"                # Name of the subfolder where the .pk3 will be output
+      let pk3  = &"y.{name.short}-{dir.lastPathPart}.pk3"  # Name of the final .pk3 that the user will see
+      let sub  = Path(&"{sys.os}-{sys.cpu}")/name.short    # Name of the subfolder where the .pk3 will be output
       let trgDir = cfg.binDir/sub
       if not dirExists(trgDir): md trgDir
-      files.zip( trgDir/name )
+      files.zip( trgDir/pk3  )
 
 
 #_______________________________________
 # @section Entry Point: Game Buildsystem
 #_____________________________
 proc build *(
-    name       : Name;
-    cross      : bool = off;
-    pack       : bool = off;
-    assetsDir  : Path = assetsDir;
+    name      : Name;
+    systems   : openArray[confy.System];
+    pack      : bool = off;
+    assetsDir : Path = assetsDir;
+    version   : Version;
   ) :void=
-  # Find the systems we compile/pack for
-  let systems = if cross: @[
-    System(os: Linux,   cpu: x86_64),
-    System(os: Windows, cpu: x86_64),
-    System(os: Mac,     cpu: x86_64),
-    System(os: Mac,     cpu: arm64),
-    ] else: @[confy.getHost()]
-  #_____________________________
+
   # Define the Game Base BuildTarget
+  #_____________________________
   let game = SharedLibrary.new(
     src   = cfg.srcDir/"tst.c", # Dummy path. Just for init
     flags = confy.flags(C) & q3_noErr,
@@ -209,7 +216,7 @@ proc build *(
   cgame.src = src_cgame
   cgame.trg = ("cgame"&arch).Path
   #___________________
-  cgame.buildFor(systems)
+  cgame.buildFor(systems, version, name)
 
 
   # Build: Game Server
@@ -218,7 +225,7 @@ proc build *(
   sgame.src = src_sgame
   sgame.trg = ("qagame"&arch).Path
   #___________________
-  sgame.buildFor(systems)
+  sgame.buildFor(systems, version, name)
 
 
   # Build: Game UI
@@ -227,16 +234,16 @@ proc build *(
   ui.src = src_ui
   ui.trg = ("ui"&arch).Path
   #___________________
-  ui.buildFor(systems)
+  ui.buildFor(systems, version, name)
 
 
   # Pack the assets
   #_____________________________
   if pack:
     assetsDir.packAssetsFor(systems, name)  # rootDir/assets/*
-    cgame.packCodeFor(systems)              # cgameARCH.code.zip
-    sgame.packCodeFor(systems)              # sgameARCH.code.zip
-    ui.packCodeFor(systems)                 #    uiARCH.code.zip
+    cgame.packCodeFor(systems, name)        # cgameARCH.code.zip
+    sgame.packCodeFor(systems, name)        # sgameARCH.code.zip
+    ui.packCodeFor(systems, name)           #    uiARCH.code.zip
 
 
 

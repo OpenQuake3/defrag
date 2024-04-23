@@ -25,11 +25,12 @@ import ./system/engine/dir
 # @section Entry Point: Order to build
 #_____________________________
 proc build *(
-    name  : Name;
-    cross : bool = off;
-    pack  : bool = off;
+    name    : Name;
+    systems : openArray[confy.System];
+    pack    : bool;
+    version : Version;
   ) :void=
-  info "This will build id-Tech3 with name:  " & $name
+  info "This will build id-Tech3 with name:  " & $name & " version:" & $version
   # Clone the repo   or   Pull latest changes
   # Apply custom patches
   #   -> patches/NAME/code/dir/file.c.patch
