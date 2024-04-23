@@ -20,7 +20,7 @@ const buildEngine = on   ## Whether to build the engine or not
 const versGame    = version(0, 2,99)
 const versEngine  = version(0, 0, 0)  # @todo Should be managed by the engine repo/buildsystem, not from here
 # CLI Control
-let publish    = on or cli.getOpt("publish")          ## `./bin/build --publish` to publish the result to GitHub
+let publish    = cli.getOpt("publish")          ## `./bin/build --publish` to publish the result to GitHub
 let release    = cli.getOpt("r") or publish     ## `./bin/build -r` to run the automatic release generation process
 let distribute = cli.getOpt("d") or release     ## `./bin/build -d` to build the distributable version
 let pack       = cli.getOpt("p") or distribute  ## `./bin/build -p` to pack everything
