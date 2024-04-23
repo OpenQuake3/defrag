@@ -19,7 +19,7 @@ const buildEngine = on   ## Whether to build the engine or not
 # CLI Control
 let release    = cli.getOpt("r")                ## `./bin/build -r` to run the automatic GitHub release process
 let distribute = cli.getOpt("d") or release     ## `./bin/build -d` to build the distributable version
-let pack       = on or cli.getOpt("p") or distribute  ## `./bin/build -p` to pack everything
+let pack       = cli.getOpt("p") or distribute  ## `./bin/build -p` to pack everything
 
 
 #_______________________________________
