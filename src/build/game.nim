@@ -120,6 +120,13 @@ proc copyCfg *(
     if   it.kind == pcFile : cp    it.path, trgDir/it.path.lastPathPart
     elif it.kind == pcdir  : cpDir it.path, trgDir/it.path.lastPathPart
 #___________________
+# Compilation Cleanup
+const CleanupExts = [".lib", ".pdb"]
+proc cleanUp *(dir :Path) :void=
+  for file in dir.walkDir:
+    for ext in CleanupExts:
+      if file.path.string.endsWith(ext): rm file.path
+#___________________
 # Cross-Compilation
 proc buildFor *(
     trg     : confy.BuildTrg;
@@ -143,6 +150,8 @@ proc buildFor *(
     let trgDir = cfg.binDir/tmp.sub
     if not dirExists(trgDir): md trgDir
     tmp.build()
+    # Cleanup the noisy files when compiling for windows
+    trgDir.cleanUp()
     # Copy the mod's configuration files to the target folder
     copyCfg trgDir             # Copy the configuration folder into the target dir
     version.apply trgDir, name # Apply the given (version,name) into the files at target dir
