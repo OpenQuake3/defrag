@@ -27,7 +27,22 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #ifndef   BG_PUBLIC_H
 #define   BG_PUBLIC_H
 
-#define	GAME_VERSION		BASEGAME "-1"
+//::OSDF.chg
+//  Allow Buildsystem customization of the values
+//  Add GAME_NAME_* variables
+#if !defined(GAME_VERSION)
+#define GAME_VERSION BASEGAME "-1"
+#endif
+#if !defined(GAME_NAME_SHORT)
+#define GAME_NAME_SHORT PRODUCT_NAME
+#endif
+#if !defined(GAME_NAME_LONG)
+#define GAME_NAME_LONG PRODUCT_NAME
+#endif
+#if !defined(GAME_NAME_HUMAN)
+#define GAME_NAME_HUMAN GAMENAME_FOR_MASTER
+#endif
+//::OSDF.end
 
 #define	DEFAULT_GRAVITY		800
 #define	GIB_HEALTH			-40

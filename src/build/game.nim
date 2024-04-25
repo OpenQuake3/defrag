@@ -215,7 +215,13 @@ proc build *(
   #_____________________________
   let game = SharedLibrary.new(
     src   = cfg.srcDir/"tst.c", # Dummy path. Just for init
-    flags = confy.flags(C) & q3_noErr,
+    flags = confy.flags(C) & q3_noErr &
+      @[ # OSDF Compile-time Configuration flags
+      &"-DGAME_NAME_SHORT=\\\"\"{name.short}\\\"\"",
+      &"-DGAME_NAME_LONG=\\\"\"{name.long}\\\"\"",
+      &"-DGAME_NAME_HUMAN=\\\"\"{name.human}\\\"\"",
+      &"-DGAME_VERSION=\\\"\"{$version}\\\"\"",
+      ].toCC, # << flags ( ... )
     ) # << SharedLibrary.new( ... )
 
 

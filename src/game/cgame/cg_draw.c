@@ -1337,6 +1337,8 @@ CG_DrawLowerLeft
 =====================
 */
 #ifndef TEAMARENA
+//::OSDF.chg Added CG_DrawVersion
+static void CG_DrawVersion(float x, float y, float alpha, char const * const name, char const * const vers);
 static void CG_DrawLowerLeft( void ) {
 	float	y;
 
@@ -1348,8 +1350,10 @@ static void CG_DrawLowerLeft( void ) {
 
 
 	CG_DrawPickupItem( y );
+  CG_DrawVersion(1.33, 0.72, 1.0F, GAME_NAME_SHORT, GAME_VERSION);
 }
 #endif // TEAMARENA
+//::OSDF.end
 
 
 //===========================================================================================
@@ -2623,6 +2627,19 @@ static void CG_DrawPMTime(float x, float y, float alpha){
 }
 static void CG_DrawHoldboost(float x, float y, float alpha){
   CG_DrawSmallIntCentered(cg.snap->ps.stats[STAT_JUMP_HOLDBOOST], x, y, alpha);
+}
+static void CG_DrawVersion(float x, float y, float alpha, char const * const name, char const * const vers) {
+  x = x*SCREENW;
+  y = y*SCREENH;
+
+  char* s = va("%s %s", name, vers);
+  int w = CG_DrawStrlen(s) * SMALLCHAR_WIDTH;
+  CG_DrawSmallString(
+    /* x     */ x-w,
+    /* y     */ y,
+    /* s     */ s,
+    /* alphs */ alpha
+    );
 }
 //::::::::::::::
 //::OSDF end
