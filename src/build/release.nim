@@ -1,12 +1,15 @@
 #:___________________________________________________________________
 #  osdf  |  Copyright (C) Ivan Mar (sOkam!)  |  GNU GPLv2 or later  |
 #:___________________________________________________________________
+# @deps std
 from std/osproc import execCmdEx
+from std/sequtils import filterIt
 # @deps ndk
 import nstd/logger
-import nstd/shell
+import nstd/shell except git
 import nstd/strings
-import confy except sh
+import nstd/git
+import confy except sh, git
 # @deps buildsystem
 import ./types
 
@@ -17,6 +20,7 @@ import ./types
 let rlsDir   = cfg.binDir/"releases"
 let license  = "license.md"
 let readme   = "readme.md"
+let notes    = "patchnotes.md"
 #___________________
 let docsFilter = [
   cfg.docDir/"notes",
@@ -25,6 +29,8 @@ let docsFilter = [
   cfg.docDir/"build.md",
   cfg.docDir/"style.gpl.md"
   ] # << docsFilter = [ ... ]
+#___________________
+const FirstCommit {.strdefine.}= "0d4ad80e"  ## First commmit of this repository. Used as fallback when a version tag cannot be found
 
 
 #_______________________________________
@@ -87,11 +93,30 @@ proc github *(
     repo    : Repository;
     version : Version;
   ) :void=
+  # Find the data we need for error cheching
+  let tag          = $version
+  let previousVers = git.getPreviousTag( fallback= FirstCommit )
+  # Error check
   if osproc.execCmdEx( "gh --version" ).exitCode != 0:
-    err "Automated creation of a GitHub release build has been requested, but couldn't find the required GitHub's CLI application:  gh"
+    err "Requested automated creation of a GitHub release, but couldn't find GitHub's CLI application:  gh"
     return
-  #for sys in systems:
-  #  echo sys
-  #echo name
-  #echo repo
+  if tag == previousVers:
+    err &"Requested automated creation of a GitHub release, but the requested version is equal to the last tag on this repository:  {tag} .. {previousVers}"
+    return
+  # Find the rest of the data we need
+  let patchnotes = git.getChangesSince(previousVers)
+  let rev        = &"-r{version.getRevNum(rlsDir)-1}" # Get the `-rNUM` value of the latest local release
+  let versDir    = rlsDir/(tag&rev)
+  let notesFile  = versDir/notes
+  # Move the local files to their final release names
+  for file in versDir.walkDir:
+    if file.kind != pcFile: continue # Ignore non-files
+    let trg = Path file.path.string.split("-")[0..^2].join("-") & ".zip"  # Extract the `-rNUM` from the filename
+    mv file.path, trg
+  # Release Process
+  git "tag", tag                   # Create the tag for current commit
+  git "push", "origin", tag        # Push it to git
+  notesFile.writeFile(patchnotes)  # Write the patchnotes into the releases folder
+  gh "release create", tag,        # Create the Release and upload all of the `.zip` files generated inside `versDir`
+    &"-F {notesFile}", versDir/"*.zip", "--verify-tag"
 
