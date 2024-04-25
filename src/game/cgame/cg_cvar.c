@@ -81,6 +81,8 @@ void cvartable_update(cvarTable_t const* cvartable, size_t size) {
   }
 }
 
+static void cvar_help_prep(cvarKind_t kind, char const* defaultString);
+static void cvar_help_post(cvarKind_t kind);
 void cvar_help(char const* cvarName) {
   for (size_t i = 0; i < helpTableIdx; ++i) {
     for (size_t j = 0; j < helpTable[i].size; ++j) {

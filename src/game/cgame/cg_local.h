@@ -1771,8 +1771,6 @@ typedef struct {
 static size_t      helpTableIdx = 0;
 static helpTable_t helpTable[10];
 
-static void cvar_help_prep(cvarKind_t kind, char const* defaultString);
-static void cvar_help_post(cvarKind_t kind);
 void cvar_help(char const* cvarName);
 void cvartable_with_help(void);
 //::OSDF end
