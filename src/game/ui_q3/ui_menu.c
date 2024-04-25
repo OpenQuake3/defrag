@@ -213,7 +213,7 @@ static void Main_MenuDraw( void ) {
 	} else {
 		Menu_Draw( &s_main.menu );  // standard menu drawing
 	}
-	UI_DrawString( 320, 450, "Opensource Defrag | GPL2.0+", UI_CENTER|UI_SMALLFONT, color_gray50 );
+	UI_DrawString( 320, 450, GAME_NAME_HUMAN " | GPL2.0+", UI_CENTER|UI_SMALLFONT, color_gray50 );
 }
 
 
