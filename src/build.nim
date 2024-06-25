@@ -19,11 +19,12 @@ const buildGame   = on   ## Whether to build the gamecode or not
 const buildEngine = on   ## Whether to build the engine or not
 const versGame    = version(0, 2,99)
 const versEngine  = version(0, 0, 0)  # @todo Should be managed by the engine repo/buildsystem, not from here
+const debug       = off
 # CLI Control
-let publish    = cli.getOpt("--publish")        ## `./bin/build --publish` to publish the result to GitHub
-let release    = cli.getOpt("r") or publish     ## `./bin/build -r` to run the automatic release generation process
-let distribute = cli.getOpt("d") or release     ## `./bin/build -d` to build the distributable version
-let pack       = cli.getOpt("p") or distribute  ## `./bin/build -p` to pack everything
+let publish    = cli.getOpt("--publish") or debug  ## `./bin/build --publish` to publish the result to GitHub
+let release    = cli.getOpt("r") or publish        ## `./bin/build -r` to run the automatic release generation process
+let distribute = cli.getOpt("d") or release        ## `./bin/build -d` to build the distributable version
+let pack       = cli.getOpt("p") or distribute     ## `./bin/build -p` to pack everything
 
 
 #_______________________________________
@@ -35,7 +36,7 @@ const name = Name(
   short : "osdf",
   long  : "opensource-defrag",
   human : "Opensource Defrag"
-  ) # << name = (... )
+  ) # << Name(... )
 const repo = Repository(
   owner : "OpenQuake3",
   name  : "defrag"
