@@ -1,0 +1,24 @@
+name: Test.Tags
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+jobs:
+  build-game:
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4  # Clone the repo
+        with:
+          submodules: recursive
+      - uses: mlugg/setup-zig@v1   # Will compile with ZigCC
+        with:
+          version: latest
+
+      - name: build
+        run: echo "Hello Test.Tags Build!"
+      - name: test-zig
+        run: zig version && zig zen
+
