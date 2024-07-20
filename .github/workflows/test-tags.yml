@@ -10,12 +10,12 @@ jobs:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4         # Clone the repo
+      - uses: actions/checkout@v4  # Clone the repo
         with:
           submodules: recursive
-      - uses: goto-bus-stop/setup-zig@v2  # Will compile with ZigCC
+      - uses: mlugg/setup-zig@v1   # Will compile with ZigCC
         with:
-          version: 0.13.0
+          version: latest
 
       - name: build
         run: echo "Hello Test.Tags Build!"
