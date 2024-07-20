@@ -4,17 +4,19 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
-  my-job:
+  build-game:
     strategy:
       matrix:
         os: [ ubuntu-latest, windows-latest, macos-latest ]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4         # Clone the repo
         with:
           submodules: recursive
-      - name: hello-step
-        run: echo "Hello Test.Tags!"
+      - uses: goto-bus-stop/setup-zig@v2  # Will compile with ZigCC
+
       - name: build
         run: echo "Hello Test.Tags Build!"
+      - test-zig:
+        run: zig zen
 
