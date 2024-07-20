@@ -17,6 +17,6 @@ jobs:
 
       - name: build
         run: echo "Hello Test.Tags Build!"
-      - test-zig:
+      - name: test-zig
         run: zig zen
 
