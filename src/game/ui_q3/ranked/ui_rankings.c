@@ -24,7 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // ui_rankings.c
 //
 
-#include "ui_local.h"
+#include "../ui_local.h"
 
 
 #define RANKINGS_FRAME	"menu/art/cut_frame"
