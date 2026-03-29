@@ -1,7 +1,6 @@
 //:_________________________________________________________________
 //  osdf  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 //:_________________________________________________________________
-// const confy   = @import("./bin/.cache/confy/lib/confy/src/confy.zig");
 // @deps confy
 const confy   = @import("confy");
 const Name    = confy.Name;
@@ -32,26 +31,31 @@ pub fn main() !void {
   //______________________________________
   // @section Define Build Targets
   //____________________________
-  const game   = try Game.create(P);
-  const engine = try Engine.create(P);
-  _=game;
-  _=engine;
+  var game   = try Game.create(P);
+  var engine = try Engine.create(P);
 
   //______________________________________
   // @section Target System
   //____________________________
-  const systems = &.{confy.System.host()};
-  // const systems = confy.System.desktops(); // TODO: Cross-Compilation  (Missing arm64)
-  _=systems;
+  // const systems = &.{confy.System.host()};
+  const systems = confy.System.desktops();
 
   //______________________________________
   // @section Order to Build
   //____________________________
   P.report();
-  // try game.buildFor(systems);
-  // try engine.buildFor(systems);
+  try game.buildFor(systems);
+  try engine.buildFor(systems);
+}
 
-  var osdf = try confy.Program("hello.c", .{});
-  try osdf.build();
+
+//______________________________________
+// @section Zig Buildsystem: Error Message
+//____________________________
+pub fn build (b :*@import("std").Build) void {_=b; @import("std").debug.print(
+  \\[ERROR] `zig build` is not supported.
+  \\  Use `confy build` instead.
+  \\  https://codeberg.org/heysokam/confy/releases {s}
+  , .{"\n"});
 }
 
