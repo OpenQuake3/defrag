@@ -21,7 +21,7 @@ pub const P = package.info(.{
   .name    = Name{ .short= info.name, .human= info.description },
   .author  = Name{ .short= info.author },
   .license = info.license,
-  .git     = git.Info{ .owner= info.author, .repo= info.name },
+  .git     = git.Info{ .owner= info.author, .repo= info.name, .baseURL= "https://github.com" },
 });
 
 
