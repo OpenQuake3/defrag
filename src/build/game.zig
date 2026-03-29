@@ -230,7 +230,6 @@ pub fn buildFor (G :*Game, systems :[]const confy.System) !void { for (systems) 
   var trg = G.*;
   // Fix `arm64` vs `aarch64` naming nonsense
   const cpu = if (system.cpu == .aarch64) "arm64" else @tagName(system.cpu);
-  const arch_string = try @import("std").fmt.allocPrint(G.A.allocator(), "-DARCH_STRING=\"{s}\"", .{cpu});
   if (system.cpu == .aarch64) {
     trg.client.cfg.system.appendCpu = false;
     trg.server.cfg.system.appendCpu = false;
@@ -240,6 +239,7 @@ pub fn buildFor (G :*Game, systems :[]const confy.System) !void { for (systems) 
     trg.ui.trg     = try @import("std").fmt.allocPrint(G.A.allocator(), "{s}{s}", .{trg.ui.trg,     cpu});
   }
   // Add ARCH_STRING flag and compile
+  const arch_string = try @import("std").fmt.allocPrint(G.A.allocator(), "-DARCH_STRING=\"{s}\"", .{cpu});
   try trg.client.flags.add_one(arch_string);
   try trg.server.flags.add_one(arch_string);
   try trg.ui.flags.add_one(arch_string);
