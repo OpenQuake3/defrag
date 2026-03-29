@@ -234,9 +234,9 @@ pub fn buildFor (G :*Game, systems :[]const confy.System) !void { for (systems) 
     trg.client.cfg.system.appendCpu = false;
     trg.server.cfg.system.appendCpu = false;
     trg.ui.cfg.system.appendCpu     = false;
-    trg.client.trg = try @import("std").fmt.allocPrint(G.A.allocator(), "{s}{s}", .{trg.client.trg, cpu});
-    trg.server.trg = try @import("std").fmt.allocPrint(G.A.allocator(), "{s}{s}", .{trg.server.trg, cpu});
-    trg.ui.trg     = try @import("std").fmt.allocPrint(G.A.allocator(), "{s}{s}", .{trg.ui.trg,     cpu});
+    trg.client.trg = try trg_renamed(&trg.client, cpu);
+    trg.server.trg = try trg_renamed(&trg.server, cpu);
+    trg.ui.trg     = try trg_renamed(&trg.ui,     cpu);
   }
   // Add ARCH_STRING flag and compile
   const arch_string = try @import("std").fmt.allocPrint(G.A.allocator(), "-DARCH_STRING=\"{s}\"", .{cpu});
@@ -247,4 +247,8 @@ pub fn buildFor (G :*Game, systems :[]const confy.System) !void { for (systems) 
   _= try trg.server.cross(system);
   _= try trg.ui.cross(system);
 }}
+//__________________
+pub fn trg_renamed (trg :*confy.Target, cpu :confy.cstring) !confy.cstring {
+  return try @import("std").fmt.allocPrint(trg.A.allocator(), "{s}{s}", .{trg.trg, cpu});
+}
 
