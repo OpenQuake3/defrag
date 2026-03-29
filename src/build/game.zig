@@ -150,7 +150,7 @@ const code = struct {
     return result;
   }
   //__________________
-  // Game: Server
+  // Game: UI
   fn ui (A :std.mem.Allocator) !confy.CodeList {
     var result = confy.CodeList.create(A);
     try result.add_folder(Game.dir.ui.base, .{});
