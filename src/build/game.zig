@@ -64,6 +64,7 @@ const flags = struct {
       "-Wno-cast-align",
       "-Wno-double-promotion",
       "-Wno-float-conversion",
+      "-Wno-enum-float-conversion",
       "-Wno-sign-conversion",
       "-Wno-sign-compare",
       "-Wno-implicit-float-conversion",
@@ -99,6 +100,7 @@ const flags = struct {
       "-Wno-unused-macros",
       "-Wno-unused-function",
       "-Wno-used-but-marked-unused",
+      "-Wno-unused-but-set-variable",
       "-Wno-disabled-macro-expansion",
       "-Wno-keyword-macro",
       "-Wno-macro-redefined",
@@ -107,6 +109,7 @@ const flags = struct {
       "-Wno-empty-translation-unit",
       "-Wno-date-time",
     });
+    try result.add_one("-fno-sanitize=all");  // This is really bad, but the code does not run with sanitizer active
     return result;
   }
 };
@@ -122,8 +125,9 @@ const code = struct {
     Game.dir.common++"/q_shared.c",
     Game.dir.common++"/q_math.c",
   };
+  const misc = Game.dir.server++"/bg_misc.c";
   const both = &.{
-    Game.dir.server++"/bg_misc.c",
+    Game.code.misc,
     Game.dir.server++"/bg_pmove.c",
     Game.dir.server++"/bg_slidemove.c",
   };
@@ -158,8 +162,18 @@ const code = struct {
     try result.add_folder(Game.dir.ui.fwk, .{});
     try result.add_folder(Game.dir.ui.menu, .{});
     try result.add_many(Game.code.lib);
+    try result.add_one(Game.code.misc);
     return result;
   }
+  //__________________
+  fn ui_q3 (A :std.mem.Allocator) !confy.CodeList {
+    var result = confy.CodeList.create(A);
+    try result.add_folder(Game.dir.ui.q3, .{});
+    try result.add_many(Game.code.lib);
+    try result.add_one(Game.code.misc);
+    return result;
+  }
+
 };
 
 
@@ -203,7 +217,7 @@ const target = struct {
   //__________________
   // Game: UI
   fn ui (pkg :confy.package.Info, cfg :confy.Config, A :std.mem.Allocator) !confy.Target {
-    const src = try code.ui(A);
+    const src = try code.ui_q3(A);   // TODO: try code.ui(A);
     return Game.target.any("ui", pkg, cfg, src, A);
   }
 };
@@ -214,6 +228,7 @@ pub fn create (pkg :confy.package.Info) !Game {
   var cfg :confy.Config= .default();
   cfg.system.subfolder = true;
   cfg.system.appendCpu = true;
+  // cfg.verbose = true;
   return @This(){
     .client = try Game.target.client(pkg, cfg, A),
     .server = try Game.target.server(pkg, cfg, A),
