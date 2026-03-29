@@ -13,6 +13,13 @@ const Engine = @import("./src/build/engine.zig").Engine;
 
 
 //______________________________________
+// @section Configuration Options
+//____________________________
+pub const release    = true;
+pub const distribute = release and false;
+
+
+//______________________________________
 // @section Package Information
 //____________________________
 pub const P = package.info(.{
@@ -37,8 +44,9 @@ pub fn main() !void {
   //______________________________________
   // @section Target System
   //____________________________
-  // const systems = &.{confy.System.host()};
-  const systems = confy.System.desktops();
+  const systems =
+    if (distribute) confy.System.desktops()
+    else            &.{confy.System.host()};
 
   //______________________________________
   // @section Order to Build

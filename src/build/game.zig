@@ -170,49 +170,42 @@ const code = struct {
 const Part = enum { client, server, ui };
 //__________________
 const target = struct {
-  // Game: Client
-  fn client (pkg :confy.package.Info, cfg :confy.Config, A :std.mem.Allocator) !confy.Target {_=pkg;
-    // try result.client.set(try flags.get(.client, builder));
-    const src  = try code.client(A);
+  //__________________
+  // Game: Any
+  fn any (
+      name : confy.cstring,
+      pkg  : confy.package.Info,
+      cfg  : confy.Config,
+      src  : confy.CodeList,
+      A    : std.mem.Allocator,
+    ) !confy.Target {_=pkg;
     const flgs = try Game.flags.all(A); defer flgs.destroy();
     return confy.target(.dynamic, .{
-      .trg          = "cgame",
+      .trg          = name,
       .src          = src.files.data(),
       .src_absolute = true,
       .flags        = flgs.data(),
       .cfg          = cfg,
       // .version = pkg.version,  TODO: Is this needed??
     });
+  }
+  //__________________
+  // Game: Client
+  fn client (pkg :confy.package.Info, cfg :confy.Config, A :std.mem.Allocator) !confy.Target {
+    const src = try code.client(A);
+    return Game.target.any("cgame", pkg, cfg, src, A);
   }
   //__________________
   // Game: Server
-  fn server (pkg :confy.package.Info, cfg :confy.Config, A :std.mem.Allocator) !confy.Target {_=pkg;
-    // try result.server.set(try flags.get(.server, builder));
+  fn server (pkg :confy.package.Info, cfg :confy.Config, A :std.mem.Allocator) !confy.Target {
     const src = try code.server(A);
-    const flgs = try Game.flags.all(A); defer flgs.destroy();
-    return confy.target(.dynamic, .{
-      .trg          = "qagame",
-      .src          = src.files.data(),
-      .src_absolute = true,
-      .flags        = flgs.data(),
-      .cfg          = cfg,
-      // .version = pkg.version,  TODO: Is this needed??
-    });
+    return Game.target.any("qagame", pkg, cfg, src, A);
   }
   //__________________
   // Game: UI
-  fn ui (pkg :confy.package.Info, cfg :confy.Config, A :std.mem.Allocator) !confy.Target {_=pkg;
-    // try result.ui.set(try flags.get(.ui, builder));
-    const src  = try code.ui(A);
-    const flgs = try Game.flags.all(A); defer flgs.destroy();
-    return confy.target(.dynamic, .{
-      .trg          = "ui",
-      .src          = src.files.data(),
-      .src_absolute = true,
-      .flags        = flgs.data(),
-      .cfg          = cfg,
-      // .version = pkg.version,  TODO: Is this needed??
-    });
+  fn ui (pkg :confy.package.Info, cfg :confy.Config, A :std.mem.Allocator) !confy.Target {
+    const src = try code.ui(A);
+    return Game.target.any("ui", pkg, cfg, src, A);
   }
 };
 //__________________
