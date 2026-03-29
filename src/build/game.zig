@@ -52,7 +52,6 @@ pub const dir = struct {
 const flags = struct {
   fn all (A :std.mem.Allocator) !confy.FlagList {
     var result = confy.FlagList.create_empty(A);
-    try result.add_one("-DARCH_STRING=\"x86_64\"");  // TODO: Support the aarm64 case
     try result.add_many(confy.flags.default(.c)); // confy is strict by default (`-Weverything -Werror`)
     try result.add_many(&.{
       // Explicitly disable the warnings that the codebase does not respect.
@@ -227,9 +226,25 @@ pub fn create (pkg :confy.package.Info) !Game {
 //______________________________________
 // @section Game Builder: Entry Point
 //____________________________
-pub fn buildFor (G :*Game, systems :[]const confy.System) !void {
-  _= try G.client.buildFor(systems);
-  _= try G.server.buildFor(systems);
-  _= try G.ui.buildFor(systems);
-}
+pub fn buildFor (G :*Game, systems :[]const confy.System) !void { for (systems) |system| {
+  var trg = G.*;
+  // Fix `arm64` vs `aarch64` naming nonsense
+  const cpu = if (system.cpu == .aarch64) "arm64" else @tagName(system.cpu);
+  const arch_string = try @import("std").fmt.allocPrint(G.A.allocator(), "-DARCH_STRING=\"{s}\"", .{cpu});
+  if (system.cpu == .aarch64) {
+    trg.client.cfg.system.appendCpu = false;
+    trg.server.cfg.system.appendCpu = false;
+    trg.ui.cfg.system.appendCpu     = false;
+    trg.client.trg = try @import("std").fmt.allocPrint(G.A.allocator(), "{s}{s}", .{trg.client.trg, cpu});
+    trg.server.trg = try @import("std").fmt.allocPrint(G.A.allocator(), "{s}{s}", .{trg.server.trg, cpu});
+    trg.ui.trg     = try @import("std").fmt.allocPrint(G.A.allocator(), "{s}{s}", .{trg.ui.trg,     cpu});
+  }
+  // Add ARCH_STRING flag and compile
+  try trg.client.flags.add_one(arch_string);
+  try trg.server.flags.add_one(arch_string);
+  try trg.ui.flags.add_one(arch_string);
+  _= try trg.client.cross(system);
+  _= try trg.server.cross(system);
+  _= try trg.ui.cross(system);
+}}
 
