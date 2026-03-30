@@ -8,9 +8,11 @@ const package = confy.package;
 const git     = confy.git;
 // @deps builder
 const info   = @import("./info.zig");
+const cfg    = @import("./src/build/cfg.zig").cfg;
 const Game   = @import("./src/build/game.zig").Game;
 const Engine = @import("./src/build/engine.zig").Engine;
 const Assets = @import("./src/build/assets.zig").Assets;
+const Config = @import("./src/build/assets.zig").Config;
 
 
 //______________________________________
@@ -42,6 +44,7 @@ pub fn main() !void {
   var game   = try Game.create(P);
   var engine = try Engine.create(P);
   var assets = try Assets.create(P);
+  var config = try Config.create(P);
 
   //______________________________________
   // @section Target System
@@ -57,6 +60,10 @@ pub fn main() !void {
   try game.buildFor(systems);
   try engine.buildFor(systems);
   try assets.packAll();
+  try config.packAll();
+
+  //__________________
+  confy.echo(cfg.modname.short++": Done building.");
 }
 
 

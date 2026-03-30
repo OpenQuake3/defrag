@@ -3,9 +3,14 @@
 //:_________________________________________________________________
 pub const cfg = @This();
 
-pub const modname = "osdf";
+pub const modname = struct {
+  pub const short = "osdf";
+  pub const long  = "opensource-defrag";
+  pub const human = "OpenSource Defrag";
+};
 
 pub const dir = struct {
   pub const assets = "assets";
+  pub const config = "./src/cfg";
 };
 
