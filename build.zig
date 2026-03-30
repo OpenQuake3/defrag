@@ -10,6 +10,7 @@ const git     = confy.git;
 const info   = @import("./info.zig");
 const Game   = @import("./src/build/game.zig").Game;
 const Engine = @import("./src/build/engine.zig").Engine;
+const Assets = @import("./src/build/assets.zig").Assets;
 
 
 //______________________________________
@@ -40,6 +41,7 @@ pub fn main() !void {
   //____________________________
   var game   = try Game.create(P);
   var engine = try Engine.create(P);
+  var assets = try Assets.create(P);
 
   //______________________________________
   // @section Target System
@@ -54,6 +56,7 @@ pub fn main() !void {
   P.report();
   try game.buildFor(systems);
   try engine.buildFor(systems);
+  try assets.packAll();
 }
 
 
