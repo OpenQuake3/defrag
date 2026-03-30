@@ -101,6 +101,7 @@ const flags = struct {
       "-Wno-unused-function",
       "-Wno-used-but-marked-unused",
       "-Wno-unused-but-set-variable",
+      "-Wno-unused-command-line-argument",
       "-Wno-disabled-macro-expansion",
       "-Wno-keyword-macro",
       "-Wno-macro-redefined",
