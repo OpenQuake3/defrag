@@ -56,14 +56,14 @@ pub const Assets = struct {
         modname : confy.cstring = cfg.modname.short,
     }) !void {
     // Change dir to ./root/src for the zip command
-    const cwd = try confy.path.join(A, &.{arg.root, src}); defer A.free(cwd);
+    const cwd = try confy.path.join(A, &.{arg.root, src});
     // Compress all into y.MODNAME.src.pk3
-    var filename = confy.string.create_empty(A); defer filename.destroy();
+    var filename = confy.string.create_empty(A);
     try filename.write("y.{s}.{s}.pk3", .{arg.modname, src});
     try confy.shell.zip(cwd, filename.data(), A);
     // Write resulting zip into trg
-    const zip = try confy.path.join(A, &.{arg.root, filename.data()}); defer A.free(zip);
-    const out = try confy.path.join(A, &.{trg,      filename.data()}); defer A.free(out);
+    const zip = try confy.path.join(A, &.{arg.root, filename.data()});
+    const out = try confy.path.join(A, &.{trg,      filename.data()});
     try confy.dir.create(trg, .{});
     try confy.file.move(zip, out, .{});
   } //:: build.Assets.pack
@@ -75,6 +75,28 @@ pub const Assets = struct {
       try Assets.pack(asset, "./bin/"++cfg.dir.assets, res.A.allocator(), .{});
     }
   } //:: build.Assets.packAll
+  //__________________
+  pub fn packFor (
+      res     : *@This(),
+      systems : []const confy.System,
+    ) !void {
+    const root    = "./bin/"++cfg.dir.assets;
+    const modname = cfg.modname.short;
+    const A       = res.A.allocator();
+    try confy.dir.create(root, .{});
+    try res.packAll();
+    for (res.list.data()) |asset| {
+      var filename = confy.string.create_empty(A);
+      try filename.write("y.{s}.{s}.pk3", .{modname, asset});
+      for (systems) |system| {
+        const sub = try system.zig_triple(A);
+        const dir = try confy.path.join(A, &.{"./bin", sub});
+        const src = try confy.path.join(A, &.{root, filename.data()});
+        const trg = try confy.path.join(A, &.{dir, filename.data()});
+        try confy.file.copy(src, trg, .{});
+      }
+    }
+  } //:: build.Assets.packFor
 }; //:: build.Assets
 
 
@@ -116,28 +138,43 @@ pub const Config = struct {
     // Copy all `.cfg` individual files
     for (C.list.data()) |file| {
       if (std.mem.eql(u8, file, "phy")) continue;
-      const src = try confy.path.join(C.A.allocator(), &.{cfg.dir.config, file}); defer C.A.allocator().free(src);
-      const trg = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, file}); defer C.A.allocator().free(trg);
+      const src = try confy.path.join(C.A.allocator(), &.{cfg.dir.config, file});
+      const trg = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, file});
       try confy.file.copy(src, trg, .{});
     }
     //__________________
     // Explicitly copy the ./src/cfg/phy folder
-    const phy_src = try confy.path.join(C.A.allocator(), &.{cfg.dir.config, "phy"}); defer C.A.allocator().free(phy_src);
-    const phy_trg = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, "phy"}); defer C.A.allocator().free(phy_trg);
+    const phy_src = try confy.path.join(C.A.allocator(), &.{cfg.dir.config, "phy"});
+    const phy_trg = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, "phy"});
     // TODO: Should be:   try confy.dir.copy(phy_src, phy_trg, .{});
-    var phy_cmd = confy.Command.create(C.A.allocator()); defer phy_cmd.destroy();
+    var phy_cmd = confy.Command.create(C.A.allocator());
     try phy_cmd.add_many(&.{"cp", "-r", phy_src, phy_trg});
     try phy_cmd.run();
     //__________________
     // Modify the `description.txt` file with the correct values
-    const description_trg = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, "description.txt"}); defer C.A.allocator().free(description_trg);
-    var description_code = confy.string.fromOwned(@constCast(try confy.file.read(description_trg, C.A.allocator(), .{})),  C.A.allocator()); defer description_code.destroy();
-    var version = confy.string.create_empty(C.A.allocator()); defer version.destroy();
+    const description_trg = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, "description.txt"});
+    var description_code = confy.string.fromOwned(@constCast(try confy.file.read(description_trg, C.A.allocator(), .{})),  C.A.allocator());
+    var version = confy.string.create_empty(C.A.allocator());
     try version.write("{f}", .{C.info.version});
     try description_code.replace("[MOD_HUMAN_NAME]", cfg.modname.human);
     try description_code.replace("[SEP]", " ");
     try description_code.replace("[MOD_VERSION]", version.data());
     try confy.file.write(description_trg, description_code.data(), .{});
   } //:: build.Config.packAll
+  //__________________
+  pub fn packFor (
+      C       : *@This(),
+      systems : []const confy.System,
+    ) !void {
+    const root = "./bin/"++cfg.dir.assets;
+    const A    = C.A.allocator();
+    try confy.dir.create(root, .{});
+    try C.packAll();
+    for (systems) |system| {
+      const system_sub = try system.zig_triple(A);
+      const trg = try confy.path.join(A, &.{"./bin", system_sub});
+      try confy.dir.copy_contents(root, trg, A, .{});
+    }
+  } //:: build.Config.packFor
 }; //:: build.Config
 
