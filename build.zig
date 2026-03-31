@@ -39,6 +39,11 @@ pub const P = package.info(.{
 //____________________________
 pub fn main() !void {
   //______________________________________
+  // @section Clean before running
+  //____________________________
+  try Assets.clean();
+
+  //______________________________________
   // @section Define Build Targets
   //____________________________
   var game   = try Game.create(P);

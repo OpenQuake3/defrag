@@ -18,7 +18,7 @@ pub fn create (pkg :confy.package.Info) !Engine {_=pkg; return .{}; }
 //______________________________________
 // @section Engine Builder: Entry Point
 //____________________________
-pub fn buildFor (E :*Engine, systems :[]const confy.System) !void {_=E;_=systems;
+pub fn buildFor (E :*Engine, systems :[]const confy.System, release :bool) !void {_=E;_=systems;_=release;
   confy.echo("TODO: Engine Builder");
   // _= try E.client.buildFor(systems);
   // _= try E.server.buildFor(systems);

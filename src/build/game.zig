@@ -193,7 +193,7 @@ const target = struct {
       src  : confy.CodeList,
       A    : std.mem.Allocator,
     ) !confy.Target {_=pkg;
-    const flgs = try Game.flags.all(A); defer flgs.destroy();
+    const flgs = try Game.flags.all(A);
     return confy.target(.dynamic, .{
       .trg          = name,
       .src          = src.files.data(),
@@ -242,7 +242,8 @@ pub fn create (pkg :confy.package.Info) !Game {
 //______________________________________
 // @section Game Builder: Entry Point
 //____________________________
-pub fn buildFor (G :*Game, systems :[]const confy.System) !void { for (systems) |system| {
+pub fn buildFor (G :*Game, systems :[]const confy.System, release :bool) !void { for (systems) |system| {
+  _=release;
   var trg = G.*;
   // Fix `arm64` vs `aarch64` naming nonsense
   const cpu = if (system.cpu == .aarch64) "arm64" else @tagName(system.cpu);
@@ -262,6 +263,9 @@ pub fn buildFor (G :*Game, systems :[]const confy.System) !void { for (systems) 
   _= try trg.client.cross(system);
   _= try trg.server.cross(system);
   _= try trg.ui.cross(system);
+  // Cleanup the windows output noise
+  if (system.os == .windows) try confy.dir.remove_extensions(
+    "./bin/x86_64-windows-gnu/", &.{".pdb", ".lib"}, G.A.allocator(), .{});
 }}
 //__________________
 pub fn trg_renamed (trg :*confy.Target, cpu :confy.cstring) !confy.cstring {

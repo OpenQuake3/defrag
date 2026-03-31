@@ -7,13 +7,18 @@ const std = @import("std");
 const confy = @import("confy");
 const cfg = @import("./cfg.zig");
 
-
 pub const Assets = struct {
   //______________________________________
   // @section Object Fields
   //____________________________
   A     :std.heap.ArenaAllocator,
   list  :confy.seq(confy.cstring),
+
+
+  //______________________________________
+  // @section Configuration
+  //____________________________
+  pub const dir_out = "./bin/"++cfg.dir.assets;
 
 
   //______________________________________
@@ -30,6 +35,14 @@ pub const Assets = struct {
     return result;
   } //:: build.Assets.create
 
+
+  //______________________________________
+  // @section Cleanup
+  //____________________________
+  pub fn clean () !void {
+    if (!confy.dir.exists(Assets.dir_out, .{})) return;
+    try confy.dir.remove(Assets.dir_out, .{});
+  }
 
   //______________________________________
   // @section Assets Manager: Packing
