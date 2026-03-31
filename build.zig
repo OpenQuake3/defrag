@@ -7,19 +7,21 @@ const Name    = confy.Name;
 const package = confy.package;
 const git     = confy.git;
 // @deps builder
-const info   = @import("./info.zig");
-const cfg    = @import("./src/build/cfg.zig").cfg;
-const Game   = @import("./src/build/game.zig").Game;
-const Engine = @import("./src/build/engine.zig").Engine;
-const Assets = @import("./src/build/assets.zig").Assets;
-const Config = @import("./src/build/assets.zig").Config;
+const info    = @import("./info.zig");
+const cfg     = @import("./src/build/cfg.zig").cfg;
+const Game    = @import("./src/build/game.zig").Game;
+const Engine  = @import("./src/build/engine.zig").Engine;
+const Assets  = @import("./src/build/assets.zig").Assets;
+const Config  = @import("./src/build/assets.zig").Config;
+const Release = @import("./src/build/release.zig").Release;
 
 
 //______________________________________
 // @section Configuration Options
 //____________________________
-pub const release    = true;
-pub const distribute = release and false;
+pub const release    = true;                  // Whether we are building a release or debug version
+pub const distribute = release and true;     // Prepare the output for distribution (manual or automated) when true
+pub const publish    = distribute and true;  // Publish to the relevant platforms when true
 
 
 //______________________________________
@@ -27,7 +29,7 @@ pub const distribute = release and false;
 //____________________________
 pub const P = package.info(.{
   .version = info.version,
-  .name    = Name{ .short= info.name, .human= info.description },
+  .name    = Name{ .short= cfg.modname.short, .long= cfg.modname.long, .human= cfg.modname.human },
   .author  = Name{ .short= info.author },
   .license = info.license,
   .git     = git.Info{ .owner= info.author, .repo= info.name, .baseURL= "https://github.com" },
@@ -50,6 +52,7 @@ pub fn main() !void {
   var engine = try Engine.create(P);
   var assets = try Assets.create(P);
   var config = try Config.create(P);
+  var result = try Release.create(P);
 
   //______________________________________
   // @section Target System
@@ -62,10 +65,12 @@ pub fn main() !void {
   // @section Order to Build
   //____________________________
   P.report();
-  try game.buildFor(systems);
-  try engine.buildFor(systems);
-  try assets.packAll();
-  try config.packAll();
+  try game.buildFor(systems, release);
+  try engine.buildFor(systems, release);
+  try assets.packFor(systems);
+  try config.packFor(systems);
+  try result.packFor(systems, release);
+  try result.publish(publish);
 
   //__________________
   confy.echo(cfg.modname.short++": Done building.");
