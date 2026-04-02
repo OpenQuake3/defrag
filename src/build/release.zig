@@ -6,6 +6,7 @@ pub const Release = @This();
 const std = @import("std");
 // @deps buildsystem
 const confy = @import("confy");
+const cfg   = @import("./cfg.zig");
 
 
 //______________________________________
@@ -74,6 +75,7 @@ pub fn packFor (
     const src_zip = try confy.path.join(A, &.{"./bin", src_name.data()});
     //__________________
     // Run the process
+    confy.prnt(cfg.modname.short++": Packing release files for `{s}` ...\n  target: {s}", .{sys_name, trg_zip});
     try R.files.add_one(trg_zip);
     try confy.shell.zip(src_dir, src_name.data(), A);
     try confy.dir.create(trg_dir, .{});
