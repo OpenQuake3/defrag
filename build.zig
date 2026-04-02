@@ -32,7 +32,7 @@ pub const P = package.info(.{
   .name    = Name{ .short= cfg.modname.short, .long= cfg.modname.long, .human= cfg.modname.human },
   .author  = Name{ .short= info.author },
   .license = info.license,
-  .git     = git.Info{ .owner= info.author, .repo= info.name, .baseURL= "https://github.com" },
+  .git     = git.Info{ .owner= info.author, .repo= info.name, .host= "https://github.com" },
 });
 
 
