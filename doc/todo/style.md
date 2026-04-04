@@ -37,13 +37,13 @@ In id-Tech3 engine, changing one thing usually requires modifying 3-4 different 
 And the engine is very difficult to navigate, so changes can get lost really easily.  
 As such, you should ALWAYS keep track of what files you have modified, and why.  
 
-You might think "I know how this works, I don't need this"... but you will allways regret that.  
-Or, whats worse... you will make the life of whoever comes behind you worse than it needs to be.  
-That person won't just be dealing just with your code. They will be dealing with your code AND the engine's code.  
+You might think "I know how this works, I don't need this"... but, on this engine, you will allways regret that. Always.  
+Or, worse... you will make the life of whoever comes behind you worse.  
+That person won't be dealing only with your code. They will be dealing with your code AND the engine's code.  
 And yours might be simple, but the engine isn't. At all.  
 
 ## Document. ALWAYS. And Excessively.
-Like the previous implies, this engine can be an absolute B to work with sometimes. Here is an example.  
+Like the previous point implies, this engine can be an absolute B to work with. Here is an example.  
 Assuming that you wrote this code, it would take you literally two seconds to turn this:  
 ```c
 // Code from:   quake3e/renderercommon/tr_font.c
