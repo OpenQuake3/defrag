@@ -92,8 +92,22 @@ pub fn publish (
     run     : bool,
   ) !void {
   if (!run) return;
+  const A     = R.A.allocator();
+  const token = try confy.file.read("./bin/secrets/github.token", A, .{});
+  // Create the tag
+  var version = confy.string.create_empty(A);
+  try version.write("v{f}", .{R.info.version});
+  // Create the release
+  const release = try confy.git.GitHub.Release.create(R.info.git.owner, R.info.git.repo, token, A, .{
+    .name       = version.data(),
+    .tag_name   = version.data(),
+  });
+  confy.prnt(cfg.modname.short++": Uploading {s} release files:\n  target: `{s}`", .{release.data.name, release.data.upload_url});
   for (R.files.data()) |trg| {
-    confy.echo(trg);
+    confy.prnt("  Uploading `{s}` ...", .{trg});
+    const name = confy.path.basename(trg);
+    const data = try confy.file.read(trg, A, .{.maxFileSize= 100*1024*1024});
+    try release.data.upload(name, data, token, A);
   }
 }
 

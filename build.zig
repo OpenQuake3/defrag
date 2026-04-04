@@ -20,8 +20,8 @@ const Release = @import("./src/build/release.zig").Release;
 // @section Configuration Options
 //____________________________
 pub const release    = true;                  // Whether we are building a release or debug version
-pub const distribute = release and true;     // Prepare the output for distribution (manual or automated) when true
-pub const publish    = distribute and true;  // Publish to the relevant platforms when true
+pub const distribute = release and false;     // Prepare the output for distribution (manual or automated) when true
+pub const publish    = distribute and false;  // Publish to the relevant platforms when true
 
 
 //______________________________________
