@@ -53,9 +53,11 @@ const flags = struct {
   fn all (A :std.mem.Allocator) !confy.FlagList {
     var result = confy.FlagList.create_empty(A);
     try result.add_many(confy.flags.default(.c)); // confy is strict by default (`-Weverything -Werror`)
+    try result.add_one("-std=c99");               // confy is c23 by default
     try result.add_many(&.{
       // Explicitly disable the warnings that the codebase does not respect.
       // Ideally this list should be completely empty, but that's a lot of work fixing old code.
+      "-Wno-strict-prototypes",
       "-Wno-shadow",
       "-Wno-bad-function-cast",
       "-Wno-undef",
@@ -192,15 +194,19 @@ const target = struct {
       cfg  : confy.Config,
       src  : confy.CodeList,
       A    : std.mem.Allocator,
-    ) !confy.Target {_=pkg;
-    const flgs = try Game.flags.all(A);
+    ) !confy.Target {
+    var flgs = try Game.flags.all(A);
+    try flgs.add_one(try std.fmt.allocPrint(A, "-DGAME_NAME_SHORT=\"{s}\"", .{pkg.name.short}));
+    try flgs.add_one(try std.fmt.allocPrint(A, "-DGAME_NAME_LONG=\"{s}\"",  .{pkg.name.long  orelse "Undefined_LongName"}));
+    try flgs.add_one(try std.fmt.allocPrint(A, "-DGAME_NAME_HUMAN=\"{s}\"", .{pkg.name.human orelse "Undefined_HumanName"}));
+    try flgs.add_one(try std.fmt.allocPrint(A, "-DGAME_VERSION=\"{f}\"",    .{pkg.version}));
     return confy.target(.dynamic, .{
       .trg          = name,
       .src          = src.files.data(),
       .src_absolute = true,
       .flags        = flgs.data(),
       .cfg          = cfg,
-      // .version = pkg.version,  TODO: Is this needed??
+      // .version      = pkg.version,  // TODO: Is this needed??
     });
   }
   //__________________
