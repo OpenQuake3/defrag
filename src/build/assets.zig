@@ -58,8 +58,7 @@ pub const Assets = struct {
     // Change dir to ./root/src for the zip command
     const cwd = try confy.path.join(A, &.{arg.root, src});
     // Compress all into y.MODNAME.src.pk3
-    var filename = confy.string.create_empty(A);
-    try filename.write("y.{s}.{s}.pk3", .{arg.modname, src});
+    const filename = try confy.string.create_format("y.{s}.{s}.pk3", .{arg.modname, src}, A);
     try confy.shell.zip(cwd, filename.data(), A);
     // Write resulting zip into trg
     const zip = try confy.path.join(A, &.{arg.root, filename.data()});
