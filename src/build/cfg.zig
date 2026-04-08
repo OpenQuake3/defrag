@@ -3,11 +3,7 @@
 //:_________________________________________________________________
 pub const cfg = @This();
 
-pub const modname = struct {
-  pub const short = "osdf";
-  pub const long  = "opensource-defrag";
-  pub const human = "OpenSource Defrag";
-};
+pub const modname = @import("./game/cfg.zig").name;
 
 pub const dir = struct {
   pub const assets = "assets";
