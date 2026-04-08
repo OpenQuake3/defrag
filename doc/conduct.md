@@ -39,7 +39,7 @@ Examples of unacceptable behavior by participants include:
 - Publishing others’ private information, such as a physical or electronic address, without explicit permission.  
 - Discussing this Code of Conduct or publicly accusing someone of violating it.  
 - Making someone else feel like an outsider or implying a lack of technical abilities.  
-- Destructive behavior. Anything that harms Zig or another open-source project.  
+- Destructive behavior. Anything that harms this project or any other open-source project.  
 
 
 ### Enforcement
