@@ -66,7 +66,7 @@ pub fn main() !void {
   //____________________________
   P.report();
   try game.buildFor(systems, release);
-  try engine.buildFor(systems, release);
+  _=&engine; // try engine.buildFor(systems, release);
   try assets.packFor(systems);
   try config.packFor(systems);
   try result.packFor(systems, release);
