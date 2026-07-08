@@ -1,81 +1,95 @@
 //:_________________________________________________________________
 //  osdf  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 //:_________________________________________________________________
-pub const src  = @This();
 pub const code = @This();
-const _This = @This();
-// @deps std
-const std = @import("std");
+pub const src  = @This();
+const This = @This();
 // @deps buildsystem
 const confy = @import("confy");
 const Game  = struct {
   const dir  = @import("./cfg.zig").dir;
-  const code = _This;
+  const code = This;
 };
 
 
 //______________________________________
-// @section Game Code: Common to all Libraries
+// @section Directories
 //____________________________
-const lib = &.{
-  Game.dir.common++"/q_shared.c",
-  Game.dir.common++"/q_math.c",
+const dirs = struct {
+  const client = &[_]confy.Glob{
+    .{.dir= Game.dir.client },
+    .{.dir= Game.dir.phy    },
+    .{.dir= Game.dir.hud    },
+  };
+  //__________________
+  const server = &[_]confy.Glob{
+    .{.dir= Game.dir.server },
+    .{.dir= Game.dir.phy    },
+  };
+  //__________________
+  const ui = &[_]confy.Glob{
+    .{.dir= Game.dir.ui.base  },
+    .{.dir= Game.dir.ui.core  },
+    .{.dir= Game.dir.ui.color },
+    .{.dir= Game.dir.ui.fwk   },
+    .{.dir= Game.dir.ui.menu  },
+  };
+  //__________________
+  const ui_q3 = &[_]confy.Glob{
+    .{.dir= Game.dir.ui.q3 },
+  };
 };
-const misc = Game.dir.server++"/bg_misc.c";
-const both = &.{
-  Game.code.misc,
-  Game.dir.server++"/bg_pmove.c",
-  Game.dir.server++"/bg_slidemove.c",
+
+
+//______________________________________
+// @section Files
+//____________________________
+const files = struct {
+  const lib = &[_]confy.cstring{
+    Game.dir.common++"/q_shared.c",
+    Game.dir.common++"/q_math.c",
+  };
+  //__________________
+  const both = &[_]confy.cstring{
+    Game.dir.server++"/bg_misc.c",
+    Game.dir.server++"/bg_pmove.c",
+    Game.dir.server++"/bg_slidemove.c",
+  };
+  //__________________
+  const misc = &[_]confy.cstring{
+    Game.dir.server++"/bg_misc.c",
+  };
 };
 
 
 //______________________________________
-// @section Game Code: Client
+// @section Game: Client
 //____________________________
-pub fn client (A :std.mem.Allocator) !confy.CodeList {
-  var result = confy.CodeList.create(A);
-  try result.add_folder(Game.dir.client, .{});
-  try result.add_folder(Game.dir.phy, .{});
-  try result.add_folder(Game.dir.hud, .{});
-  try result.add_many(Game.code.lib);
-  try result.add_many(Game.code.both);
-  return result;
-}
+pub const client = struct {
+  pub const dirs  :confy.Glob.List    = Game.code.dirs.client;
+  pub const files :confy.cstring_List = Game.code.files.lib ++ Game.code.files.both;
+};
 
 
 //______________________________________
-// @section Game Code: Server
+// @section Game: Server
 //____________________________
-pub fn server (A :std.mem.Allocator) !confy.CodeList {
-  var result = confy.CodeList.create(A);
-  try result.add_folder(Game.dir.server, .{});
-  try result.add_folder(Game.dir.phy, .{});
-  try result.add_many(Game.code.lib);
-  try result.add_many(Game.code.both);
-  return result;
-}
+pub const server = struct {
+  pub const dirs  :confy.Glob.List    = Game.code.dirs.server;
+  pub const files :confy.cstring_List = Game.code.files.lib ++ Game.code.files.both;
+};
 
 
 //______________________________________
-// @section Game Code: UI
+// @section Game: UI
 //____________________________
-pub fn ui (A :std.mem.Allocator) !confy.CodeList {
-  var result = confy.CodeList.create(A);
-  try result.add_folder(Game.dir.ui.base, .{});
-  try result.add_folder(Game.dir.ui.core, .{});
-  try result.add_folder(Game.dir.ui.color, .{});
-  try result.add_folder(Game.dir.ui.fwk, .{});
-  try result.add_folder(Game.dir.ui.menu, .{});
-  try result.add_many(Game.code.lib);
-  try result.add_one(Game.code.misc);
-  return result;
-}
+pub const ui = struct {
+  pub const dirs  :confy.Glob.List    = Game.code.dirs.ui;
+  pub const files :confy.cstring_List = Game.code.files.lib ++ Game.code.files.misc;
+};
 //__________________
-pub fn ui_q3 (A :std.mem.Allocator) !confy.CodeList {
-  var result = confy.CodeList.create(A);
-  try result.add_folder(Game.dir.ui.q3, .{});
-  try result.add_many(Game.code.lib);
-  try result.add_one(Game.code.misc);
-  return result;
-}
+pub const ui_q3 = struct {
+  pub const dirs  :confy.Glob.List    = Game.code.dirs.ui_q3;
+  pub const files :confy.cstring_List = Game.code.files.lib ++ Game.code.files.misc;
+};
 

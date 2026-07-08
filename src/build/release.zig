@@ -18,7 +18,8 @@ const root = "./bin/releases";
 //______________________________________
 // @section Object Fields
 //____________________________
-A      :std.heap.ArenaAllocator,
+io     :std.Io,
+A      :confy.Allocator,
 info   :confy.package.Info,
 rev    :usize= 0,
 files  :confy.seq(confy.Path),
@@ -27,17 +28,16 @@ files  :confy.seq(confy.Path),
 //______________________________________
 // @section Release: Create/Destroy
 //____________________________
-pub fn create (pkg :confy.package.Info) !Release {
-  var   arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-  const A     = arena.allocator();
-  const vers  = try std.fmt.allocPrint(A, "{f}", .{pkg.version});
-  const dir   = try confy.path.join(A, &.{Release.root, vers});
-  try confy.dir.create(Release.root, .{});
-  try confy.dir.create(dir, .{});
-  const revs  = try confy.dir.list(dir, A, .{});
+pub fn create (P :confy.Process, pkg :confy.package.Info) !Release {
+  const vers  = try std.fmt.allocPrint(P.arena.allocator(), "{f}", .{pkg.version});
+  const dir   = try confy.path.join(P.arena.allocator(), &.{Release.root, vers});
+  try confy.dir.create(Release.root, P.io, .{});
+  try confy.dir.create(dir,          P.io, .{});
+  const revs  = try confy.dir.list(dir, P.io, P.arena.allocator(), .{});
   const rev   = revs.len(); // With 10 existing revisions, first is 0, last is 9, and next will be `.len()` (ie: 10)
-  return @This(){
-    .A     = arena,
+  return Release{
+    .io    = P.io,
+    .A     = P.arena.*,
     .info  = pkg,
     .rev   = rev,
     .files = undefined,
@@ -49,11 +49,12 @@ pub fn create (pkg :confy.package.Info) !Release {
 // @section Release: Packing Manager
 //____________________________
 pub fn packFor (
-    R       : *@This(),
+    R       : *Release,
     systems : []const confy.System,
     release : bool,
   ) !void {
   if (!release) return;
+  const io   = R.io;
   const A    = R.A.allocator();
   const vers = try std.fmt.allocPrint(A, "{f}", .{R.info.version});
   R.files    = .create_empty(A);
@@ -77,9 +78,9 @@ pub fn packFor (
     // Run the process
     confy.prnt(cfg.modname.short++": Packing release files for `{s}` ...\n  target: {s}", .{sys_name, trg_zip});
     try R.files.add_one(trg_zip);
-    try confy.shell.zip(src_dir, src_name.data(), A);
-    try confy.dir.create(trg_dir, .{});
-    try confy.file.move(src_zip, trg_zip, .{});
+    try confy.shell.zip(src_dir, src_name.data(), io, A, .{});
+    try confy.dir.create(trg_dir, io, .{});
+    try confy.file.move(src_zip, trg_zip, io, .{});
   }
 }
 
@@ -88,17 +89,17 @@ pub fn packFor (
 // @section Release: Publishing Manager
 //____________________________
 pub fn publish (
-    R       : *@This(),
-    run     : bool,
+    R   : *Release,
+    run : bool,
   ) !void {
   if (!run) return;
+  const io    = R.io;
   const A     = R.A.allocator();
-  const token = try confy.file.read("./bin/secrets/github.token", A, .{});
+  const token = try confy.file.read("./bin/secrets/github.token", io, A, .{});
   // Create the tag
-  var version = confy.string.create_empty(A);
-  try version.write("v{f}", .{R.info.version});
+  const version = try confy.string.create_format("v{f}", .{R.info.version}, A);
   // Create the release
-  const release = try confy.git.GitHub.Release.create(R.info.git.owner, R.info.git.repo, token, A, .{
+  const release = try confy.git.GitHub.Release.create(R.info.git.owner, R.info.git.repo, token, io, A, .{
     .name       = version.data(),
     .tag_name   = version.data(),
   });
@@ -106,8 +107,8 @@ pub fn publish (
   for (R.files.data()) |trg| {
     confy.prnt("  Uploading `{s}` ...", .{trg});
     const name = confy.path.basename(trg);
-    const data = try confy.file.read(trg, A, .{.maxFileSize= 100*1024*1024});
-    try release.data.upload(name, data, token, A);
+    const data = try confy.file.read(trg, io, A, .{});
+    try release.data.upload(name, data, token, io, A);
   }
 }
 

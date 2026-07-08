@@ -2,8 +2,6 @@
 //  osdf  |  Copyright (C) Ivan Mar (sOkam!)  |  GPL-3.0-or-later  :
 //:_________________________________________________________________
 pub const Engine = @This();
-// @deps std
-const std = @import("std");
 // @deps buildsystem
 const confy = @import("confy");
 
@@ -11,9 +9,10 @@ const confy = @import("confy");
 //______________________________________
 // @section Object Fields
 //____________________________
-A       :std.heap.ArenaAllocator,
 client  :confy.Target,
 server  :confy.Target,
+pkg     :confy.package.Info,
+P       :confy.Process,
 
 
 //______________________________________
@@ -31,69 +30,75 @@ const target = struct {
   //__________________
   // Engine: Client
   fn client (
-      pkg : confy.package.Info,
-      cfg : confy.Config,
-      A   : std.mem.Allocator,
+      P       : confy.Process,
+      pkg     : confy.package.Info,
+      system  : confy.System,
+      cfg     : confy.Config,
+      release : bool,
     ) !confy.Target {_=pkg;
-    const src  = try Engine.code.client(A);
-    var   flgs = try Engine.flags.client(A);
     return confy.target(.program, .{
       .trg          = "oQ3.",  // TODO: Take from options  (todo: pkg)
-      .src          = src.files.data(),
+      .src          = Engine.code.client.files(system),
+      .globs        = Engine.code.client.dirs(system),
       .src_absolute = true,
-      .flags        = flgs.data(),
+      .flags        = Engine.flags.client.all(system, release),
       .cfg          = cfg,
+      .system       = system,
+      .P            = P,
       // .version      = pkg.version,  // TODO: Is this needed??
     });
   }
   //__________________
   // Engine: Server
   fn server (
-      pkg : confy.package.Info,
-      cfg : confy.Config,
-      A   : std.mem.Allocator,
+      P       : confy.Process,
+      pkg     : confy.package.Info,
+      system  : confy.System,
+      cfg     : confy.Config,
+      release : bool,
     ) !confy.Target {_=pkg;
-    const src  = try Engine.code.server(A);
-    var   flgs = try Engine.flags.server(A);
     return confy.target(.program, .{
       .trg          = "oQ3.dedicated.",  // TODO: Take from options  (todo: pkg)
-      .src          = src.files.data(),
+      .src          = Engine.code.server.files(system),
+      .globs        = Engine.code.server.dirs(system),
       .src_absolute = true,
-      .flags        = flgs.data(),
+      .flags        = Engine.flags.server.all(system, release),
       .cfg          = cfg,
+      .system       = system,
+      .P            = P,
       // .version      = pkg.version,  // TODO: Is this needed??
     });
   }
 };
 //__________________
-pub fn create (pkg :confy.package.Info) !Engine {
-  var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-  const A = arena.allocator();
+pub fn create (P :confy.Process, pkg :confy.package.Info, release :bool) !Engine {
   var cfg :confy.Config= .default();
   cfg.system.subfolder = true;
   cfg.system.appendCpu = true;
+  cfg.verbose = true;
   //__________________
   // Make sure the requirements are accessible
-  try Engine.requirements(pkg, A);
+  try Engine.requirements(P, pkg);
   //__________________
   // Create the Targets
-  return @This(){
-    .client = try Engine.target.client(pkg, cfg, A),
-    .server = try Engine.target.server(pkg, cfg, A),
-    .A      = arena,
+  return Engine{
+    .client = try Engine.target.client(P, pkg, confy.System.host(), cfg, release),
+    .server = try Engine.target.server(P, pkg, confy.System.host(), cfg, release),
+    .pkg    = pkg,
+    .P      = P,
   };
 }
 
 //______________________________________
 // @section Engine: Requirements
 //____________________________
-fn requirements (pkg :confy.package.Info, A :std.mem.Allocator) !void {_=pkg;
-  if (!confy.dir.exists(Engine.idtech3.dir, .{})) {
+fn requirements (P :confy.Process, pkg :confy.package.Info) !void {_=pkg;
+  if (!confy.dir.exists(Engine.idtech3.dir, P.io, .{})) {
     // 1. Clone the repository
-    try confy.git.clone(Engine.idtech3.Remote, A, .{.trg= Engine.idtech3.dir });
+    try confy.git.clone(Engine.idtech3.Remote, P.io, P.arena.allocator(), .{.trg= Engine.idtech3.dir });
     // 2. Revert Blacklisted commits
     for (Engine.idtech3.blacklist.commits) |commit| {
-      var cmd = confy.Command.create(A); defer cmd.destroy();
+      var cmd = confy.Command.create(P.io, P.arena.allocator()); defer cmd.destroy();
       cmd.cwd = Engine.idtech3.dir;
       try cmd.add_many(&.{"git", "revert", "--mainline", "1", "--no-edit", commit});
       try cmd.run();
@@ -110,11 +115,24 @@ fn requirements (pkg :confy.package.Info, A :std.mem.Allocator) !void {_=pkg;
 //______________________________________
 // @section Engine Builder: Entry Point
 //____________________________
-pub fn buildFor (E :*Engine, systems :[]const confy.System, release :bool) !void {_=systems;_=release;
-  // _= try E.client.buildFor(systems);
-  // _= try E.server.buildFor(systems);
-
-  // Process
-  try E.client.build();
+pub fn buildFor (E :*Engine, systems :[]const confy.System) !void {
+  //__________________
+  for (systems) |system| {
+    if (system.eq(confy.System.host())) {
+      try E.client.build();
+      try E.server.build();
+    } else {
+      //__________________
+      var client         = try E.client.clone();
+      client.cfg.dir.sub = "";
+      client.system      = system;
+      try client.build();
+      //__________________
+      var server         = try E.server.clone();
+      server.cfg.dir.sub = "";
+      server.system      = system;
+      try server.build();
+    }
+  }
 }
 

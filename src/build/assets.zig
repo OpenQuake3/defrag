@@ -11,8 +11,10 @@ pub const Assets = struct {
   //______________________________________
   // @section Object Fields
   //____________________________
-  A     :std.heap.ArenaAllocator,
+  io    :std.Io,
+  A     :*confy.Allocator,
   list  :confy.seq(confy.cstring),
+  info  :confy.package.Info,
 
 
   //______________________________________
@@ -24,14 +26,14 @@ pub const Assets = struct {
   //______________________________________
   // @section Create/Destroy
   //____________________________
-  pub fn create (pkg :confy.package.Info) !@This() {_=pkg;
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    const A = arena.allocator();
-    var result = @This(){
+  pub fn create (P :confy.Process, pkg :confy.package.Info) !Assets {
+    var result = Assets{
+      .A    = P.arena,
+      .io   = P.io,
+      .info = pkg,
       .list = undefined,
-      .A    = arena,
     };
-    result.list = try confy.dir.list(cfg.dir.assets, A, .{.kind= .folders});
+    result.list = try confy.dir.list(cfg.dir.assets, result.io, result.A.allocator(), .{.kind= .folders});
     return result;
   } //:: build.Assets.create
 
@@ -39,9 +41,9 @@ pub const Assets = struct {
   //______________________________________
   // @section Cleanup
   //____________________________
-  pub fn clean () !void {
-    if (!confy.dir.exists(Assets.dir_out, .{})) return;
-    try confy.dir.remove(Assets.dir_out, .{});
+  pub fn clean (res :*Assets) !void {
+    if (!confy.dir.exists(Assets.dir_out, res.io, .{})) return;
+    try confy.dir.remove(Assets.dir_out,  res.io, .{});
   }
 
   //______________________________________
@@ -50,6 +52,7 @@ pub const Assets = struct {
   pub fn pack (
       src       : confy.cstring,
       trg       : confy.cstring,
+      io        : std.Io,
       A         : std.mem.Allocator,
       arg       : struct{
         root    : confy.cstring = cfg.dir.assets,
@@ -59,30 +62,31 @@ pub const Assets = struct {
     const cwd = try confy.path.join(A, &.{arg.root, src});
     // Compress all into y.MODNAME.src.pk3
     const filename = try confy.string.create_format("y.{s}.{s}.pk3", .{arg.modname, src}, A);
-    try confy.shell.zip(cwd, filename.data(), A);
+    confy.prnt(cfg.modname.short++": Compressing {s} into {s}...", .{cwd, filename.data()});
+    try confy.shell.zip(cwd, filename.data(), io, A, .{});
     // Write resulting zip into trg
     const zip = try confy.path.join(A, &.{arg.root, filename.data()});
     const out = try confy.path.join(A, &.{trg,      filename.data()});
-    try confy.dir.create(trg, .{});
-    try confy.file.move(zip, out, .{});
+    try confy.dir.create(trg, io, .{});
+    try confy.file.move(zip, out, io, .{});
   } //:: build.Assets.pack
   //__________________
-  pub fn packAll (res :*@This()) !void {
+  pub fn packAll (res :*Assets) !void {
     confy.echo(cfg.modname.short++": Packing all assets into .pk3 files ...");
     for (res.list.data()) |asset| {
       confy.prnt(cfg.modname.short++": Packing {s} ...", .{asset});
-      try Assets.pack(asset, "./bin/"++cfg.dir.assets, res.A.allocator(), .{});
+      try Assets.pack(asset, "./bin/"++cfg.dir.assets, res.io, res.A.allocator(), .{});
     }
   } //:: build.Assets.packAll
   //__________________
   pub fn packFor (
-      res     : *@This(),
+      res     : *Assets,
       systems : []const confy.System,
     ) !void {
     const root    = "./bin/"++cfg.dir.assets;
     const modname = cfg.modname.short;
     const A       = res.A.allocator();
-    try confy.dir.create(root, .{});
+    try confy.dir.create(root, res.io, .{});
     try res.packAll();
     for (res.list.data()) |asset| {
       var filename = confy.string.create_empty(A);
@@ -92,7 +96,7 @@ pub const Assets = struct {
         const dir = try confy.path.join(A, &.{"./bin", sub});
         const src = try confy.path.join(A, &.{root, filename.data()});
         const trg = try confy.path.join(A, &.{dir, filename.data()});
-        try confy.file.copy(src, trg, .{});
+        try confy.file.copy(src, trg, res.io, .{});
       }
     }
   } //:: build.Assets.packFor
@@ -106,7 +110,8 @@ pub const Config = struct {
   //______________________________________
   // @section Object Fields
   //____________________________
-  A     :std.heap.ArenaAllocator,
+  io    :std.Io,
+  A     :*confy.Allocator,
   list  :confy.seq(confy.cstring),
   info  :confy.package.Info,
 
@@ -114,15 +119,14 @@ pub const Config = struct {
   //______________________________________
   // @section Create/Destroy
   //____________________________
-  pub fn create (pkg :confy.package.Info) !@This() {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    const A = arena.allocator();
-    var result = @This(){
+  pub fn create (P :confy.Process, pkg :confy.package.Info) !Config {
+    var result = Config{
       .info = pkg,
       .list = undefined,
-      .A    = arena,
+      .A    = P.arena,
+      .io   = P.io,
     };
-    result.list = try confy.dir.list(cfg.dir.config, A, .{.kind= .files});
+    result.list = try confy.dir.list(cfg.dir.config, result.io, result.A.allocator(), .{.kind= .files});
     try result.list.add_one("phy");
     return result;
   } //:: build.Config.create
@@ -131,7 +135,7 @@ pub const Config = struct {
   //______________________________________
   // @section Config Manager: Packing
   //____________________________
-  pub fn packAll (C :*@This()) !void {
+  pub fn packAll (C :*Config) !void {
     confy.echo(cfg.modname.short++": Copying all config files into the assets output folder ...");
     //__________________
     // Copy all `.cfg` individual files
@@ -139,40 +143,40 @@ pub const Config = struct {
       if (std.mem.eql(u8, file, "phy")) continue;
       const src = try confy.path.join(C.A.allocator(), &.{cfg.dir.config, file});
       const trg = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, file});
-      try confy.file.copy(src, trg, .{});
+      try confy.file.copy(src, trg, C.io, .{});
     }
     //__________________
     // Explicitly copy the ./src/cfg/phy folder
     const phy_src = try confy.path.join(C.A.allocator(), &.{cfg.dir.config, "phy"});
     const phy_trg = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, "phy"});
     // TODO: Should be:   try confy.dir.copy(phy_src, phy_trg, .{});
-    var phy_cmd = confy.Command.create(C.A.allocator());
+    var phy_cmd = confy.Command.create(C.io, C.A.allocator());
     try phy_cmd.add_many(&.{"cp", "-r", phy_src, phy_trg});
     try phy_cmd.run();
     //__________________
     // Modify the `description.txt` file with the correct values
-    const description_trg = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, "description.txt"});
-    var description_code = confy.string.fromOwned(@constCast(try confy.file.read(description_trg, C.A.allocator(), .{})),  C.A.allocator());
-    var version = confy.string.create_empty(C.A.allocator());
+    const description_trg  = try confy.path.join(C.A.allocator(), &.{"bin", cfg.dir.assets, "description.txt"});
+    var   description_code = confy.string.fromOwned(@constCast(try confy.file.read(description_trg, C.io, C.A.allocator(), .{})),  C.A.allocator());
+    var   version          = confy.string.create_empty(C.A.allocator());
     try version.write("{f}", .{C.info.version});
     try description_code.replace("[MOD_HUMAN_NAME]", cfg.modname.human);
     try description_code.replace("[SEP]", " ");
     try description_code.replace("[MOD_VERSION]", version.data());
-    try confy.file.write(description_trg, description_code.data(), .{});
+    try confy.file.write(description_trg, description_code.data(), C.io, .{});
   } //:: build.Config.packAll
   //__________________
   pub fn packFor (
-      C       : *@This(),
+      C       : *Config,
       systems : []const confy.System,
     ) !void {
     const root = "./bin/"++cfg.dir.assets;
     const A    = C.A.allocator();
-    try confy.dir.create(root, .{});
+    try confy.dir.create(root, C.io, .{});
     try C.packAll();
     for (systems) |system| {
       const system_sub = try system.zig_triple(A);
-      const trg = try confy.path.join(A, &.{"./bin", system_sub});
-      try confy.dir.copy_contents(root, trg, A, .{});
+      const trg        = try confy.path.join(A, &.{"./bin", system_sub});
+      try confy.dir.copy_contents(root, trg, C.io, A, .{});
     }
   } //:: build.Config.packFor
 }; //:: build.Config

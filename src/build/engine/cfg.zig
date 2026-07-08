@@ -23,10 +23,10 @@ pub const name = struct {
 
 
 pub const dir = struct {
-  const root   = idtech3.dir;
-  const src    = dir.root++"/code";
-  const common = dir.src++"/qcommon";
-  const client = dir.src++"/client";
-  const server = dir.src++"/server";
+  pub const root   = idtech3.dir;
+  pub const src    = dir.root++"/code";
+  pub const common = dir.src++"/qcommon";
+  pub const client = dir.src++"/client";
+  pub const server = dir.src++"/server";
 };
 

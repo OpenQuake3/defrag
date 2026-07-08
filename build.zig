@@ -4,7 +4,6 @@
 // @deps confy
 const confy   = @import("confy");
 const Name    = confy.Name;
-const package = confy.package;
 const git     = confy.git;
 // @deps builder
 const info    = @import("./info.zig");
@@ -19,15 +18,15 @@ const Release = @import("./src/build/release.zig").Release;
 //______________________________________
 // @section Configuration Options
 //____________________________
-pub const release    = true;                  // Whether we are building a release or debug version
-pub const distribute = release and false;     // Prepare the output for distribution (manual or automated) when true
+pub const release    = false;                 // Whether we are building a release or debug version
+pub const distribute = release    and false;  // Prepare the output for distribution (manual or automated) when true
 pub const publish    = distribute and false;  // Publish to the relevant platforms when true
 
 
 //______________________________________
 // @section Package Information
 //____________________________
-pub const P = package.info(.{
+pub const pkg = confy.package.info(.{
   .version = info.version,
   .name    = Name{ .short= cfg.modname.short, .long= cfg.modname.long, .human= cfg.modname.human },
   .author  = Name{ .short= info.author },
@@ -39,20 +38,15 @@ pub const P = package.info(.{
 //______________________________________
 // @section Buildsystem Entry Point
 //____________________________
-pub fn main() !void {
-  //______________________________________
-  // @section Clean before running
-  //____________________________
-  try Assets.clean();
-
+pub fn main (P :confy.Process) !void {
   //______________________________________
   // @section Define Build Targets
   //____________________________
-  var game   = try Game.create(P);
-  var engine = try Engine.create(P);
-  var assets = try Assets.create(P);
-  var config = try Config.create(P);
-  var result = try Release.create(P);
+  var game   = try Game.create(P, pkg, release);
+  var engine = try Engine.create(P, pkg, release);
+  var assets = try Assets.create(P, pkg);
+  var config = try Config.create(P, pkg);
+  var result = try Release.create(P, pkg);
 
   //______________________________________
   // @section Target System
@@ -64,9 +58,10 @@ pub fn main() !void {
   //______________________________________
   // @section Order to Build
   //____________________________
-  P.report();
-  try game.buildFor(systems, release);
-  _=&engine; // try engine.buildFor(systems, release);
+  try assets.clean(); // Clean before running
+  pkg.report();
+  try game.buildFor(systems);
+  _=&engine;  // try engine.buildFor(systems);
   try assets.packFor(systems);
   try config.packFor(systems);
   try result.packFor(systems, release);
