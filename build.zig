@@ -9,7 +9,7 @@ const git     = confy.git;
 const info    = @import("./info.zig");
 const cfg     = @import("./src/build/cfg.zig").cfg;
 const Game    = @import("./src/build/game.zig").Game;
-const Engine  = @import("./src/build/engine.zig").Engine;
+const Engine  = @import("./src/engine/src/build/engine.zig").Engine;
 const Assets  = @import("./src/build/assets.zig").Assets;
 const Config  = @import("./src/build/assets.zig").Config;
 const Release = @import("./src/build/release.zig").Release;
@@ -42,8 +42,8 @@ pub fn main (P :confy.Process) !void {
   //______________________________________
   // @section Define Build Targets
   //____________________________
+  var engine = try Engine.create(P, .{.release= release, .pkg= pkg, .root= "./src/engine"});
   var game   = try Game.create(P, pkg, release);
-  // var engine = try Engine.create(P, pkg, release);
   var assets = try Assets.create(P, pkg);
   var config = try Config.create(P, pkg);
   var result = try Release.create(P, pkg);
@@ -61,7 +61,7 @@ pub fn main (P :confy.Process) !void {
   try assets.clean(); // Clean before running
   pkg.report();
   try game.buildFor(systems);
-  // _=&engine;  // try engine.buildFor(systems);
+  try engine.buildFor(systems);
   try assets.packFor(systems);
   try config.packFor(systems);
   try result.packFor(systems, release);
