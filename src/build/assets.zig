@@ -93,7 +93,8 @@ pub const Assets = struct {
       try filename.write("y.{s}.{s}.pk3", .{modname, asset});
       for (systems) |system| {
         const sub = try system.zig_triple(A);
-        const dir = try confy.path.join(A, &.{"./bin", sub});
+        const dir = try confy.path.join(A, &.{"./bin", sub, cfg.name.short});
+        try confy.dir.create(dir, res.io, .{});
         const src = try confy.path.join(A, &.{root, filename.data()});
         const trg = try confy.path.join(A, &.{dir, filename.data()});
         try confy.file.copy(src, trg, res.io, .{});
@@ -175,7 +176,8 @@ pub const Config = struct {
     try C.packAll();
     for (systems) |system| {
       const system_sub = try system.zig_triple(A);
-      const trg        = try confy.path.join(A, &.{"./bin", system_sub});
+      const trg        = try confy.path.join(A, &.{"./bin", system_sub, cfg.name.short});
+      try confy.dir.create(trg, C.io, .{});
       try confy.dir.copy_contents(root, trg, C.io, A, .{});
     }
   } //:: build.Config.packFor

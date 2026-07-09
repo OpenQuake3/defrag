@@ -88,6 +88,7 @@ pub fn create (P :confy.Process, pkg :confy.package.Info, release :bool) !Game {
   var config :confy.Config= .default();
   config.system.subfolder = true;
   config.system.appendCpu = true;
+  config.dir.sub          = cfg.name.short;
   config.verbose          = true;
   return Game{
     .client = try Game.target.client(P, config, release),
