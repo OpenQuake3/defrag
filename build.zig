@@ -27,7 +27,7 @@ pub fn main (P :confy.Process) !void {
   //______________________________________
   // @section Define Build Targets
   //____________________________
-  var engine = try Engine.create(P, .{.release= release, .pkg= cfg.package, .root= "./src/engine"});
+  var engine = try Engine.create(P, .{.release= release, .pkg= cfg.package, .root= "./src/engine", .game= cfg.name.full});
   var game   = try Game.create(P, cfg.package, release);
   var assets = try Assets.create(P, cfg.package);
   var config = try Config.create(P, cfg.package);
