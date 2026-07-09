@@ -4,12 +4,55 @@
 pub const flags = @This();
 // @deps buildsystem
 const confy = @import("confy");
+// @deps config
+const cfg = @import("./cfg.zig");
 
 
-pub const all = confy.flags.default(.c) ++ flags.unsafe;
+//______________________________________
+// @section Common Flags: Optimization
+//____________________________
+const optimization = struct {
+  const debug   = &[_]confy.cstring{ "-g", "-O0", "-DDEBUG", "-D_DEBUG" };
+  const release = &[_]confy.cstring{ "-O2", "-DNDEBUG" };
+};
+
+
+//______________________________________
+// @section Common Flags: (BASE_CFLAGS)
+//____________________________
+const base = confy.flags.default(.c) ++ &[_]confy.cstring{
+  "-std=c99",
+  "-fno-strict-aliasing",
+  "-fvisibility=hidden",
+  "-pipe",
+};
+
+
+//______________________________________
+// @section Game Flags: Defines
+//____________________________
+const defines = &[_]confy.cstring{
+  "-DGAME_NAME_SHORT=\"" ++ cfg.name.short ++ "\"",
+  "-DGAME_NAME_LONG=\""  ++ cfg.name.long  ++ "\"",
+  "-DGAME_NAME_HUMAN=\"" ++ cfg.name.human ++ "\"",
+  "-DGAME_VERSION=\""    ++ cfg.info.version ++ "\"",
+};
+
+
+//______________________________________
+// @section Game Flags: Precomputed
+//____________________________
+pub const game = struct {
+  pub const dbg = flags.base ++ flags.unsafe ++ flags.defines ++ flags.optimization.debug;
+  pub const rls = flags.base ++ flags.unsafe ++ flags.defines ++ flags.optimization.release;
+  pub fn all (release :bool) confy.cstring_List {
+    if (release) return flags.game.rls
+    else         return flags.game.dbg;
+  }
+};
+
 
 const unsafe = &[_]confy.cstring{
-  "-std=c99",
   // Explicitly disable the warnings that the codebase does not respect.
   // Ideally this list should be completely empty, but that's a lot of work fixing old code.
   "-Wno-alloca",
@@ -87,4 +130,3 @@ const unsafe = &[_]confy.cstring{
   "-Wno-documentation",
   "-fno-sanitize=all",
 };
-

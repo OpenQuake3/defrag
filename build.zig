@@ -15,7 +15,8 @@ const Release = @import("./src/build/release.zig").Release;
 //______________________________________
 // @section Configuration Options
 //____________________________
-pub const release    = false;                 // Whether we are building a release or debug version
+pub const verbose    = true;
+pub const release    = true;                  // Whether we are building a release or debug version
 pub const distribute = release    and false;  // Prepare the output for distribution (manual or automated) when true
 pub const publish    = distribute and false;  // Publish to the relevant platforms when true
 
@@ -27,7 +28,13 @@ pub fn main (P :confy.Process) !void {
   //______________________________________
   // @section Define Build Targets
   //____________________________
-  var engine = try Engine.create(P, .{.release= release, .pkg= cfg.package, .root= "./src/engine", .game= cfg.name.full});
+  var engine = try Engine.create(P, .{
+    .root    = "./src/engine",
+    .release = false,
+    .game    = cfg.name.full,
+    .pkg     = cfg.package,
+    .verbose = verbose,
+  });
   var game   = try Game.create(P, cfg.package, release);
   var assets = try Assets.create(P, cfg.package);
   var config = try Config.create(P, cfg.package);

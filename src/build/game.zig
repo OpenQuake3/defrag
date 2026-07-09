@@ -21,7 +21,7 @@ pkg     :confy.package.Info,
 const cfg   = @import("./cfg.zig");
 const dir   = @import("./cfg.zig").dir;
 const name  = @import("./cfg.zig").name;
-const flags = @import("./flags.zig");
+const flags = @import("./flags.zig").game;
 const code  = @import("./source.zig").code;
 
 
@@ -42,13 +42,13 @@ const defines = [_]confy.cstring{
 const target = struct {
   //__________________
   // Game: Client
-  fn client (P :confy.Process, C :confy.Config) !confy.Target {
+  fn client (P :confy.Process, C :confy.Config, release :bool) !confy.Target {
     return try confy.target(.dynamic, .{
       .trg          = "cgame",
       .src          = Game.code.client.files,
       .globs        = Game.code.client.dirs,
       .src_absolute = true,
-      .flags        = flags.all ++ Game.defines,
+      .flags        = Game.flags.all(release),
       .cfg          = C,
       .P            = P,
       // .version      = pkg.version,  // TODO: Is this needed??
@@ -56,13 +56,13 @@ const target = struct {
   }
   //__________________
   // Game: Server
-  fn server (P :confy.Process, C :confy.Config) !confy.Target {
+  fn server (P :confy.Process, C :confy.Config, release :bool) !confy.Target {
     return try confy.target(.dynamic, .{
       .trg          = "qagame",
       .src          = Game.code.server.files,
       .globs        = Game.code.server.dirs,
       .src_absolute = true,
-      .flags        = flags.all ++ Game.defines,
+      .flags        = Game.flags.all(release),
       .cfg          = C,
       .P            = P,
       // .version      = pkg.version,  // TODO: Is this needed??
@@ -70,13 +70,13 @@ const target = struct {
   }
   //__________________
   // Game: UI
-  fn ui (P :confy.Process, C :confy.Config) !confy.Target {
+  fn ui (P :confy.Process, C :confy.Config, release :bool) !confy.Target {
     return try confy.target(.dynamic, .{
       .trg          = "ui",
       .src          = Game.code.ui_q3.files, // TODO: Game.code.ui.files
       .globs        = Game.code.ui_q3.dirs,  // TODO: Game.code.ui.dirs
       .src_absolute = true,
-      .flags        = flags.all ++ Game.defines,
+      .flags        = Game.flags.all(release),
       .cfg          = C,
       .P            = P,
       // .version      = pkg.version,  // TODO: Is this needed??
@@ -84,15 +84,15 @@ const target = struct {
   }
 };
 //__________________
-pub fn create (P :confy.Process, pkg :confy.package.Info, release :bool) !Game {_=release;
+pub fn create (P :confy.Process, pkg :confy.package.Info, release :bool) !Game {
   var config :confy.Config= .default();
   config.system.subfolder = true;
   config.system.appendCpu = true;
-  config.verbose = true;
+  config.verbose          = true;
   return Game{
-    .client = try Game.target.client(P, config),
-    .server = try Game.target.server(P, config),
-    .ui     = try Game.target.ui(P, config),
+    .client = try Game.target.client(P, config, release),
+    .server = try Game.target.server(P, config, release),
+    .ui     = try Game.target.ui(P, config, release),
     .pkg    = pkg,
   };
 }
@@ -105,25 +105,31 @@ pub fn buildFor (G :*Game, systems :[]const confy.System) !void {
   for (systems) |system| {
     // Fix `arm64` vs `aarch64` naming nonsense
     const cpu = if (system.cpu == .aarch64) "arm64" else @tagName(system.cpu);
+    var client = try G.client.clone();
+    var server = try G.server.clone();
+    var ui     = try G.ui.clone();
     if (system.cpu == .aarch64) {
-      G.client.cfg.system.appendCpu = false;
-      G.server.cfg.system.appendCpu = false;
-      G.ui.cfg.system.appendCpu     = false;
-      G.client.trg                  = try trg_renamed(&G.client, cpu);
-      G.server.trg                  = try trg_renamed(&G.server, cpu);
-      G.ui.trg                      = try trg_renamed(&G.ui,     cpu);
+      client.cfg.system.appendCpu = false;
+      server.cfg.system.appendCpu = false;
+      ui.cfg.system.appendCpu     = false;
+      client.trg                  = try trg_renamed(&client, cpu);
+      server.trg                  = try trg_renamed(&server, cpu);
+      ui.trg                      = try trg_renamed(&ui,     cpu);
     }
     // Add ARCH_STRING flag and compile
-    const arch_string = try confy.string.create_format("-DARCH_STRING=\"{s}\"", .{cpu}, G.client.A.allocator());
-    try G.client.flags.add_one(arch_string.data());
-    try G.server.flags.add_one(arch_string.data());
-    try G.ui.flags.add_one(arch_string.data());
-    _= try G.client.cross(system);
-    _= try G.server.cross(system);
-    _= try G.ui.cross(system);
+    const arch_string = try confy.string.create_format("-DARCH_STRING=\"{s}\"", .{cpu}, client.A.allocator());
+    try client.flags.add_one(arch_string.data());
+    try server.flags.add_one(arch_string.data());
+    try ui.flags.add_one(arch_string.data());
+    client.system = system;
+    server.system = system;
+    ui.system     = system;
+    try client.build();
+    try server.build();
+    try ui.build();
     // Cleanup the windows output noise
     if (system.os == .windows) try confy.dir.remove_extensions(
-      "./bin/x86_64-windows-gnu/", &.{".pdb", ".lib"}, G.client.io.io(),  G.client.A.allocator(), .{});
+      try client.out_dir(), &.{".pdb", ".lib"}, client.io.io(), client.A.allocator(), .{});
   }
 }
 //__________________
