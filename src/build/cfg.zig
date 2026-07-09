@@ -40,7 +40,7 @@ pub const dir = struct {
   pub const assets = "assets";
   pub const src    = "src";
   pub const lib    = dir.src++"/lib";
-  pub const cfg    = dir.src++"/cfg";
+  pub const config = dir.src++"/cfg";
   // Game Code Folders
   pub const code   = dir.src++"/game";
   pub const common = dir.code++"/qcommon";

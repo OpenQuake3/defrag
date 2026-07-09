@@ -53,7 +53,7 @@ pub fn main (P :confy.Process) !void {
   try result.publish(publish);
 
   //__________________
-  confy.echo(cfg.modname.short++": Done building.");
+  confy.echo(cfg.name.short++": Done building.");
 }
 
 

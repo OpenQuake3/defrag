@@ -76,7 +76,7 @@ pub fn packFor (
     const src_zip = try confy.path.join(A, &.{"./bin", src_name.data()});
     //__________________
     // Run the process
-    confy.prnt(cfg.modname.short++": Packing release files for `{s}` ...\n  target: {s}", .{sys_name, trg_zip});
+    confy.prnt(cfg.name.short++": Packing release files for `{s}` ...\n  target: {s}", .{sys_name, trg_zip});
     try R.files.add_one(trg_zip);
     try confy.shell.zip(src_dir, src_name.data(), io, A, .{});
     try confy.dir.create(trg_dir, io, .{});
@@ -103,7 +103,7 @@ pub fn publish (
     .name       = version.data(),
     .tag_name   = version.data(),
   });
-  confy.prnt(cfg.modname.short++": Uploading {s} release files:\n  target: `{s}`", .{release.data.name, release.data.upload_url});
+  confy.prnt(cfg.name.short++": Uploading {s} release files:\n  target: `{s}`", .{release.data.name, release.data.upload_url});
   for (R.files.data()) |trg| {
     confy.prnt("  Uploading `{s}` ...", .{trg});
     const name = confy.path.basename(trg);

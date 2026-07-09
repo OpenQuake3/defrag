@@ -56,13 +56,13 @@ pub const Assets = struct {
       A         : std.mem.Allocator,
       arg       : struct{
         root    : confy.cstring = cfg.dir.assets,
-        modname : confy.cstring = cfg.modname.short,
+        modname : confy.cstring = cfg.name.short,
     }) !void {
     // Change dir to ./root/src for the zip command
     const cwd = try confy.path.join(A, &.{arg.root, src});
     // Compress all into y.MODNAME.src.pk3
     const filename = try confy.string.create_format("y.{s}.{s}.pk3", .{arg.modname, src}, A);
-    confy.prnt(cfg.modname.short++": Compressing {s} into {s}...", .{cwd, filename.data()});
+    confy.prnt(cfg.name.short++": Compressing {s} into {s}...", .{cwd, filename.data()});
     try confy.shell.zip(cwd, filename.data(), io, A, .{});
     // Write resulting zip into trg
     const zip = try confy.path.join(A, &.{arg.root, filename.data()});
@@ -72,9 +72,9 @@ pub const Assets = struct {
   } //:: build.Assets.pack
   //__________________
   pub fn packAll (res :*Assets) !void {
-    confy.echo(cfg.modname.short++": Packing all assets into .pk3 files ...");
+    confy.echo(cfg.name.short++": Packing all assets into .pk3 files ...");
     for (res.list.data()) |asset| {
-      confy.prnt(cfg.modname.short++": Packing {s} ...", .{asset});
+      confy.prnt(cfg.name.short++": Packing {s} ...", .{asset});
       try Assets.pack(asset, "./bin/"++cfg.dir.assets, res.io, res.A.allocator(), .{});
     }
   } //:: build.Assets.packAll
@@ -84,7 +84,7 @@ pub const Assets = struct {
       systems : []const confy.System,
     ) !void {
     const root    = "./bin/"++cfg.dir.assets;
-    const modname = cfg.modname.short;
+    const modname = cfg.name.short;
     const A       = res.A.allocator();
     try confy.dir.create(root, res.io, .{});
     try res.packAll();
@@ -136,7 +136,7 @@ pub const Config = struct {
   // @section Config Manager: Packing
   //____________________________
   pub fn packAll (C :*Config) !void {
-    confy.echo(cfg.modname.short++": Copying all config files into the assets output folder ...");
+    confy.echo(cfg.name.short++": Copying all config files into the assets output folder ...");
     //__________________
     // Copy all `.cfg` individual files
     for (C.list.data()) |file| {
@@ -159,7 +159,7 @@ pub const Config = struct {
     var   description_code = confy.string.fromOwned(@constCast(try confy.file.read(description_trg, C.io, C.A.allocator(), .{})),  C.A.allocator());
     var   version          = confy.string.create_empty(C.A.allocator());
     try version.write("{f}", .{C.info.version});
-    try description_code.replace("[MOD_HUMAN_NAME]", cfg.modname.human);
+    try description_code.replace("[MOD_HUMAN_NAME]", cfg.name.human);
     try description_code.replace("[SEP]", " ");
     try description_code.replace("[MOD_VERSION]", version.data());
     try confy.file.write(description_trg, description_code.data(), C.io, .{});
