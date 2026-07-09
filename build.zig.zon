@@ -1,0 +1,8 @@
+.{
+    .name = .osdf,
+    .version = "0.2.104",
+    .license = "GPL-3.0-or-later",
+    .minimum_zig_version = "0.16.0",
+    .paths = .{""},
+    .fingerprint = 0x957dae2e88ba21d3,
+}

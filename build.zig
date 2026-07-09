@@ -3,10 +3,7 @@
 //:_________________________________________________________________
 // @deps confy
 const confy   = @import("confy");
-const Name    = confy.Name;
-const git     = confy.git;
 // @deps builder
-const info    = @import("./info.zig");
 const cfg     = @import("./src/build/cfg.zig").cfg;
 const Game    = @import("./src/build/game.zig").Game;
 const Engine  = @import("./src/engine/src/build/engine.zig").Engine;
@@ -24,29 +21,17 @@ pub const publish    = distribute and false;  // Publish to the relevant platfor
 
 
 //______________________________________
-// @section Package Information
-//____________________________
-pub const pkg = confy.package.info(.{
-  .version = info.version,
-  .name    = Name{ .short= cfg.modname.short, .long= cfg.modname.long, .human= cfg.modname.human },
-  .author  = Name{ .short= info.author },
-  .license = info.license,
-  .git     = git.Info{ .owner= info.author, .repo= info.name, .host= "https://github.com" },
-});
-
-
-//______________________________________
 // @section Buildsystem Entry Point
 //____________________________
 pub fn main (P :confy.Process) !void {
   //______________________________________
   // @section Define Build Targets
   //____________________________
-  var engine = try Engine.create(P, .{.release= release, .pkg= pkg, .root= "./src/engine"});
-  var game   = try Game.create(P, pkg, release);
-  var assets = try Assets.create(P, pkg);
-  var config = try Config.create(P, pkg);
-  var result = try Release.create(P, pkg);
+  var engine = try Engine.create(P, .{.release= release, .pkg= cfg.package, .root= "./src/engine"});
+  var game   = try Game.create(P, cfg.package, release);
+  var assets = try Assets.create(P, cfg.package);
+  var config = try Config.create(P, cfg.package);
+  var result = try Release.create(P, cfg.package);
 
   //______________________________________
   // @section Target System
@@ -59,7 +44,7 @@ pub fn main (P :confy.Process) !void {
   // @section Order to Build
   //____________________________
   try assets.clean(); // Clean before running
-  pkg.report();
+  cfg.package.report();
   try game.buildFor(systems);
   try engine.buildFor(systems);
   try assets.packFor(systems);
