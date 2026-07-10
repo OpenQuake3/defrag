@@ -226,10 +226,10 @@ static void CG_Obituary( entityState_t *ent ) {
 		}
 #ifdef TEAMARENA
 		if (!(cg_singlePlayerActive.integer && cg_cameraOrbit.integer)) {
-			CG_CenterPrint( s, SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
+			CG_CenterPrint( s, GL_H * 0.30, BIGCHAR_WIDTH );
 		} 
 #else
-		CG_CenterPrint( s, SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
+		CG_CenterPrint( s, GL_H * 0.30, BIGCHAR_WIDTH );
 #endif
 
 		// print the text message as well
@@ -365,10 +365,10 @@ static void CG_UseItem( centity_t *cent ) {
 	// print a message if the local player
 	if ( es->number == cg.snap->ps.clientNum ) {
 		if ( !itemNum ) {
-			CG_CenterPrint( "No item to use", SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
+			CG_CenterPrint( "No item to use", GL_H * 0.30, BIGCHAR_WIDTH );
 		} else {
 			item = BG_FindItemForHoldable( itemNum );
-			CG_CenterPrint( va("Use %s", item->pickup_name), SCREEN_HEIGHT * 0.30, BIGCHAR_WIDTH );
+			CG_CenterPrint( va("Use %s", item->pickup_name), GL_H * 0.30, BIGCHAR_WIDTH );
 		}
 	}
 

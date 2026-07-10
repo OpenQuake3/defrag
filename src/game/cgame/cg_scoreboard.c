@@ -26,11 +26,11 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #define	SCOREBOARD_X		(0)
 
-#define SB_HEADER			86
+#define SB_HEADER			((int)(GL_H * 0.179f))
 #define SB_TOP				(SB_HEADER+32)
 
 // Where the status bar starts, so we don't overwrite it
-#define SB_STATUSBAR		420
+#define SB_STATUSBAR		((int)(GL_H * 0.875f))
 
 #define SB_NORMAL_HEIGHT	40
 #define SB_INTER_HEIGHT		16 // interleaved height
@@ -50,7 +50,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define SB_BOTICON_X		(SCOREBOARD_X+32)
 #define SB_HEAD_X			(SCOREBOARD_X+64)
 
-#define SB_SCORELINE_X		112
+#define SB_SCORELINE_X		((int)(GL_W * 0.175f))
 
 #define SB_RATING_WIDTH	    (6 * BIGCHAR_WIDTH) // width 6
 #define SB_SCORE_X			(SB_SCORELINE_X + BIGCHAR_WIDTH) // width 6
@@ -213,7 +213,7 @@ static void CG_DrawClientScore( int y, score_t *score, float *color, float fade,
 
 		hcolor[3] = fade * 0.7;
 		CG_FillRect( SB_SCORELINE_X + BIGCHAR_WIDTH + (SB_RATING_WIDTH / 2), y, 
-			640 - SB_SCORELINE_X - BIGCHAR_WIDTH, BIGCHAR_HEIGHT+1, hcolor );
+			GL_W - SB_SCORELINE_X - BIGCHAR_WIDTH, BIGCHAR_HEIGHT+1, hcolor );
 	}
 
 	CG_DrawBigString( SB_SCORELINE_X + (SB_RATING_WIDTH / 2), y, string, fade );
@@ -309,8 +309,8 @@ qboolean CG_DrawOldScoreboard( void ) {
 	if ( cg.killerName[0] ) {
 		s = va("Fragged by %s", cg.killerName );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-		x = ( SCREEN_WIDTH - w ) / 2;
-		y = 40;
+		x = ( GL_W - w ) / 2;
+		y = (int)(GL_H * 0.083f);
 		CG_DrawBigString( x, y, s, fade );
 	}
 
@@ -321,8 +321,8 @@ qboolean CG_DrawOldScoreboard( void ) {
 				CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ),
 				cg.snap->ps.persistant[PERS_SCORE] );
 			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-			x = ( SCREEN_WIDTH - w ) / 2;
-			y = 60;
+			x = ( GL_W - w ) / 2;
+			y = (int)(GL_H * 0.125f);
 			CG_DrawBigString( x, y, s, fade );
 		}
 	} else {
@@ -335,8 +335,8 @@ qboolean CG_DrawOldScoreboard( void ) {
 		}
 
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-		x = ( SCREEN_WIDTH - w ) / 2;
-		y = 60;
+		x = ( GL_W - w ) / 2;
+		y = (int)(GL_H * 0.125f);
 		CG_DrawBigString( x, y, s, fade );
 	}
 
@@ -373,20 +373,20 @@ qboolean CG_DrawOldScoreboard( void ) {
 
 		if ( cg.teamScores[0] >= cg.teamScores[1] ) {
 			n1 = CG_TeamScoreboard( y, TEAM_RED, fade, maxClients, lineHeight );
-			CG_DrawTeamBackground( 0, y - topBorderSize, 640, n1 * lineHeight + bottomBorderSize, 0.33f, TEAM_RED );
+			CG_DrawTeamBackground( 0, y - topBorderSize, GL_W, n1 * lineHeight + bottomBorderSize, 0.33f, TEAM_RED );
 			y += (n1 * lineHeight) + BIGCHAR_HEIGHT;
 			maxClients -= n1;
 			n2 = CG_TeamScoreboard( y, TEAM_BLUE, fade, maxClients, lineHeight );
-			CG_DrawTeamBackground( 0, y - topBorderSize, 640, n2 * lineHeight + bottomBorderSize, 0.33f, TEAM_BLUE );
+			CG_DrawTeamBackground( 0, y - topBorderSize, GL_W, n2 * lineHeight + bottomBorderSize, 0.33f, TEAM_BLUE );
 			y += (n2 * lineHeight) + BIGCHAR_HEIGHT;
 			maxClients -= n2;
 		} else {
 			n1 = CG_TeamScoreboard( y, TEAM_BLUE, fade, maxClients, lineHeight );
-			CG_DrawTeamBackground( 0, y - topBorderSize, 640, n1 * lineHeight + bottomBorderSize, 0.33f, TEAM_BLUE );
+			CG_DrawTeamBackground( 0, y - topBorderSize, GL_W, n1 * lineHeight + bottomBorderSize, 0.33f, TEAM_BLUE );
 			y += (n1 * lineHeight) + BIGCHAR_HEIGHT;
 			maxClients -= n1;
 			n2 = CG_TeamScoreboard( y, TEAM_RED, fade, maxClients, lineHeight );
-			CG_DrawTeamBackground( 0, y - topBorderSize, 640, n2 * lineHeight + bottomBorderSize, 0.33f, TEAM_RED );
+			CG_DrawTeamBackground( 0, y - topBorderSize, GL_W, n2 * lineHeight + bottomBorderSize, 0.33f, TEAM_RED );
 			y += (n2 * lineHeight) + BIGCHAR_HEIGHT;
 			maxClients -= n2;
 		}
@@ -437,7 +437,7 @@ static void CG_CenterGiantLine( float y, const char *string ) {
 	color[2] = 1;
 	color[3] = 1;
 
-	x = 0.5 * ( 640 - GIANT_WIDTH * CG_DrawStrlen( string ) );
+	x = 0.5 * ( GL_W - GIANT_WIDTH * CG_DrawStrlen( string ) );
 
 	CG_DrawStringExt( x, y, string, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 }
@@ -466,7 +466,7 @@ void CG_DrawTourneyScoreboard( void ) {
 	// draw the dialog background
 	color[0] = color[1] = color[2] = 0;
 	color[3] = 1;
-	CG_FillRect( 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, color );
+	CG_FillRect( 0, 0, GL_W, GL_H, color );
 
 	color[0] = 1;
 	color[1] = 1;
@@ -480,7 +480,7 @@ void CG_DrawTourneyScoreboard( void ) {
 	}
 
 	// print optional title
-	CG_CenterGiantLine( 8, s );
+	CG_CenterGiantLine( (int)(GL_H * 0.017f), s );
 
 	// print server time
 	ones = cg.time / 1000;
@@ -490,25 +490,25 @@ void CG_DrawTourneyScoreboard( void ) {
 	ones %= 10;
 	s = va("%i:%i%i", min, tens, ones );
 
-	CG_CenterGiantLine( 64, s );
+	CG_CenterGiantLine( (int)(GL_H * 0.133f), s );
 
 
 	// print the two scores
 
-	y = 160;
+	y = (int)(GL_H * 0.333f);
 	if ( cgs.gametype >= GT_TEAM ) {
 		//
 		// teamplay scoreboard
 		//
-		CG_DrawStringExt( 8, y, "Red Team", color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
+		CG_DrawStringExt( (int)(GL_W * 0.013f), y, "Red Team", color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 		s = va("%i", cg.teamScores[0] );
-		CG_DrawStringExt( 632 - GIANT_WIDTH * strlen(s), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
-		
+		CG_DrawStringExt( GL_W - (int)(GL_W * 0.013f) - GIANT_WIDTH * strlen(s), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
+
 		y += 64;
 
-		CG_DrawStringExt( 8, y, "Blue Team", color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
+		CG_DrawStringExt( (int)(GL_W * 0.013f), y, "Blue Team", color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 		s = va("%i", cg.teamScores[1] );
-		CG_DrawStringExt( 632 - GIANT_WIDTH * strlen(s), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
+		CG_DrawStringExt( GL_W - (int)(GL_W * 0.013f) - GIANT_WIDTH * strlen(s), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 	} else {
 		//
 		// Run scoreboard
@@ -522,9 +522,9 @@ void CG_DrawTourneyScoreboard( void ) {
 				continue;
 			}
 
-			CG_DrawStringExt( 8, y, ci->name, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
+			CG_DrawStringExt( (int)(GL_W * 0.013f), y, ci->name, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 			s = va("%i", ci->score );
-			CG_DrawStringExt( 632 - GIANT_WIDTH * strlen(s), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
+			CG_DrawStringExt( GL_W - (int)(GL_W * 0.013f) - GIANT_WIDTH * strlen(s), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 			y += 64;
 		}
 	}

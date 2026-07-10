@@ -51,7 +51,6 @@ void CG_AdjustFrom640( float *x, float *y, float *w, float *h ) {
 void CG_FillRect(float x, float y, float w, float h, const float* color) {
   if (!w || !h)        {return;}
   trap_R_SetColor      (color);
-  CG_AdjustFrom640     (&x, &y, &w, &h);
   trap_R_DrawStretchPic(x, y, w, h, 0, 0, 0, 0, cgs.media.whiteShader);
   trap_R_SetColor      (NULL);
 }
@@ -64,15 +63,11 @@ Coords are virtual 640x480
 ================
 */
 void CG_DrawSides(float x, float y, float w, float h, float size) {
-	CG_AdjustFrom640( &x, &y, &w, &h );
-	size *= cgs.screenXScale;
 	trap_R_DrawStretchPic( x, y, size, h, 0, 0, 0, 0, cgs.media.whiteShader );
 	trap_R_DrawStretchPic( x + w - size, y, size, h, 0, 0, 0, 0, cgs.media.whiteShader );
 }
 
 void CG_DrawTopBottom(float x, float y, float w, float h, float size) {
-	CG_AdjustFrom640( &x, &y, &w, &h );
-	size *= cgs.screenYScale;
 	trap_R_DrawStretchPic( x, y, w, size, 0, 0, 0, 0, cgs.media.whiteShader );
 	trap_R_DrawStretchPic( x, y + h - size, w, size, 0, 0, 0, 0, cgs.media.whiteShader );
 }
@@ -102,7 +97,6 @@ Coordinates are 640*480 virtual values
 =================
 */
 void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader ) {
-	CG_AdjustFrom640( &x, &y, &width, &height );
 	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 1, 1, hShader );
 }
 
@@ -116,33 +110,22 @@ Coordinates and size in 640*480 virtual screen size
 ===============
 */
 void CG_DrawChar( int x, int y, int width, int height, int ch ) {
-	int row, col;
-	float frow, fcol;
-	float size;
-	float	ax, ay, aw, ah;
-
 	ch &= 255;
 
 	if ( ch == ' ' ) {
 		return;
 	}
 
-	ax = x;
-	ay = y;
-	aw = width;
-	ah = height;
-	CG_AdjustFrom640( &ax, &ay, &aw, &ah );
+	int row = ch>>4;
+	int col = ch&15;
 
-	row = ch>>4;
-	col = ch&15;
+	float frow = row*0.0625;
+	float fcol = col*0.0625;
+	float size = 0.0625;
 
-	frow = row*0.0625;
-	fcol = col*0.0625;
-	size = 0.0625;
-
-	trap_R_DrawStretchPic( ax, ay, aw, ah,
-					   fcol, frow, 
-					   fcol + size, frow + size, 
+	trap_R_DrawStretchPic( x, y, width, height,
+					   fcol, frow,
+					   fcol + size, frow + size,
 					   cgs.media.charsetShader );
 }
 
@@ -154,7 +137,7 @@ CG_DrawStringExt
 Draws a multi-colored string with a drop shadow, optionally forcing
 to a fixed color.
 
-Coordinates are at 640 by 480 virtual resolution
+Coordinates are in actual screen pixels
 ==================
 */
 void CG_DrawStringExt( int x, int y, const char *string, const float *setColor, 
@@ -783,28 +766,28 @@ static void UI_DrawProportionalString2( int x, int y, const char* str, vec4_t co
 	// draw the colored text
 	trap_R_SetColor( color );
 	
-	ax = x * cgs.screenXScale + cgs.screenXBias;
-	ay = y * cgs.screenYScale;
+	ax = x;
+	ay = y;
 
 	s = str;
 	while ( *s )
 	{
 		ch = *s & 127;
 		if ( ch == ' ' ) {
-			aw = (float)PROP_SPACE_WIDTH * cgs.screenXScale * sizeScale;
+			aw = (float)PROP_SPACE_WIDTH * sizeScale;
 		} else if ( propMap[ch][2] != -1 ) {
 			fcol = (float)propMap[ch][0] / 256.0f;
 			frow = (float)propMap[ch][1] / 256.0f;
 			fwidth = (float)propMap[ch][2] / 256.0f;
 			fheight = (float)PROP_HEIGHT / 256.0f;
-			aw = (float)propMap[ch][2] * cgs.screenXScale * sizeScale;
-			ah = (float)PROP_HEIGHT * cgs.screenYScale * sizeScale;
+			aw = (float)propMap[ch][2] * sizeScale;
+			ah = (float)PROP_HEIGHT * sizeScale;
 			trap_R_DrawStretchPic( ax, ay, aw, ah, fcol, frow, fcol+fwidth, frow+fheight, charset );
 		} else {
 			aw = 0;
 		}
 
-		ax += (aw + (float)PROP_GAP_WIDTH * cgs.screenXScale * sizeScale);
+		ax += (aw + (float)PROP_GAP_WIDTH * sizeScale);
 		s++;
 	}
 

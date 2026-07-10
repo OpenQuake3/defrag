@@ -280,7 +280,7 @@ void CG_Draw3DModel( float x, float y, float w, float h, qhandle_t model, qhandl
 		return;
 	}
 
-	CG_AdjustFrom640( &x, &y, &w, &h );
+	// CG_AdjustFrom640( &x, &y, &w, &h );
 
 	memset( &refdef, 0, sizeof( refdef ) );
 
@@ -473,7 +473,7 @@ static void CG_DrawStatusBarHead( float x ) {
 	angles[YAW] = cg.headStartYaw + ( cg.headEndYaw - cg.headStartYaw ) * frac;
 	angles[PITCH] = cg.headStartPitch + ( cg.headEndPitch - cg.headStartPitch ) * frac;
 
-	CG_DrawHead( x, 480 - size, size, size, 
+	CG_DrawHead( x, GL_H - size, size, size,
 				cg.snap->ps.clientNum, angles );
 }
 #endif // TEAMARENA
@@ -486,7 +486,7 @@ CG_DrawStatusBarFlag
 */
 #ifndef TEAMARENA
 static void CG_DrawStatusBarFlag( float x, int team ) {
-	CG_DrawFlagModel( x, 480 - ICON_SIZE, ICON_SIZE, ICON_SIZE, team, qfalse );
+	CG_DrawFlagModel( x, GL_H - ICON_SIZE, ICON_SIZE, ICON_SIZE, team, qfalse );
 }
 #endif // TEAMARENA
 
@@ -544,8 +544,11 @@ static void CG_DrawStatusBar( void ) {
 		return;
 	}
 
+	int xAdj = (int)(GL_W * 0.3);
+	int yAdj = GL_H - ICON_SIZE;
+
 	// draw the team background
-	CG_DrawTeamBackground( 0, 420, 640, 60, 0.33f, cg.snap->ps.persistant[PERS_TEAM] );
+	CG_DrawTeamBackground( 0, GL_H - (int)(GL_H * 0.1), GL_W, 60, 0.33f, cg.snap->ps.persistant[PERS_TEAM] );
 
 	cent = &cg_entities[cg.snap->ps.clientNum];
 	ps = &cg.snap->ps;
@@ -558,18 +561,18 @@ static void CG_DrawStatusBar( void ) {
 		origin[1] = 0;
 		origin[2] = 0;
 		angles[YAW] = 90 + 20 * sin( cg.time / 1000.0 );
-		CG_Draw3DModel( CHAR_WIDTH*3 + TEXT_ICON_SPACE, 432, ICON_SIZE, ICON_SIZE,
+		CG_Draw3DModel( CHAR_WIDTH*3 + TEXT_ICON_SPACE, yAdj, ICON_SIZE, ICON_SIZE,
 					   cg_weapons[ cent->currentState.weapon ].ammoModel, 0, origin, angles );
 	}
 
-	CG_DrawStatusBarHead( 185 + CHAR_WIDTH*3 + TEXT_ICON_SPACE );
+	CG_DrawStatusBarHead( xAdj + CHAR_WIDTH*3 + TEXT_ICON_SPACE );
 
 	if( cg.predictedPlayerState.powerups[PW_REDFLAG] ) {
-		CG_DrawStatusBarFlag( 185 + CHAR_WIDTH*3 + TEXT_ICON_SPACE + ICON_SIZE, TEAM_RED );
+		CG_DrawStatusBarFlag( xAdj + CHAR_WIDTH*3 + TEXT_ICON_SPACE + ICON_SIZE, TEAM_RED );
 	} else if( cg.predictedPlayerState.powerups[PW_BLUEFLAG] ) {
-		CG_DrawStatusBarFlag( 185 + CHAR_WIDTH*3 + TEXT_ICON_SPACE + ICON_SIZE, TEAM_BLUE );
+		CG_DrawStatusBarFlag( xAdj + CHAR_WIDTH*3 + TEXT_ICON_SPACE + ICON_SIZE, TEAM_BLUE );
 	} else if( cg.predictedPlayerState.powerups[PW_NEUTRALFLAG] ) {
-		CG_DrawStatusBarFlag( 185 + CHAR_WIDTH*3 + TEXT_ICON_SPACE + ICON_SIZE, TEAM_FREE );
+		CG_DrawStatusBarFlag( xAdj + CHAR_WIDTH*3 + TEXT_ICON_SPACE + ICON_SIZE, TEAM_FREE );
 	}
 
 	if ( ps->stats[ STAT_ARMOR ] ) {
@@ -577,7 +580,7 @@ static void CG_DrawStatusBar( void ) {
 		origin[1] = 0;
 		origin[2] = -10;
 		angles[YAW] = ( cg.time & 2047 ) * 360 / 2048.0;
-		CG_Draw3DModel( 370 + CHAR_WIDTH*3 + TEXT_ICON_SPACE, 432, ICON_SIZE, ICON_SIZE,
+		CG_Draw3DModel( xAdj*2 + CHAR_WIDTH*3 + TEXT_ICON_SPACE, yAdj, ICON_SIZE, ICON_SIZE,
 					   cgs.media.armorModel, 0, origin, angles );
 	}
 	//
@@ -588,7 +591,6 @@ static void CG_DrawStatusBar( void ) {
 		if ( value > -1 ) {
 			if ( cg.predictedPlayerState.weaponstate == WEAPON_FIRING
 				&& cg.predictedPlayerState.weaponTime > 100 ) {
-				// draw as dark grey when reloading
 				color = 2;	// dark grey
 			} else {
 				if ( value >= 0 ) {
@@ -598,8 +600,8 @@ static void CG_DrawStatusBar( void ) {
 				}
 			}
 			trap_R_SetColor( colors[color] );
-			
-			CG_DrawField (0, 432, 3, value);
+
+			CG_DrawField (0, yAdj, 3, value);
 			trap_R_SetColor( NULL );
 
 			// if we didn't draw a 3D icon, draw a 2D icon for ammo
@@ -608,7 +610,7 @@ static void CG_DrawStatusBar( void ) {
 
 				icon = cg_weapons[ cg.predictedPlayerState.weapon ].ammoIcon;
 				if ( icon ) {
-					CG_DrawPic( CHAR_WIDTH*3 + TEXT_ICON_SPACE, 432, ICON_SIZE, ICON_SIZE, icon );
+					CG_DrawPic( CHAR_WIDTH*3 + TEXT_ICON_SPACE, yAdj, ICON_SIZE, ICON_SIZE, icon );
 				}
 			}
 		}
@@ -630,7 +632,7 @@ static void CG_DrawStatusBar( void ) {
 	}
 
 	// stretch the health up when taking damage
-	CG_DrawField ( 185, 432, 3, value);
+	CG_DrawField ( xAdj, yAdj, 3, value);
 	CG_ColorForHealth( hcolor );
 	trap_R_SetColor( hcolor );
 
@@ -641,11 +643,11 @@ static void CG_DrawStatusBar( void ) {
 	value = ps->stats[STAT_ARMOR];
 	if (value > 0 ) {
 		trap_R_SetColor( colors[0] );
-		CG_DrawField (370, 432, 3, value);
+		CG_DrawField (xAdj*2, yAdj, 3, value);
 		trap_R_SetColor( NULL );
 		// if we didn't draw a 3D icon, draw a 2D icon for armor
 		if ( !cg_draw3dIcons.integer && cg_drawIcons.integer ) {
-			CG_DrawPic( 370 + CHAR_WIDTH*3 + TEXT_ICON_SPACE, 432, ICON_SIZE, ICON_SIZE, cgs.media.armorIcon );
+			CG_DrawPic( xAdj*2 + CHAR_WIDTH*3 + TEXT_ICON_SPACE, yAdj, ICON_SIZE, ICON_SIZE, cgs.media.armorIcon );
 		}
 
 	}
@@ -703,12 +705,12 @@ static float CG_DrawAttacker( float y ) {
 	angles[PITCH] = 0;
 	angles[YAW] = 180;
 	angles[ROLL] = 0;
-	CG_DrawHead( 640 - size, y, size, size, clientNum, angles );
+	CG_DrawHead( GL_W - size, y, size, size, clientNum, angles );
 
 	info = CG_ConfigString( CS_PLAYERS + clientNum );
 	name = Info_ValueForKey(  info, "n" );
 	y += size;
-	CG_DrawBigString( 640 - ( Q_PrintStrlen( name ) * BIGCHAR_WIDTH), y, name, 0.5 );
+	CG_DrawBigString(GL_W - (Q_PrintStrlen(name) * BIGCHAR_WIDTH), y, name, 0.5);
 
 	return y + BIGCHAR_HEIGHT + 2;
 }
@@ -726,7 +728,7 @@ static float CG_DrawSnapshot( float y ) {
 		cg.latestSnapshotNum, cgs.serverCommandSequence );
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
-	CG_DrawBigString( 635 - w, y + 2, s, 1.0F);
+	CG_DrawBigString( GL_W - w - 5, y + 2, s, 1.0F);
 
 	return y + BIGCHAR_HEIGHT + 4;
 }
@@ -769,7 +771,7 @@ static float CG_DrawFPS( float y ) {
 		s = va( "%ifps", fps );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
-		CG_DrawBigString( 635 - w, y + 2, s, 1.0F);
+		CG_DrawBigString( GL_W - w - 5, y + 2, s, 1.0F);
 	}
 
 	return y + BIGCHAR_HEIGHT + 4;
@@ -798,7 +800,7 @@ static float CG_DrawTimelimit( float y ) {
 	s = va( "%i:%i%i", mins, tens, seconds );
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
-	CG_DrawBigString( 635 - w, y + 2, s, 1.0F);
+	CG_DrawBigString( GL_W - w - 5, y + 2, s, 1.0F);
 
 	return y + BIGCHAR_HEIGHT + 4;
 }
@@ -868,7 +870,7 @@ static float CG_DrawTeamOverlay( float y, qboolean right, qboolean upper ) {
 	w = (pwidth + lwidth + 4 + 7) * TINYCHAR_WIDTH;
 
 	if ( right )
-		x = 640 - w;
+		x = GL_W - w;
 	else
 		x = 0;
 
@@ -1042,7 +1044,7 @@ static float CG_DrawScores( float y ) {
 
 	// draw from the right side to left
 	if ( cgs.gametype >= GT_TEAM ) {
-		x = 640;
+		x = GL_W;
 		color[0] = 0.0f;
 		color[1] = 0.0f;
 		color[2] = 1.0f;
@@ -1107,7 +1109,7 @@ static float CG_DrawScores( float y ) {
 	} else {
 		qboolean	spectator;
 
-		x = 640;
+		x = GL_W;
 		score = cg.snap->ps.persistant[PERS_SCORE];
 		spectator = ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR );
 
@@ -1234,7 +1236,7 @@ static float CG_DrawPowerups( float y ) {
 	}
 
 	// draw the icons and timers
-	x = 640 - ICON_SIZE - CHAR_WIDTH * 2;
+	x = GL_W - ICON_SIZE - CHAR_WIDTH * 2;
 	for ( i = 0 ; i < active ; i++ ) {
 		item = BG_FindItemForPowerup( sorted[i] );
 
@@ -1267,7 +1269,7 @@ static float CG_DrawPowerups( float y ) {
 			  size = ICON_SIZE;
 		  }
 
-		  CG_DrawPic( 640 - size, y + ICON_SIZE / 2 - size / 2, 
+		  CG_DrawPic( GL_W - size, y + ICON_SIZE / 2 - size / 2,
 			  size, size, trap_R_RegisterShader( item->icon ) );
     }
 	}
@@ -1287,7 +1289,7 @@ CG_DrawLowerRight
 static void CG_DrawLowerRight( void ) {
 	float	y;
 
-	y = 480 - ICON_SIZE;
+	y = GL_H - ICON_SIZE;
 
 	if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 2 ) {
 		y = CG_DrawTeamOverlay( y, qtrue, qfalse );
@@ -1342,7 +1344,7 @@ static void CG_DrawVersion(float x, float y, float alpha, char const * const nam
 static void CG_DrawLowerLeft( void ) {
 	float	y;
 
-	y = 480 - ICON_SIZE;
+	y = GL_H - ICON_SIZE;
 
 	if ( cgs.gametype >= GT_TEAM && cg_drawTeamOverlay.integer == 3 ) {
 		y = CG_DrawTeamOverlay( y, qfalse, qfalse );
@@ -1350,7 +1352,7 @@ static void CG_DrawLowerLeft( void ) {
 
 
 	CG_DrawPickupItem( y );
-  CG_DrawVersion(1.33, 0.72, 1.0F, GAME_NAME_SHORT, GAME_VERSION);
+  CG_DrawVersion(0.98, 0.96, 1.0F, GAME_NAME_SHORT, GAME_VERSION);
 }
 #endif // TEAMARENA
 //::OSDF.end
@@ -1370,7 +1372,7 @@ static void CG_DrawTeamInfo( void ) {
 	vec4_t		hcolor;
 	int		chatHeight;
 
-#define CHATLOC_Y 420 // bottom end
+#define CHATLOC_Y (GL_H - 60) // bottom end
 #define CHATLOC_X 0
 
 	if (cg_teamChatHeight.integer < TEAMCHAT_HEIGHT)
@@ -1405,7 +1407,7 @@ static void CG_DrawTeamInfo( void ) {
 		}
 
 		trap_R_SetColor( hcolor );
-		CG_DrawPic( CHATLOC_X, CHATLOC_Y - h, 640, h, cgs.media.teamStatusBar );
+		CG_DrawPic( CHATLOC_X, CHATLOC_Y - h, GL_W, h, cgs.media.teamStatusBar );
 		trap_R_SetColor( NULL );
 
 		hcolor[0] = hcolor[1] = hcolor[2] = 1.0f;
@@ -1433,7 +1435,7 @@ static void CG_DrawHoldableItem( void ) {
 	value = cg.snap->ps.stats[STAT_HOLDABLE_ITEM];
 	if ( value ) {
 		CG_RegisterItemVisuals( value );
-		CG_DrawPic( 640-ICON_SIZE, (SCREEN_HEIGHT-ICON_SIZE)/2, ICON_SIZE, ICON_SIZE, cg_items[ value ].icon );
+		CG_DrawPic( GL_W-ICON_SIZE, (GL_H-ICON_SIZE)/2, ICON_SIZE, ICON_SIZE, cg_items[ value ].icon );
 	}
 
 }
@@ -1452,7 +1454,7 @@ static void CG_DrawPersistantPowerup( void ) {
 	value = cg.snap->ps.stats[STAT_PERSISTANT_POWERUP];
 	if ( value ) {
 		CG_RegisterItemVisuals( value );
-		CG_DrawPic( 640-ICON_SIZE, (SCREEN_HEIGHT-ICON_SIZE)/2 - ICON_SIZE, ICON_SIZE, ICON_SIZE, cg_items[ value ].icon );
+		CG_DrawPic( GL_W-ICON_SIZE, (GL_H-ICON_SIZE)/2 - ICON_SIZE, ICON_SIZE, ICON_SIZE, cg_items[ value ].icon );
 	}
 }
 #endif
@@ -1509,11 +1511,11 @@ static void CG_DrawReward( void ) {
 	*/
 
 	if ( cg.rewardCount[0] >= 10 ) {
-		y = 56;
-		x = 320 - ICON_SIZE/2;
+		y = (int)(GL_H * 0.117f);
+		x = GL_W/2 - ICON_SIZE/2;
 		CG_DrawPic( x, y, ICON_SIZE-4, ICON_SIZE-4, cg.rewardShader[0] );
 		Com_sprintf(buf, sizeof(buf), "%d", cg.rewardCount[0]);
-		x = ( SCREEN_WIDTH - SMALLCHAR_WIDTH * CG_DrawStrlen( buf ) ) / 2;
+		x = ( GL_W - SMALLCHAR_WIDTH * CG_DrawStrlen( buf ) ) / 2;
 		CG_DrawStringExt( x, y+ICON_SIZE, buf, color, qfalse, qtrue,
 								SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 	}
@@ -1521,8 +1523,8 @@ static void CG_DrawReward( void ) {
 
 		count = cg.rewardCount[0];
 
-		y = 56;
-		x = 320 - count * ICON_SIZE/2;
+		y = (int)(GL_H * 0.117f);
+		x = GL_W/2 - count * ICON_SIZE/2;
 		for ( i = 0 ; i < count ; i++ ) {
 			CG_DrawPic( x, y, ICON_SIZE-4, ICON_SIZE-4, cg.rewardShader[0] );
 			x += ICON_SIZE;
@@ -1617,7 +1619,7 @@ static void CG_DrawDisconnect( void ) {
 	// also add text in center of screen
 	s = "Connection Interrupted";
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-	CG_DrawBigString( 320 - w/2, 100, s, 1.0F);
+	CG_DrawBigString( GL_W/2 - w/2, (int)(GL_H * 0.21f), s, 1.0F);
 
 	// blink the icon
 	if ( ( cg.time >> 9 ) & 1 ) {
@@ -1625,11 +1627,11 @@ static void CG_DrawDisconnect( void ) {
 	}
 
 #ifdef TEAMARENA
-	x = 640 - 48;
-	y = 480 - 144;
+	x = GL_W - 48;
+	y = GL_H - 144;
 #else
-	x = 640 - 48;
-	y = 480 - 48;
+	x = GL_W - 48;
+	y = GL_H - 48;
 #endif
 
 	CG_DrawPic( x, y, 48, 48, trap_R_RegisterShader("gfx/2d/net.tga" ) );
@@ -1660,11 +1662,11 @@ static void CG_DrawLagometer( void ) {
 	// draw the graph
 	//
 #ifdef TEAMARENA
-	x = 640 - 48;
-	y = 480 - 144;
+	x = GL_W - 48;
+	y = GL_H - 144;
 #else
-	x = 640 - 48;
-	y = 480 - 48;
+	x = GL_W - 48;
+	y = GL_H - 48;
 #endif
 
 	trap_R_SetColor( NULL );
@@ -1674,7 +1676,6 @@ static void CG_DrawLagometer( void ) {
 	ay = y;
 	aw = 48;
 	ah = 48;
-	CG_AdjustFrom640( &ax, &ay, &aw, &ah );
 
 	color = -1;
 	range = ah / 3;
@@ -1833,13 +1834,13 @@ static void CG_DrawCenterString( void ) {
 #ifdef TEAMARENA
 		w = CG_Text_Width(linebuffer, 0.5, 0);
 		h = CG_Text_Height(linebuffer, 0.5, 0);
-		x = (SCREEN_WIDTH - w) / 2;
+		x = (GL_W - w) / 2;
 		CG_Text_Paint(x, y + h, 0.5, color, linebuffer, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 		y += h + 6;
 #else
 		w = cg.centerPrintCharWidth * CG_DrawStrlen( linebuffer );
 
-		x = ( SCREEN_WIDTH - w ) / 2;
+		x = ( GL_W - w ) / 2;
 
 		CG_DrawStringExt( x, y, linebuffer, color, qfalse, qtrue,
 			cg.centerPrintCharWidth, (int)(cg.centerPrintCharWidth * 1.5), 0 );
@@ -1914,9 +1915,9 @@ static void CG_DrawCrosshair(void)
 		h *= ( 1 + f );
 	}
 
-	x = cg_crosshairX.integer;
-	y = cg_crosshairY.integer;
-	CG_AdjustFrom640( &x, &y, &w, &h );
+	x = GL_W * cg_crosshairX.value + 0.5;
+	y = GL_H * cg_crosshairY.value + 0.5;
+	// CG_AdjustFrom640( &x, &y, &w, &h );
 
 	ca = cg_drawCrosshair.integer;
 	if (ca < 0) {
@@ -2000,7 +2001,7 @@ static void CG_DrawCrosshair3D(void)
 	VectorCopy(trace.endpos, ent.origin);
 	
 	// scale the crosshair so it appears the same size for all distances
-	ent.radius = w / 640 * xmax * trace.fraction * maxdist / zProj;
+	ent.radius = w / GL_W * xmax * trace.fraction * maxdist / zProj;
 	ent.customShader = hShader;
 
 	trap_R_AddRefEntityToScene(&ent);
@@ -2081,7 +2082,7 @@ static void CG_DrawCrosshairNames( void ) {
 	CG_Text_Paint( 320 - w / 2, 190, 0.3f, color, name, 0, 0, ITEM_TEXTSTYLE_SHADOWED);
 #else
 	w = CG_DrawStrlen( name ) * BIGCHAR_WIDTH;
-	CG_DrawBigString( 320 - w / 2, 170, name, color[3] * 0.5f );
+	CG_DrawBigString( GL_W/2 - w / 2, (int)(GL_H * 0.35f), name, color[3] * 0.5f );
 #endif
 	trap_R_SetColor( NULL );
 }
@@ -2095,12 +2096,12 @@ CG_DrawSpectator
 =================
 */
 static void CG_DrawSpectator(void) {
-	CG_DrawBigString(320 - 9 * 8, 440, "SPECTATOR", 1.0F);
+	CG_DrawBigString(GL_W/2 - 9 * 8, GL_H - 40, "SPECTATOR", 1.0F);
 	if ( cgs.gametype == GT_TOURNAMENT ) {
-		CG_DrawBigString(320 - 15 * 8, 460, "waiting to play", 1.0F);
+		CG_DrawBigString(GL_W/2 - 15 * 8, GL_H - 20, "waiting to play", 1.0F);
 	}
 	else if ( cgs.gametype >= GT_TEAM ) {
-		CG_DrawBigString(320 - 39 * 8, 460, "press ESC and use the JOIN menu to play", 1.0F);
+		CG_DrawBigString(GL_W/2 - 39 * 8, GL_H - 20, "press ESC and use the JOIN menu to play", 1.0F);
 	}
 }
 
@@ -2129,12 +2130,12 @@ static void CG_DrawVote(void) {
 	}
 #ifdef TEAMARENA
 	s = va("VOTE(%i):%s yes:%i no:%i", sec, cgs.voteString, cgs.voteYes, cgs.voteNo);
-	CG_DrawSmallString( 0, 58, s, 1.0F );
+	CG_DrawSmallString( 0, (int)(GL_H * 0.12f), s, 1.0F );
 	s = "or press ESC then click Vote";
-	CG_DrawSmallString( 0, 58 + SMALLCHAR_HEIGHT + 2, s, 1.0F );
+	CG_DrawSmallString( 0, (int)(GL_H * 0.12f) + SMALLCHAR_HEIGHT + 2, s, 1.0F );
 #else
 	s = va("VOTE(%i):%s yes:%i no:%i", sec, cgs.voteString, cgs.voteYes, cgs.voteNo );
-	CG_DrawSmallString( 0, 58, s, 1.0F );
+	CG_DrawSmallString( 0, (int)(GL_H * 0.12f), s, 1.0F );
 #endif
 }
 
@@ -2170,7 +2171,7 @@ static void CG_DrawTeamVote(void) {
 	}
 	s = va("TEAMVOTE(%i):%s yes:%i no:%i", sec, cgs.teamVoteString[cs_offset],
 							cgs.teamVoteYes[cs_offset], cgs.teamVoteNo[cs_offset] );
-	CG_DrawSmallString( 0, 90, s, 1.0F );
+	CG_DrawSmallString( 0, (int)(GL_H * 0.19f), s, 1.0F );
 }
 
 
@@ -2278,13 +2279,13 @@ static qboolean CG_DrawFollow( void ) {
 	color[3] = 1;
 
 
-	CG_DrawBigString( 320 - 9 * 8, 24, "following", 1.0F );
+	CG_DrawBigString( GL_W/2 - 9 * 8, (int)(GL_H * 0.05f), "following", 1.0F );
 
 	name = cgs.clientinfo[ cg.snap->ps.clientNum ].name;
 
-	x = 0.5 * ( 640 - GIANT_WIDTH * CG_DrawStrlen( name ) );
+	x = 0.5 * ( GL_W - GIANT_WIDTH * CG_DrawStrlen( name ) );
 
-	CG_DrawStringExt( x, 40, name, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
+	CG_DrawStringExt( x, (int)(GL_H * 0.083f), name, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 
 	return qtrue;
 }
@@ -2314,7 +2315,7 @@ static void CG_DrawAmmoWarning( void ) {
 		s = "LOW AMMO WARNING";
 	}
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-	CG_DrawBigString(320 - w / 2, 64, s, 1.0F);
+	CG_DrawBigString(GL_W/2 - w / 2, (int)(GL_H * 0.133f), s, 1.0F);
 }
 
 
@@ -2348,7 +2349,7 @@ static void CG_DrawProxWarning( void ) {
   }
 
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-	CG_DrawBigStringColor( 320 - w / 2, 64 + BIGCHAR_HEIGHT, s, g_color_table[ColorIndex(COLOR_RED)] );
+	CG_DrawBigStringColor( GL_W/2 - w / 2, (int)(GL_H * 0.133f) + BIGCHAR_HEIGHT, s, g_color_table[ColorIndex(COLOR_RED)] );
 }
 #endif
 
@@ -2378,7 +2379,7 @@ static void CG_DrawWarmup( void ) {
 	if ( sec < 0 ) {
 		s = "Waiting for players";		
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
-		CG_DrawBigString(320 - w / 2, 24, s, 1.0F);
+		CG_DrawBigString(GL_W/2 - w / 2, (int)(GL_H * 0.05f), s, 1.0F);
 		cg.warmupCount = 0;
 		return;
 	}
@@ -2404,12 +2405,12 @@ static void CG_DrawWarmup( void ) {
 			CG_Text_Paint(320 - w / 2, 60, 0.6f, colorWhite, s, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 #else
 			w = CG_DrawStrlen( s );
-			if ( w > 640 / GIANT_WIDTH ) {
-				cw = 640 / w;
+			if ( w > GL_W / GIANT_WIDTH ) {
+				cw = GL_W / w;
 			} else {
 				cw = GIANT_WIDTH;
 			}
-			CG_DrawStringExt( 320 - w * cw/2, 20,s, colorWhite, 
+			CG_DrawStringExt( GL_W/2 - w * cw/2, (int)(GL_H * 0.042f),s, colorWhite,
 					qfalse, qtrue, cw, (int)(cw * 1.5f), 0 );
 #endif
 		}
@@ -2436,12 +2437,12 @@ static void CG_DrawWarmup( void ) {
 		CG_Text_Paint(320 - w / 2, 90, 0.6f, colorWhite, s, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 #else
 		w = CG_DrawStrlen( s );
-		if ( w > 640 / GIANT_WIDTH ) {
-			cw = 640 / w;
+		if ( w > GL_W / GIANT_WIDTH ) {
+			cw = GL_W / w;
 		} else {
 			cw = GIANT_WIDTH;
 		}
-		CG_DrawStringExt( 320 - w * cw/2, 25,s, colorWhite, 
+		CG_DrawStringExt( GL_W/2 - w * cw/2, (int)(GL_H * 0.052f),s, colorWhite,
 				qfalse, qtrue, cw, (int)(cw * 1.1f), 0 );
 #endif
 	}
@@ -2504,7 +2505,7 @@ static void CG_DrawWarmup( void ) {
 	}
 
 	w = CG_DrawStrlen( s );
-	CG_DrawStringExt( 320 - w * cw/2, 70, s, colorWhite, 
+	CG_DrawStringExt( GL_W/2 - w * cw/2, (int)(GL_H * 0.146f), s, colorWhite,
 			qfalse, qtrue, cw, (int)(cw * 1.5), 0 );
 #endif
 }
@@ -2534,8 +2535,9 @@ void CG_DrawTimedMenus( void ) {
 // Speedometer
 //
 // Screen space constants. For adjusting [0-1] to expected virtual screen values
-#define SCREENH 640
-#define SCREENW 480
+// Screen space constants. Legacy aliases for virtual screen values
+#define SCREENW 640
+#define SCREENH 480
 
 // Uses 0-1 range for each coordinate, instead of 640 stuff from q3_ui
 // ie: 0.5 == middle of the screen
@@ -2544,18 +2546,13 @@ static void CG_DrawSpeed(float x, float y, float alpha){
     float velX, velY;
     char *speed;
 
-    // Convert [0-1] input range to q3_ui expected range (screen space)
-    //FIXME: Wrong math. Figure out the proper conversion with cg.scaleX etc
-    x = x*SCREENW;
-    y = y*SCREENH;
-
     // Calculate current speed, based on ps->velocity
     velX = cg.snap->ps.velocity[0];                   // Store X component of velocity
     velY = cg.snap->ps.velocity[1];                   // Store Y component of velocity
     sint = (int)sqrt(velX*velX + velY*velY);          // Calculate speed as length2D of velocity, and convert to integer
     speed = va("%i", sint);                           // Convert integer speed to string
     w = CG_DrawStrlen(speed) * BIGCHAR_WIDTH * 0.5;
-    CG_DrawBigString(x-w, y, speed, alpha);           // Draw speed string to screen
+    CG_DrawBigString((int)(x*GL_W)-w, (int)(y*GL_H), speed, alpha);  // Draw speed string to screen
 }
 
 // Replaces Naming of default function. Default renamed to CG_DrawTimelimit
@@ -2565,8 +2562,9 @@ static void CG_DrawTimer( float x, float y, float alpha ) {
   int   min, sec, ten;
   int   msec, timer;
 
-  x = x*SCREENW;
-  y = y*SCREENH;
+  // Convert [0-1] input range to screen resolution
+  x = x*GL_W;
+  y = y*GL_H;
 
   // Timers set to -1 are considered disabled. On player_die(), ClientSpawn(), etc
   if      (cg.timer_stop  >= 0) { timer = cg.timer_stop; }                        // If there is a timer_stop active, draw it and ignore active timer 
@@ -2594,10 +2592,10 @@ static void CG_DrawTimerBest( float x, float y, float alpha ) {
   // Don't draw the best timer when its 0 or negative
   if (cg.timer_best <= 0) { return; }
 
-  x = x*SCREENW;
-  y = y*SCREENH;
+  x = x*GL_W;
+  y = y*GL_H;
 
-  timer = cg.timer_best; 
+  timer = cg.timer_best;
 
   msec = timer % 1000;
   sec = timer / 1000;
@@ -2611,10 +2609,9 @@ static void CG_DrawTimerBest( float x, float y, float alpha ) {
   CG_DrawSmallString(x-w, y, s, 1.0);
 }
 static void CG_DrawSmallIntCentered(int num, float x, float y, float alpha){
-  // Convert [0-1] input range to ui expected range
-  //FIXME: Wrong math. Figure out the proper conversion with cg.scaleX etc
-  x = x*SCREENW;
-  y = y*SCREENH;
+  // Convert [0-1] input range to screen resolution
+  x = x*GL_W;
+  y = y*GL_H;
   char* time = va("%i", num);
   int w = CG_DrawStrlen(time) * SMALLCHAR_WIDTH * 0.5;
   CG_DrawSmallString(x-w, y, time, alpha); // Draw string to screen
@@ -2629,8 +2626,8 @@ static void CG_DrawHoldboost(float x, float y, float alpha){
   CG_DrawSmallIntCentered(cg.snap->ps.stats[STAT_JUMP_HOLDBOOST], x, y, alpha);
 }
 static void CG_DrawVersion(float x, float y, float alpha, char const * const name, char const * const vers) {
-  x = x*SCREENW;
-  y = y*SCREENH;
+  x = x*GL_W;
+  y = y*GL_H;
 
   char* s = va("%s %s", name, vers);
   int w = CG_DrawStrlen(s) * SMALLCHAR_WIDTH;
@@ -2753,9 +2750,9 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
       CG_DrawSpeed(hud_speed_x.value, hud_speed_y.value, 1.0); //TODO: Add cvar conditional and settings
       CG_DrawTimer(hud_timerActive_x.value, hud_timerActive_y.value, 1.0F);
       CG_DrawTimerBest(hud_timerBest_x.value, hud_timerBest_y.value, 1.0F);
-      if (cg.snap->ps.stats[STAT_TIME_CROUCHSLIDE]) { CG_DrawCrouchslideTime(0.66666, 0.45, 1.0F); }
-      if (cg.snap->ps.stats[STAT_JUMP_HOLDBOOST])   { CG_DrawHoldboost      (0.66666, 0.45, 1.0F); }
-      if (cg.snap->ps.pm_time)                      { CG_DrawPMTime         (0.66666, 0.50, 1.0F); }
+      if (cg.snap->ps.stats[STAT_TIME_CROUCHSLIDE]) { CG_DrawCrouchslideTime(0.5, 0.6, 1.0F); }
+      if (cg.snap->ps.stats[STAT_JUMP_HOLDBOOST])   { CG_DrawHoldboost      (0.5, 0.6, 1.0F); }
+      if (cg.snap->ps.pm_time)                      { CG_DrawPMTime         (0.5, 0.667, 1.0F); }
     }
     //::::::::::::::
     //::OSDF end

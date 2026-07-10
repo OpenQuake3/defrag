@@ -1480,8 +1480,8 @@ void CG_DrawWeaponSelect( void ) {
 		}
 	}
 
-	x = 320 - count * 20;
-	y = 380;
+	x = GL_W/2 - count * 20;
+	y = (int)(GL_H * 0.79f);
 
 	for ( i = 1 ; i < MAX_WEAPONS ; i++ ) {
 		if ( !( bits & ( 1 << i ) ) ) {
@@ -1511,7 +1511,7 @@ void CG_DrawWeaponSelect( void ) {
 		name = cg_weapons[ cg.weaponSelect ].item->pickup_name;
 		if ( name ) {
 			w = CG_DrawStrlen( name ) * BIGCHAR_WIDTH;
-			x = ( SCREEN_WIDTH - w ) / 2;
+			x = ( GL_W - w ) / 2;
 			CG_DrawBigStringColor(x, y - 22, name, color);
 		}
 	}

@@ -1294,6 +1294,8 @@ void CG_DrawTopBottom(float x, float y, float w, float h, float size);
 
 //::OSDF added
 void CG_FillAngleYaw(float start, float end, float yaw, float y, float h, vec4_t const color);
+#define GL_W cgs.glconfig.vidWidth
+#define GL_H cgs.glconfig.vidHeight
 //::OSDF end
 
 //

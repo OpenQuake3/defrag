@@ -337,11 +337,11 @@ static cvarTable_t cvarTable[] = {
 //	{ &cg_pmove_fixed, "cg_pmove_fixed", "0", CVAR_USERINFO | CVAR_ARCHIVE }
 
 	//::OSDF modded
-	{&hud_speed_x, "hud_speed_x", "0.66666", CVAR_USERINFO},
-	{&hud_speed_y, "hud_speed_y", "0.4", CVAR_USERINFO},
-	{&hud_timerActive_x, "hud_timerActive_x", "0.66666", CVAR_USERINFO},
+	{&hud_speed_x, "hud_speed_x", "0.50", CVAR_USERINFO},
+	{&hud_speed_y, "hud_speed_y", "0.55", CVAR_USERINFO},
+	{&hud_timerActive_x, "hud_timerActive_x", "0.5", CVAR_USERINFO},
 	{&hud_timerActive_y, "hud_timerActive_y", "0.0", CVAR_USERINFO},
-	{&hud_timerBest_x, "hud_timerBest_x", "1.0", CVAR_USERINFO},
+	{&hud_timerBest_x, "hud_timerBest_x", "0.75", CVAR_USERINFO},
 	{&hud_timerBest_y, "hud_timerBest_y", "0.0", CVAR_USERINFO},
 
 	{&phy_movetype, "phy_movetype", "0", CVAR_SYSTEMINFO},
