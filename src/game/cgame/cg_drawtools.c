@@ -419,19 +419,19 @@ typedef struct {
 //:::::::::::::::::
 static inline qboolean AngleInFovY(float pitch) {
   ASSERT_FLOAT_EQ(pitch, AngleNormalizePI(pitch));
-  float const half_fov_y = cg.refdef.fov_y / 2;
+  float const half_fov_y = DEG2RAD(cg.refdef.fov_y) / 2;
   return pitch > -half_fov_y && pitch < half_fov_y;
 }
 //:::::::::::::::::
 static inline qboolean AngleInFovX(float yaw) {
   ASSERT_FLOAT_EQ(yaw, AngleNormalizePI(yaw));
-  float const half_fov_x = cg.refdef.fov_x / 2;
+  float const half_fov_x = DEG2RAD(cg.refdef.fov_x) / 2;
   return yaw > -half_fov_x && yaw < half_fov_x;
 }
 //:::::::::::::::::
 static inline float ProjectionX(float angle) {
   ASSERT_FLOAT_EQ(angle, AngleNormalizePI(angle));
-  float const half_fov_x = cg.refdef.fov_x / 2;
+  float const half_fov_x = DEG2RAD(cg.refdef.fov_x) / 2;
   if (angle >= half_fov_x) return 0;
   if (angle <= -half_fov_x) return cgs.screenWidth;
 
