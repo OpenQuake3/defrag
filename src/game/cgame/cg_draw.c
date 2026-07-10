@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // active (after loading) gameplay
 
 #include "cg_local.h"
+#include "hud/local.h"
 
 #ifdef TEAMARENA
 #include "../ui_ta/ui_shared.h"
@@ -2738,6 +2739,8 @@ static void CG_Draw2D(stereoFrame_t stereoFrame)
       if (cg.snap->ps.stats[STAT_JUMP_HOLDBOOST])   { CG_DrawHoldboost      (0.5, 0.6, 1.0F); }
       if (cg.snap->ps.pm_time)                      { CG_DrawPMTime         (0.5, 0.667, 1.0F); }
     }
+    hud_update();
+    hud_draw();
     //::::::::::::::
     //::OSDF end
 }
