@@ -1179,98 +1179,86 @@ CG_DrawPowerups
 ================
 */
 #ifndef TEAMARENA
-static float CG_DrawPowerups( float y ) {
+static float CG_DrawPowerups( float x, float y ) {
+	playerState_t *ps = &cg.snap->ps;
+	if (ps->stats[STAT_HEALTH] <= 0) { return y; }
+
 	int		sorted[MAX_POWERUPS];
 	int		sortedTime[MAX_POWERUPS];
-	int		i, j, k;
-	int		active;
-	playerState_t	*ps;
-	int		t;
 	gitem_t	*item;
-	int		x;
-	int		color;
 	float	size;
 	float	f;
-	static float colors[2][4] = { 
-    { 0.2f, 1.0f, 0.2f, 1.0f } , 
-    { 1.0f, 0.2f, 0.2f, 1.0f } 
+	int		color;
+	static float colors[2][4] = {
+    { 0.2f, 1.0f, 0.2f, 1.0f },
+    { 1.0f, 1.0f, 1.0f, 1.0f }
   };
 
-	ps = &cg.snap->ps;
-
-	if ( ps->stats[STAT_HEALTH] <= 0 ) {
-		return y;
-	}
+	x *= GL_W;
+	y *= GL_H;
+	int xPos = x + ICON_SIZE * 0.5;
 
 	// sort the list by time remaining
-	active = 0;
-	for ( i = 0 ; i < MAX_POWERUPS ; i++ ) {
-		if ( !ps->powerups[ i ] ) {
-			continue;
-		}
+	int active = 0;
+	for (int idx = 0; idx < MAX_POWERUPS; idx++) {
+		if (!ps->powerups[idx]) { continue; }
 
-		// ZOID--don't draw if the power up has unlimited time
-		// This is true of the CTF flags
-		if ( ps->powerups[ i ] == INT_MAX ) {
-			continue;
-		}
+		// ZOID--don't draw if the power up has unlimited time. True for CTF flags
+		if (ps->powerups[idx] == INT_MAX) { continue; }
 
-		t = ps->powerups[ i ] - cg.time;
-		if ( t <= 0 ) {
-			continue;
-		}
+		int remaining = ps->powerups[idx] - cg.time;
+		if (remaining <= 0) { continue; }
 
 		// insert into the list
-		for ( j = 0 ; j < active ; j++ ) {
-			if ( sortedTime[j] >= t ) {
-				for ( k = active - 1 ; k >= j ; k-- ) {
-					sorted[k+1] = sorted[k];
-					sortedTime[k+1] = sortedTime[k];
+		int insertAt;
+		for (insertAt = 0; insertAt < active; insertAt++) {
+			if (sortedTime[insertAt] >= remaining) {
+				for (int shift = active - 1; shift >= insertAt; shift--) {
+					sorted[shift+1] = sorted[shift];
+					sortedTime[shift+1] = sortedTime[shift];
 				}
 				break;
 			}
 		}
-		sorted[j] = i;
-		sortedTime[j] = t;
+		sorted[insertAt] = idx;
+		sortedTime[insertAt] = remaining;
 		active++;
 	}
 
 	// draw the icons and timers
-	x = GL_W - ICON_SIZE - CHAR_WIDTH * 2;
-	for ( i = 0 ; i < active ; i++ ) {
-		item = BG_FindItemForPowerup( sorted[i] );
+	x = xPos;
+	for (int idx = 0; idx < active; idx++) {
+		item = BG_FindItemForPowerup( sorted[idx] );
 
     if (item) {
+			color = 1;
+			y -= ICON_SIZE;
 
-		  color = 1;
+			trap_R_SetColor( colors[color] );
+			int drawTime = sortedTime[idx] / 1000;
+			if (drawTime < 99) { CG_DrawField( x, y, 2, drawTime); }
 
-		  y -= ICON_SIZE;
+			int remaining = ps->powerups[ sorted[idx] ];
+			if (remaining - cg.time >= POWERUP_BLINKS * POWERUP_BLINK_TIME) {
+				trap_R_SetColor( NULL );
+			} else {
+				vec4_t modulate;
+				f = (float)(remaining - cg.time) / POWERUP_BLINK_TIME;
+				f -= (int)f;
+				modulate[0] = modulate[1] = modulate[2] = modulate[3] = f;
+				trap_R_SetColor( modulate );
+			}
 
-		  trap_R_SetColor( colors[color] );
-		  CG_DrawField( x, y, 2, sortedTime[ i ] / 1000 );
+			if (cg.powerupActive == sorted[idx] &&
+				cg.time - cg.powerupTime < PULSE_TIME) {
+				f = 1.0 - (((float)cg.time - cg.powerupTime) / PULSE_TIME);
+				size = ICON_SIZE * (1.0 + (PULSE_SCALE - 1.0) * f);
+			} else {
+				size = ICON_SIZE;
+			}
 
-		  t = ps->powerups[ sorted[i] ];
-		  if ( t - cg.time >= POWERUP_BLINKS * POWERUP_BLINK_TIME ) {
-			  trap_R_SetColor( NULL );
-		  } else {
-			  vec4_t	modulate;
-
-			  f = (float)( t - cg.time ) / POWERUP_BLINK_TIME;
-			  f -= (int)f;
-			  modulate[0] = modulate[1] = modulate[2] = modulate[3] = f;
-			  trap_R_SetColor( modulate );
-		  }
-
-		  if ( cg.powerupActive == sorted[i] && 
-			  cg.time - cg.powerupTime < PULSE_TIME ) {
-			  f = 1.0 - ( ( (float)cg.time - cg.powerupTime ) / PULSE_TIME );
-			  size = ICON_SIZE * ( 1.0 + ( PULSE_SCALE - 1.0 ) * f );
-		  } else {
-			  size = ICON_SIZE;
-		  }
-
-		  CG_DrawPic( GL_W - size, y + ICON_SIZE / 2 - size / 2,
-			  size, size, trap_R_RegisterShader( item->icon ) );
+			CG_DrawPic( xPos - size, y + (int)(ICON_SIZE * 0.5) - size / 2,
+				size, size, trap_R_RegisterShader( item->icon ) );
     }
 	}
 	trap_R_SetColor( NULL );
@@ -1296,7 +1284,7 @@ static void CG_DrawLowerRight( void ) {
 	} 
 
 	y = CG_DrawScores( y );
-	CG_DrawPowerups( y );
+	CG_DrawPowerups( 0.5, 1.0 );
 }
 #endif // TEAMARENA
 
@@ -1306,29 +1294,25 @@ CG_DrawPickupItem
 ===================
 */
 #ifndef TEAMARENA
-static int CG_DrawPickupItem( int y ) {
-	int		value;
-	float	*fadeColor;
+static void CG_DrawPickupItem( float x, float y ) {
+	if ( cg.snap->ps.stats[STAT_HEALTH] <= 0 ) { return; }
 
-	if ( cg.snap->ps.stats[STAT_HEALTH] <= 0 ) {
-		return y;
-	}
+	float xIcon = (GL_W * x) - ICON_SIZE * 0.5;
+	float yIcon = (GL_H * y) - ICON_SIZE * 0.5;
 
-	y -= ICON_SIZE;
-
-	value = cg.itemPickup;
-	if ( value ) {
-		fadeColor = CG_FadeColor( cg.itemPickupTime, 3000 );
-		if ( fadeColor ) {
+	int value = cg.itemPickup;
+	if (value) {
+		float *fadeColor = CG_FadeColor( cg.itemPickupTime, 3000 );
+		if (fadeColor) {
 			CG_RegisterItemVisuals( value );
 			trap_R_SetColor( fadeColor );
-			CG_DrawPic( 8, y, ICON_SIZE, ICON_SIZE, cg_items[ value ].icon );
-			CG_DrawBigString( ICON_SIZE + 16, y + (ICON_SIZE/2 - BIGCHAR_HEIGHT/2), bg_itemlist[ value ].pickup_name, fadeColor[0] );
+			CG_DrawPic( xIcon, yIcon, ICON_SIZE, ICON_SIZE, cg_items[ value ].icon );
+			char *name = bg_itemlist[ value ].pickup_name;
+			int nameWidth = CG_DrawStrlen( name ) * BIGCHAR_WIDTH;
+			CG_DrawBigString( (int)(GL_W * x) - nameWidth / 2, yIcon + ICON_SIZE + 2, name, fadeColor[0] );
 			trap_R_SetColor( NULL );
 		}
 	}
-	
-	return y;
 }
 #endif // TEAMARENA
 
@@ -1351,7 +1335,7 @@ static void CG_DrawLowerLeft( void ) {
 	} 
 
 
-	CG_DrawPickupItem( y );
+	CG_DrawPickupItem( 0.5, 0.75 );
   CG_DrawVersion(0.98, 0.96, 1.0F, GAME_NAME_SHORT, GAME_VERSION);
 }
 #endif // TEAMARENA
