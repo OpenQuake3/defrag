@@ -52,6 +52,7 @@ typedef struct {
 
 	vec3_t		previous_origin;
 	vec3_t		previous_velocity;
+	vec3_t		friction_velocity;  //::OSDF added. Velocity after friction, before acceleration
 	int			previous_waterlevel;
 } pml_t;
 

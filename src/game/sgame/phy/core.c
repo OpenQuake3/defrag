@@ -487,7 +487,7 @@ void core_Friction(void) {
 
   speed = VectorLength(vec);
   // allow sinking underwater   FIXME: still have z friction underwater?
-  if (speed < 1) { vel[0] = 0; vel[1] = 0; return; }
+  if (speed < 1) { vel[0] = 0; vel[1] = 0; VectorCopy(vel, pml.friction_velocity); return; }
   drop = 0;
   // apply ground friction
   if ( pm->waterlevel <= 1 ) {
@@ -509,6 +509,7 @@ void core_Friction(void) {
   if (newspeed < 0) { newspeed = 0; }
   newspeed /= speed;
   VectorScale(vel, newspeed, vel);
+  VectorCopy(vel, pml.friction_velocity);
 }
 
 static void core_FinishWeaponChange( void ) {

@@ -184,6 +184,7 @@ void PM_Friction(void) {
     vel[0] = 0;
     vel[1] = 0; // allow sinking underwater
     // FIXME: still have z friction underwater?
+    VectorCopy(vel, pml.friction_velocity); //::OSDF added
     return;
   }
 
@@ -224,6 +225,7 @@ void PM_Friction(void) {
   vel[0] = vel[0] * newspeed;
   vel[1] = vel[1] * newspeed;
   vel[2] = vel[2] * newspeed;
+  VectorCopy(vel, pml.friction_velocity); //::OSDF added
 }
 
 /*
