@@ -38,7 +38,7 @@ pub fn main (P :confy.Process) !void {
   var game   = try Game.create(P, cfg.package, release);
   var assets = try Assets.create(P, cfg.package);
   var config = try Config.create(P, cfg.package);
-  var result = try Release.create(P, cfg.package);
+  var result = try Release.create(P, cfg.package, release, distribute);
 
   //______________________________________
   // @section Target System
@@ -56,7 +56,7 @@ pub fn main (P :confy.Process) !void {
   try engine.buildFor(systems);
   try assets.packFor(systems);
   try config.packFor(systems);
-  try result.packFor(systems, release);
+  try result.packFor(systems);
   try result.publish(publish);
 
   //__________________

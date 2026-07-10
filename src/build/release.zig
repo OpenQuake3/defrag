@@ -23,12 +23,19 @@ A      :confy.Allocator,
 info   :confy.package.Info,
 rev    :usize= 0,
 files  :confy.seq(confy.Path),
+rls    :bool= false,
+dist   :bool= false,
 
 
 //______________________________________
 // @section Release: Create/Destroy
 //____________________________
-pub fn create (P :confy.Process, pkg :confy.package.Info) !Release {
+pub fn create (
+    P          : confy.Process,
+    pkg        : confy.package.Info,
+    release    : bool,
+    distribute : bool,
+  ) !Release {
   const vers  = try std.fmt.allocPrint(P.arena.allocator(), "{f}", .{pkg.version});
   const dir   = try confy.path.join(P.arena.allocator(), &.{Release.root, vers});
   try confy.dir.create(Release.root, P.io, .{});
@@ -41,6 +48,8 @@ pub fn create (P :confy.Process, pkg :confy.package.Info) !Release {
     .info  = pkg,
     .rev   = rev,
     .files = undefined,
+    .rls   = release,
+    .dist  = distribute,
   };
 }
 
@@ -51,9 +60,9 @@ pub fn create (P :confy.Process, pkg :confy.package.Info) !Release {
 pub fn packFor (
     R       : *Release,
     systems : []const confy.System,
-    release : bool,
   ) !void {
-  if (!release) return;
+  if (!R.rls ) return;
+  if (!R.dist) return;
   const io   = R.io;
   const A    = R.A.allocator();
   const vers = try std.fmt.allocPrint(A, "{f}", .{R.info.version});
