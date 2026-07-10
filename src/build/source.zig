@@ -50,14 +50,29 @@ const files = struct {
     Game.dir.common++"/q_math.c",
   };
   //__________________
-  const both = &[_]confy.cstring{
-    Game.dir.server++"/bg_misc.c",
-    Game.dir.server++"/bg_pmove.c",
-    Game.dir.server++"/bg_slidemove.c",
-  };
-  //__________________
   const misc = &[_]confy.cstring{
     Game.dir.server++"/bg_misc.c",
+  };
+  //__________________
+  const both = struct {
+    const base = &[_]confy.cstring{
+      Game.dir.server++"/bg_misc.c",
+      Game.dir.server++"/bg_pmove.c",
+      Game.dir.server++"/bg_slidemove.c",
+    };
+    const ents = &[_]confy.cstring{
+      Game.dir.server++"/ent/velocity/trigger/both.c",
+      Game.dir.server++"/ent/velocity/target/both.c",
+    };
+    const all = base ++ ents;
+  };
+  //__________________
+  const server = struct {
+    const ents = &[_]confy.cstring{
+      Game.dir.server++"/ent/velocity/trigger/server.c",
+      Game.dir.server++"/ent/velocity/target/server.c",
+    };
+    const all = ents;
   };
 };
 
@@ -67,7 +82,7 @@ const files = struct {
 //____________________________
 pub const client = struct {
   pub const dirs  :confy.Glob.List    = Game.code.dirs.client;
-  pub const files :confy.cstring_List = Game.code.files.lib ++ Game.code.files.both;
+  pub const files :confy.cstring_List = Game.code.files.lib ++ Game.code.files.both.all;
 };
 
 
@@ -76,7 +91,7 @@ pub const client = struct {
 //____________________________
 pub const server = struct {
   pub const dirs  :confy.Glob.List    = Game.code.dirs.server;
-  pub const files :confy.cstring_List = Game.code.files.lib ++ Game.code.files.both;
+  pub const files :confy.cstring_List = Game.code.files.lib ++ Game.code.files.both.all ++ Game.code.files.server.all;
 };
 
 

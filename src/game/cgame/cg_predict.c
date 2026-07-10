@@ -43,6 +43,14 @@ of the entities that are actually solid, to make for more
 efficient collision detection
 ====================
 */
+//::OSDF added
+static qboolean entity_type_trigger (entityState_t* const ent) {
+  return ent->eType == ET_ITEM
+		|| ent->eType == ET_PUSH_TRIGGER
+		|| ent->eType == ET_TRIGGER_VELOCITY
+		|| ent->eType == ET_TELEPORT_TRIGGER;
+}
+//::OSDF end
 void CG_BuildSolidList( void ) {
 	int			i;
 	centity_t	*cent;
@@ -62,7 +70,7 @@ void CG_BuildSolidList( void ) {
 		cent = &cg_entities[ snap->entities[ i ].number ];
 		ent = &cent->currentState;
 
-		if ( ent->eType == ET_ITEM || ent->eType == ET_PUSH_TRIGGER || ent->eType == ET_TELEPORT_TRIGGER ) {
+		if (entity_type_trigger(ent)) { //::OSDF modded
 			cg_triggerEntities[cg_numTriggerEntities] = cent;
 			cg_numTriggerEntities++;
 			continue;
@@ -371,6 +379,10 @@ static void CG_TouchTriggerPrediction( void ) {
 			cg.hyperspace = qtrue;
 		} else if ( ent->eType == ET_PUSH_TRIGGER ) {
 			BG_TouchJumpPad( &cg.predictedPlayerState, ent );
+		//::OSDF added
+		} else if ( ent->eType == ET_TRIGGER_VELOCITY ) {
+			BG_trigger_velocity_touch( &cg.predictedPlayerState, ent );
+		//::OSDF end
 		}
 	}
 

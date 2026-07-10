@@ -138,6 +138,10 @@ void SP_trigger_multiple (gentity_t *ent);
 void SP_trigger_push (gentity_t *ent);
 void SP_trigger_teleport (gentity_t *ent);
 void SP_trigger_hurt (gentity_t *ent);
+//::OSDF added
+void SP_trigger_velocity (gentity_t *ent);
+void SP_target_velocity (gentity_t *ent);
+//::OSDF end
 
 void SP_target_remove_powerups( gentity_t *ent );
 void SP_target_give (gentity_t *ent);
@@ -216,6 +220,12 @@ spawn_t	spawns[] = {
 	{"trigger_push", SP_trigger_push},
 	{"trigger_teleport", SP_trigger_teleport},
 	{"trigger_hurt", SP_trigger_hurt},
+	//::OSDF added
+	{"trigger_velocity",      SP_trigger_velocity},
+	{"trigger_push_velocity", SP_trigger_velocity},  // Defrag Compatibility alias
+	{"target_velocity",       SP_target_velocity},
+	{"target_speed",          SP_target_velocity},  // Defrag Compatibility alias
+	//::OSDF end
 
 	// targets perform no action by themselves, but must be triggered
 	// by another entity

@@ -357,6 +357,11 @@ void	Svcmd_EntityList_f (void) {
 		case ET_TELEPORT_TRIGGER:
 			G_Printf("ET_TELEPORT_TRIGGER ");
 			break;
+		//::OSDF added
+		case ET_TRIGGER_VELOCITY:
+			G_Printf("ET_TRIGGER_VELOCITY ");
+			break;
+		//::OSDF end
 		case ET_INVISIBLE:
 			G_Printf("ET_INVISIBLE        ");
 			break;

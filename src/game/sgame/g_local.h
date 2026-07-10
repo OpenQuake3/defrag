@@ -20,8 +20,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ===========================================================================
 */
 //
+#ifndef G_LOCAL_H
+#define G_LOCAL_H
 // g_local.h -- local definitions for game module
-
 #include "../qcommon/q_shared.h"
 #include "bg_public.h"
 #include "g_public.h"
@@ -541,6 +542,14 @@ void Touch_DoorTrigger( gentity_t *ent, gentity_t *other, trace_t *trace );
 // g_trigger.c
 //
 void trigger_teleporter_touch (gentity_t *self, gentity_t *other, trace_t *trace );
+//::OSDF added
+//::::::::::::::
+void InitTrigger(gentity_t *self);
+void AimAtTarget(gentity_t *self);
+void trigger_velocity_touch (gentity_t *self, gentity_t *other, trace_t *trace );
+//::::::::::::::
+//::OSDF end
+
 
 
 //
@@ -976,4 +985,6 @@ void	trap_BotResetWeaponState(int weaponstate);
 int		trap_GeneticParentsAndChildSelection(int numranks, float *ranks, int *parent1, int *parent2, int *child);
 
 void	trap_SnapVector( float *v );
+
+#endif //G_LOCAL_H
 
