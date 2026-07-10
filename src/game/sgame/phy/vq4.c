@@ -100,7 +100,7 @@ static void vq4_Friction( void ) {
 static qboolean vq4_CheckJump(void) {
   // Can't jump cases. Cannot jump again under these conditions
   if (pm->ps->pm_flags & PMF_RESPAWNED) { return qfalse; } // don't allow jump until all buttons are up
-  if (pm->cmd.upmove < 10) { return qfalse; } // not holding jump
+  if (!(pm->cmd.buttons & BUTTON_JUMP)) { return qfalse; } // separate jump button, independent from crouch
   if ((pm->ps->pm_flags & PMF_JUMP_HELD && !phy_jump_auto)) { // must wait for jump to be released
     pm->cmd.upmove = 0; // clear upmove so cmdscale doesn't lower running speed
     return qfalse;
@@ -144,7 +144,7 @@ void vq4_AirMove(void) {
   float     realWishSpd; // Wishpeed to apply in each case
 
   // Add crouchslide time
-  qboolean notCrouch  = (pm->cmd.upmove >= 0)     ? qtrue:qfalse;
+  qboolean notCrouch  = !(pm->cmd.buttons & BUTTON_CROUCH) ? qtrue:qfalse;
   qboolean movingDown = (pm->ps->velocity[2] < 0) ? qtrue:qfalse;
   // if (notCrouch && movingDown) {
   // if (movingDown) {
@@ -337,7 +337,7 @@ static void vq4_CheckDuck(void) {
     return;
   }
 
-  if (pm->cmd.upmove < 0) { // duck
+  if (pm->cmd.buttons & BUTTON_CROUCH) { // duck
      qboolean cantFeetraise = (pml.groundPlane || pm->ps->stats[STAT_RAMPSLIDE]) ? qtrue:qfalse;
      pm->mins[2] = (cantFeetraise) ? pm->mins[2] : MINS_Z +phy_crouch_feetraise;  // Keep it the same on the ground. Else apply feetraise
      pm->ps->pm_flags |= PMF_DUCKED;

@@ -1277,7 +1277,12 @@ typedef struct playerState_s {
 #define BUTTON_PATROL		512
 #define BUTTON_FOLLOWME		1024
 
-#define	BUTTON_ANY			2048			// any key whatsoever
+//::OSDF added
+#define BUTTON_JUMP			2048			// jump key is pressed, separate from combined upmove
+#define BUTTON_CROUCH		4096			// crouch key is pressed, separate from combined upmove
+//::OSDF end
+
+#define	BUTTON_ANY			8192			// any key whatsoever
 
 #define	MOVE_RUN			120			// if forwardmove or rightmove are >= MOVE_RUN,
 										// then BUTTON_WALKING should be set

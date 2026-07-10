@@ -85,7 +85,7 @@ static void q1_CheckDuck(void) {
     return;
   }
 
-  if (pm->cmd.upmove < 0) { // duck
+  if (pm->cmd.buttons & BUTTON_CROUCH) { // duck
      pm->mins[2] = (pml.groundPlane) ? pm->mins[2] : MINS_Z +phy_crouch_feetraise;  // Keep it the same on the ground. Else apply feetraise
      pm->ps->pm_flags |= PMF_DUCKED;
   } else { // stand up if possible
@@ -112,14 +112,7 @@ static qboolean q1_CheckJump(void) {
   // don't allow jump until all buttons are up
   if (pm->ps->pm_flags & PMF_RESPAWNED) {return qfalse;}
   // not holding jump
-  if (pm->cmd.upmove < 10) {return qfalse;}  // Default Q3 behavior. Don't allow jump on crouch
-  // if (pm->cmd.upmove < 10) {   //TODO: Jumpcrouch
-    // We are either pressing jumpcrouch, crouch or noinput
-    // qboolean noinput = (pm->cmd.upmove < 10) && !(pm->ps->pm_flags & PMF_DUCKED) ? qtrue:qfalse;
-    // qboolean crouch  = (pm->cmd.upmove <  0)                                     ? qtrue:qfalse;
-    // if (noinput || crouch) {return qfalse;}
-    // qboolean crouchj = (pm->cmd.upmove < 10) &&  (pm->ps->pm_flags & PMF_DUCKED) ? qtrue:qfalse;
-  // }
+  if (!(pm->cmd.buttons & BUTTON_JUMP)) {return qfalse;}  // Separate jump button, independent from crouch
 
  // must wait for jump to be released, when autojump is disabled
   if ((pm->ps->pm_flags & PMF_JUMP_HELD) && !phy_jump_auto) {
