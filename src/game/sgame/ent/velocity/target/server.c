@@ -25,6 +25,20 @@
 #include "./entity.h"
 
 
+static qboolean use_axis (
+    ent_velocity_target_Flags const flags,
+    int const pos,
+    int const neg
+  ) {
+  qboolean has_pos = (flags & pos);
+  qboolean has_neg = (flags & neg);
+  return (has_pos || has_neg) && !(has_pos && has_neg);
+}
+
+// @WARN: Entity Spec Ambiguities
+// - Whether "split" means divide among axes (if yes, how), or to give full speed to both
+// - How does PERCENTAGE + LAUNCHER work ?? (eg: percentage of zero when stationary?)
+// - How does non-LAUNCHER interact with axis flags when the direction comes from player's current velocity.
 void Use_target_velocity (
     gentity_t* const self,
     gentity_t* const other,
@@ -33,41 +47,60 @@ void Use_target_velocity (
   if (!activator->client                          ) return;
   if ( activator->client->ps.pm_type != PM_NORMAL ) return;
   if ( activator->client->ps.powerups[PW_FLIGHT]  ) return;
-
-  VectorCopy(self->s.origin2, activator->client->ps.velocity);
-
+  //__________________
   // play fly sound every 1.5 seconds
   if (activator->fly_sound_debounce_time < level.time) {
     activator->fly_sound_debounce_time = level.time + 1500;
     G_Sound( activator, CHAN_AUTO, self->noise_index );
+  }
+  playerState_t* const ps = &activator->client->ps;
+  //__________________
+  // Initialize the values
+  ent_velocity_Target ent = {0};
+  ent.flags   = self->spawnflags;
+  ent.speed   = self->speed;
+  ent.sign[0] = ent.flags & ent_velocity_PosX ? 1.0f : -1.0f;
+  ent.sign[1] = ent.flags & ent_velocity_PosY ? 1.0f : -1.0f;
+  ent.sign[2] = ent.flags & ent_velocity_PosZ ? 1.0f : -1.0f;
+  ent.use_x   = use_axis(ent.flags, ent_velocity_PosX, ent_velocity_NegX);
+  ent.use_y   = use_axis(ent.flags, ent_velocity_PosY, ent_velocity_NegY);
+  ent.use_z   = use_axis(ent.flags, ent_velocity_PosZ, ent_velocity_NegZ);
+
+  float speed = (ent.flags & ent_velocity_Percentage)
+    ? VectorLength(ps->velocity) * (ent.speed / 100.0f)
+    : ent.speed;
+  vec3_t velocity = {0};
+  //__________________
+  // Apply velocity
+  if (ent.flags & ent_velocity_Launcher) {
+    VectorCopy(ent.sign, velocity);
+  } else {
+    if (VectorLength(ps->velocity) < 0.001f) return;
+    VectorCopy(ps->velocity, velocity);
+    VectorNormalize(velocity);
+  }
+  if (ent.flags & ent_velocity_Add) {
+    if (ent.use_x) ps->velocity[0] += velocity[0] * speed;
+    if (ent.use_y) ps->velocity[1] += velocity[1] * speed;
+    if (ent.use_z) ps->velocity[2] += velocity[2] * speed;
+  } else {
+    if (ent.use_x) ps->velocity[0]  = velocity[0] * speed;
+    if (ent.use_y) ps->velocity[1]  = velocity[1] * speed;
+    if (ent.use_z) ps->velocity[2]  = velocity[2] * speed;
   }
 }
 
 
 /**
  * @description
- * Defrag target_push (.5 .5 .5) (-8 -8 -8) (8 8 8) bouncepad
- * Pushes the activator in the direction.of angle, or towards a target apex.
- * "speed" defaults to 1000
- * if "bouncepad", play bounce noise instead of windfly
+ * Defrag target_speed  TODO: Fields as seen in .map
+ * "speed" defaults to 100
  */
 void SP_target_velocity (
     gentity_t* const self
   ) {
-  if (!self->speed) self->speed = 1000;
-  G_SetMovedir(self->s.angles, self->s.origin2);
-  VectorScale(self->s.origin2, self->speed, self->s.origin2);
-
-  self->noise_index = (self->spawnflags & 1)
-    ? G_SoundIndex("sound/world/jumppad.wav")
-    : G_SoundIndex("sound/misc/windfly.wav" );
-
-  if (self->target) {
-    VectorCopy( self->s.origin, self->r.absmin );
-    VectorCopy( self->s.origin, self->r.absmax );
-    self->think     = AimAtTarget;
-    self->nextthink = level.time + FRAMETIME;
-  }
+  if (!self->speed) self->speed = 100;
+  self->noise_index = G_SoundIndex("sound/misc/windfly.wav" );
   self->use = Use_target_velocity;
 }
 
