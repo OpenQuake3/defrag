@@ -25,7 +25,7 @@
 
 #include "../../../../qcommon/q_shared.h"
 
-typedef enum ent_velocity_Flags {
+typedef enum ent_velocity_trigger_Flags {
   /// If set, trigger will apply the horizontal speed in the player's horizontal direction of travel,
   /// otherwise it uses the target XY component.
   /// df.ent name: PLAYERDIR_XY
@@ -56,13 +56,13 @@ typedef enum ent_velocity_Flags {
   ///  if the resultant velocity would bounce the player in the opposite direction.
   /// df.ent name: CLAMP_NEGATIVE_ADDS
   ent_velocity_ClampNegative = 1 << 6,
-} ent_velocity_Flags;
+} ent_velocity_trigger_Flags;
 
-typedef struct ent_Velocity {
-  ent_velocity_Flags flags;
+typedef struct ent_velocity_Trigger {
+  ent_velocity_trigger_Flags flags;
   vec3_t speed;
   vec3_t direction;
-} ent_Velocity;
+} ent_velocity_Trigger;
 
 #endif //sgame_ent_trigger_velocity_H
 

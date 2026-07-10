@@ -50,7 +50,7 @@ void BG_trigger_velocity_touch (
 
   //__________________
   // Initialize the entity's data
-  ent_Velocity ent = {0};
+  ent_velocity_Trigger ent = {0};
   ent.flags = state->weapon;
   VectorCopy(state->angles2, ent.speed);
   VectorCopy(state->origin2, ent.direction);
@@ -106,25 +106,34 @@ void BG_trigger_velocity_touch (
   }
   //__________________
   // Apply.XY
-  if (ent.flags & ent_velocity_AddXY && first_touch) {  // Add only on the first frame we hit the trigger
-    x = original[0] + x;
-    y = original[1] + y;
-    if (ent.flags & ent_velocity_ClampNegative) {  // Clamp when dot(xy, orig) is negative
-      float const dot = (x * original[0] + y * original[1]);
-      if (dot < 0) { x = 0; y = 0; }
-    }
+  if (ent.flags & ent_velocity_AddXY) {  // Add only on the first frame we hit the trigger
+    if (first_touch) {
+      x = original[0] + x;
+      y = original[1] + y;
+      if (ent.flags & ent_velocity_ClampNegative) {  // Clamp when dot(xy, orig) is negative
+        float const dot = (x * original[0] + y * original[1]);
+        if (dot < 0) { x = 0; y = 0; }
+      }
+      ps->velocity[0] = x;
+      ps->velocity[1] = y;
+    } else {} // if add and not first touch, ignore xy
+  } else {
+    ps->velocity[0] = x;
+    ps->velocity[1] = y;
   }
-  ps->velocity[0] = x;
-  ps->velocity[1] = y;
   //__________________
   // Apply.Z
-  if (ent.flags & ent_velocity_AddZ && first_touch) {
-    z = original[2] + z;
-    if (ent.flags & ent_velocity_ClampNegative) {
-      float const dot = z * original[2];
-      if (dot < 0) { z = 0; }
-    }
+  if (ent.flags & ent_velocity_AddZ) {
+    if (first_touch) {
+      z = original[2] + z;
+      if (ent.flags & ent_velocity_ClampNegative) {
+        float const dot = z * original[2];
+        if (dot < 0) { z = 0; }
+      }
+      ps->velocity[2] = z;
+    } else {} // if add and not first touch, ignore z
+  } else {
+    ps->velocity[2] = z;
   }
-  ps->velocity[2] = z;
 }
 
