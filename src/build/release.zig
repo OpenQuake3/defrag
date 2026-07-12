@@ -55,20 +55,36 @@ pub fn create (
 
 
 //______________________________________
+// @section Release: Runtime Libraries
+//____________________________
+const engine_cfg = @import("../engine/src/build/cfg.zig").cfg;
+
+
+//______________________________________
 // @section Release: Packing Manager
 //____________________________
 pub fn packFor (
     R       : *Release,
     systems : []const confy.System,
   ) !void {
-  if (!R.rls ) return;
-  if (!R.dist) return;
   const io   = R.io;
   const A    = R.A.allocator();
-  const vers = try std.fmt.allocPrint(A, "{f}", .{R.info.version});
   R.files    = .create_empty(A);
   for (systems) |system| {
     const sys_name = try system.zig_triple(A);
+    const out_dir  = try confy.path.join(A, &.{"./bin", sys_name});
+    //__________________
+    // Copy runtime libraries
+    if (system.os == .windows) {
+      try confy.file.copy(
+        "./src/engine/" ++ engine_cfg.dir.src ++ "/libsdl/windows/mingw/lib64/SDL264.dll",
+        try confy.path.join(A, &.{out_dir, "SDL264.dll"}), io, .{});
+    }
+    //__________________
+    // Create release archives
+    if (!R.rls)  continue;
+    if (!R.dist) continue;
+    const vers = try std.fmt.allocPrint(A, "{f}", .{R.info.version});
     //__________________
     // Create the target dir & file names
     const revision = try std.fmt.allocPrint(A, "r{d}", .{R.rev});
@@ -81,13 +97,12 @@ pub fn packFor (
     // Create the src dir & file names
     var src_name = confy.string.create_empty(A);
     try src_name.write("{s}.zip", .{sys_name});
-    const src_dir = try confy.path.join(A, &.{"./bin", sys_name});
     const src_zip = try confy.path.join(A, &.{"./bin", src_name.data()});
     //__________________
     // Run the process
     confy.prnt(cfg.name.short++": Packing release files for `{s}` ...\n  target: {s}", .{sys_name, trg_zip});
     try R.files.add_one(trg_zip);
-    try confy.shell.zip(src_dir, src_name.data(), io, A, .{});
+    try confy.shell.zip(out_dir, src_name.data(), io, A, .{});
     try confy.dir.create(trg_dir, io, .{});
     try confy.file.move(src_zip, trg_zip, io, .{});
   }
