@@ -30,7 +30,7 @@ pub fn main (P :confy.Process) !void {
   //____________________________
   var engine = try Engine.create(P, .{
     .root    = "./src/engine",
-    .release = false,
+    .release = release,
     .game    = cfg.name.full,
     .pkg     = cfg.package,
     .verbose = verbose,
