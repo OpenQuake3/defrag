@@ -130,3 +130,4 @@ const unsafe = &[_]confy.cstring{
   "-Wno-documentation",
   "-fno-sanitize=all",
 };
+

@@ -33,7 +33,10 @@ pub const Assets = struct {
       .info = pkg,
       .list = undefined,
     };
-    result.list = try confy.dir.list(cfg.dir.assets, result.io, result.A.allocator(), .{.kind= .folders});
+    result.list = try confy.dir.list(cfg.dir.assets, result.io, result.A.allocator(), .{
+      .kind    = .folders,
+      .exclude = &.{"src", "dep", "skel"},
+    });
     return result;
   } //:: build.Assets.create
 

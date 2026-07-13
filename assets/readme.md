@@ -17,3 +17,9 @@ Distributing a file called `y.osdf.example.pk3`:
 **Automation:**  
 The Buildsystem executes this process automatically for all existing folders.  
 
+
+## Helper folders
+None of these will be added by the packing process
+`src` : Source files used to create the various assets
+`dep` : Deprecated assets, that will be eventually removed
+

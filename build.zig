@@ -44,6 +44,7 @@ pub fn main (P :confy.Process) !void {
   // @section Target System
   //____________________________
   const systems =
+    // &.{confy.System.desktop.windows};
     if (distribute) confy.System.desktops()
     else            &.{confy.System.host()};
 
