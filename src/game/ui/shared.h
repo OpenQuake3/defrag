@@ -11,6 +11,30 @@
 // Helpers
 #define UU __attribute__((unused))    // Allows the argument to be unused, without giving warning
 #define NR __attribute__((noreturn))  // Marks the function as noreturn for gcc
+//:::::::::::::::::
+#define UI_INACTIVE  UI_INVERSE  // Item that is not currently selected (inactive, but not disabled/grayed)
+#define UI_UNDEF_FMT 0x00000004  // Not defined. Default flag system only allows for adding this one extra flag slot
+//:::::::::::::::::
+typedef enum { R, G, B, A } Colors;
+typedef enum { X, Y, Z, W } Axes;
+typedef enum { GRAY, GA, RGB, RGBA } ColorChannels;
+//::::::::::::::::::::::::::
+
+//:::::::::::::::::
+// Aliases to remove virtual screen sizing
+// Will use current native window sizes instead
+#define GL_W uis.glconfig.vidWidth
+#define GL_H uis.glconfig.vidHeight
+//:::::::::::::::::
+
+//::::::::::::::::
+// Text tools
+//.........................................
+// TODO: All 9 positions
+typedef enum { TEXT_ALIGN_LEFT = 1, TEXT_ALIGN_CENTER, TEXT_ALIGN_RIGHT } TextAlignment;
+//.........................................
+#define TEXT_ALIGN_DEFAULT TEXT_ALIGN_LEFT  // Sets the type that will be used when called with align 0
+#define fontScale(font) (1.0f / (font)->glyphScale)
 //::::::::::::::::::::::::::
 
 

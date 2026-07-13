@@ -1470,6 +1470,19 @@ void VectorMAM(float scale1, vec3_t b1, float scale2, vec3_t b2, vec3_t c){
     c[1] = scale1 * b1[1] + scale2 * b2[1];
     c[2] = scale1 * b1[2] + scale2 * b2[2];
 };
+//:::::::::::::::::::::::
+// StrArrayCat
+//   Concatenate all strings in an array of null terminated strings, into a single null terminated string (char* result)
+//:::::::::::::::::::::::
+void StrArrayCat(const char** list, const int items, char* result) {
+  for (int it = 0; it < items; it++) {               // For every item in the list
+    for (int ch = 0; ch < strlen(list[it]); ch++) {  // For every character in current item
+      char tmp[2] = { list[it][ch], '\0' };          // Create a new null terminated string with the character
+      strcat(result, tmp);                           // Concatenate the character into the result  (there should be a simpler way, but this works :shrug:)
+    }
+  }
+}
+
 //:::::::::::::::::
 //::OSDF end
 

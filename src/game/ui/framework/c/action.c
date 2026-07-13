@@ -4,7 +4,7 @@
 //:::::::::::::::::
 // Action_Init
 //:::::::::::::::::
-void action_init(MenuAction* a) {
+void menuAction_init(MenuAction* a) {
   // calculate bounds
   int len;
   if (a->generic.name) len = strlen(a->generic.name);
@@ -19,15 +19,15 @@ void action_init(MenuAction* a) {
 //:::::::::::::::::
 // Action_Draw
 //:::::::::::::::::
-void action_draw(MenuAction* a) {
+void menuAction_draw(MenuAction* a) {
   int    style = 0;
   float* color = (vec_t*)q3color.text_menu;
   if (a->generic.flags & MFL_GRAYED) {
     color = (vec_t*)q3color.text_disabled;
-  } else if ((a->generic.flags & MFL_PULSEIFFOCUS) && (a->generic.parent->cursor == a->generic.menuPosition)) {
+  } else if ((a->generic.flags & MFL_PULSEIFFOCUS) && (a->generic.parent->cursor == a->generic.activeId)) {
     color = (vec_t*)q3color.text_highlight;
     style = UI_PULSE;
-  } else if ((a->generic.flags & MFL_HIGHLIGHT_IF_FOCUS) && (a->generic.parent->cursor == a->generic.menuPosition)) {
+  } else if ((a->generic.flags & MFL_HIGHLIGHT_IF_FOCUS) && (a->generic.parent->cursor == a->generic.activeId)) {
     color = (vec_t*)q3color.text_highlight;
   } else if (a->generic.flags & MFL_BLINK) {
     style = UI_BLINK;
@@ -37,5 +37,5 @@ void action_draw(MenuAction* a) {
   int y = a->generic.y;
   uiDrawString(x, y, a->generic.name, UI_LEFT | style, color);
   // draw cursor
-  if (a->generic.parent->cursor == a->generic.menuPosition) { uiDrawChar(x - BIGCHAR_WIDTH, y, 13, UI_LEFT | UI_BLINK, color); }
+  if (a->generic.parent->cursor == a->generic.activeId) { uiDrawChar(x - BIGCHAR_WIDTH, y, 13, UI_LEFT | UI_BLINK, color); }
 }

@@ -239,7 +239,7 @@ sfxHandle_t menuField_key(MenuField* m, int* key) {
       keycode &= ~K_CHAR_FLAG;
       if ((m->generic.flags & MFL_UPPERCASE) && Q_islower(keycode)) keycode -= 'a' - 'A';
       else if ((m->generic.flags & MFL_LOWERCASE) && Q_isupper(keycode)) keycode -= 'A' - 'a';
-      else if ((m->generic.flags & MFL_NUMBERSONLY) && Q_isalpha(keycode)) return (q3sound.menu_buzz);
+      else if ((m->generic.flags & MFL_NUMBERSONLY) && Q_isalpha(keycode)) return (uiSound.error);
       MField_charEvent(&m->field, keycode);
       break;
   }

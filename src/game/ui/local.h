@@ -31,8 +31,30 @@ Q_EXPORT void     dllEntry(dllCallback_t);
 //:::::::::::::::::::
 extern uiStatic_t uis;
 extern Q3sound    q3sound;
+extern Sounds     uiSound;
+extern Songs      song;
 extern bool       m_entersound;
+extern bool       m_enterSong;
 //:::::::::::::::::
+
+//::::::::::::::::
+// Text tools
+//.........................................
+// TODO: All 9 positions
+// typedef enum { TEXT_ALIGN_LEFT = 1, TEXT_ALIGN_CENTER, TEXT_ALIGN_RIGHT } TextAlignment;
+//.........................................
+// #define TEXT_ALIGN_DEFAULT TEXT_ALIGN_LEFT  // Sets the type that will be used when called with align 0
+#define FONT_SCALE_DEFAULT 1
+//..................
+#define FONT_FILE_DEFAULT "ui/font/default.ttf"
+#define FONT_SIZE_DEFAULT 16
+//..................
+#define FONT_FILE_ACTION "ui/font/default.ttf"
+#define FONT_SIZE_ACTION 48
+#define FONT_FILE_ACTIONKEY "ui/font/heyNovember.ttf"
+#define FONT_SIZE_ACTIONKEY 96 // 128 was really cool for main logo
+//:::::::::::::::::
+
 
 //:::::::::::::::::
 // ui/core.c      Methods
@@ -41,6 +63,13 @@ void uiShutdown(void);          // Requested when engine shutsdown the UI
 bool uiIsFullscreen(void);      // Engine requests to check for fullscreen state
 void uiSetActiveMenu(MenuCmd);  // Engine connection with ui/menu.c
 void uiRefresh(int);            // Called on every ui frame
+void uiDrawConnectScreen(bool); // Called by the engine to draw the loading/connect background
+// Input Events
+void uiEvent_key(int, int);    // Requested when there is a key input event
+void uiEvent_mouse(int, int);  // Requested when there is a mouse event
+// Commands
+char* uiArgv(int);
+bool  uiConsoleCommand(int);
 //:::::::::::::::::
 #include "framework/tools.h"
 //:::::::::::::::::
@@ -56,8 +85,8 @@ void  menuCache(void);         // Initialize Menu assets Cache
 void  menuForceOff(void);      // Force disable all menus
 void* cursorGetItem(MenuFw*);  // Get menu item under cursor
 // Menu page loaders
-void menuStart(void);    // Start menu setup  (start = name, not verb)
-void menuCredits(void);  // Credits menu
+void menuStart_init(void);    // Start menu setup  (start = name, not verb)
+void menuCredits(void);       // Credits menu
 
 //:::::::::::::::::
 // Engine Callbacks

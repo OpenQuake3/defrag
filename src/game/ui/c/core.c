@@ -6,6 +6,29 @@ uiStatic_t uis;
 //:::::::::::::::::::
 
 //:::::::::::::::::::
+// uiConsoleCommand
+//:::::::::::::::::::
+bool uiConsoleCommand(int realTime) {
+  uis.frametime = realTime - uis.realtime;
+  uis.realtime  = realTime;
+  char* cmd     = uiArgv(0);
+  // ensure minimum menu data is available
+  // menuCache(); Com_Printf("%s: --> requesting menuCache()\n", __func__);  // sk.rmv -> TODO: Fix font re-registering and activate this after.
+
+  // clang-format off
+  // if (!Q_stricmp(cmd, "levelselect"))   { uiSPLevelMenu_f(); return true; }
+  // if (!Q_stricmp(cmd, "postgame"))      { uiSPPostgameMenu_f(); return true; }
+  // if (!Q_stricmp(cmd, "ui_cache"))      { uiCache_f(); return true; }
+  // if (!Q_stricmp(cmd, "ui_cinematics")) { uiCinematicsMenu_f(); return true; }
+  // if (!Q_stricmp(cmd, "ui_teamOrders")) { uiTeamOrdersMenu_f(); return true; }
+  // if (!Q_stricmp(cmd, "iamacheater"))   { uiSPUnlock_f(); return true; }
+  // if (!Q_stricmp(cmd, "iamamonkey"))    { uiSPUnlockMedals_f(); return true; }
+  // if (!Q_stricmp(cmd, "ui_cdkey"))      { uiCDKeyMenu_f(); return true; }
+  return false;  // clang-format on
+}
+
+
+//:::::::::::::::::::
 // uiShutdown
 //   Called on engine shutdown request
 //:::::::::::::::::::
@@ -47,6 +70,9 @@ void uiInit(void) {
   menuCache();
   uis.activemenu = NULL;
   uis.menusp     = 0;
+#ifndef NDEBUG
+  uis.debug = true;
+#endif
   Com_Printf(":: Finished initializing UI --------\n");
 }
 
@@ -72,7 +98,7 @@ void uiSetActiveMenu(MenuCmd menu) {
   switch (menu) {
     case MENU_NONE: menuForceOff(); return;
     case MENU_START:
-      menuStart();
+      menuStart_init();
       return;  // uiMainMenu(); return;
     // case MENU_NEEDKEY: uiConfirmMenu("Insert the CD", 0, NeedCDAction); return;
     // case MENU_BADKEY: uiConfirmMenu("Bad CD Key", 0, NeedCDKeyAction); return;
@@ -95,49 +121,82 @@ void uiEvent_key(int key, int down) {
   if (!down) { return; }
 
   sfxHandle_t s;
-  if (uis.activemenu->key) s = uis.activemenu->key(key);
-  else s = menuDefaultKey(uis.activemenu, key);
-  if ((s > 0) && (s != q3sound.menu_null)) id3S_StartLocalSound(s, CHAN_LOCAL_SOUND);
+  if (uis.activemenu->key) {
+    s = uis.activemenu->key(key);
+  } else {
+    s = menuDefaultKey(uis.activemenu, key);
+  }
+  if ((s > 0) && (s != q3sound.menu_null)) { id3S_StartLocalSound(s, CHAN_LOCAL_SOUND); }
 }
 
 //:::::::::::::::::::
 // UI_MouseEvent
 //:::::::::::::::::::
 void uiEvent_mouse(int dx, int dy) {
-  if (!uis.activemenu) return;
+  if (!uis.activemenu) { return; }
 
-  // convert X bias to 640 coords
-  int bias = uis.bias / uis.xscale;
   // update mouse screen position
   uis.cursorx += dx;
-  if (uis.cursorx < -bias) uis.cursorx = -bias;
-  else if (uis.cursorx > SCREEN_WIDTH + bias) uis.cursorx = SCREEN_WIDTH + bias;
   uis.cursory += dy;
+  // Clamp to screen size
+  if (uis.cursorx < 0) uis.cursorx = 0;
+  else if (uis.cursorx > GL_W) uis.cursorx = GL_W;
   if (uis.cursory < 0) uis.cursory = 0;
-  else if (uis.cursory > SCREEN_HEIGHT) uis.cursory = SCREEN_HEIGHT;
+  else if (uis.cursory > GL_H) uis.cursory = GL_H;
 
   // region test the active menu items
-  MenuCommon* m;
   for (int i = 0; i < uis.activemenu->nitems; i++) {
-    m = (MenuCommon*)uis.activemenu->items[i];
+    MenuCommon* m = (MenuCommon*)uis.activemenu->items[i];
     if (m->flags & (MFL_GRAYED | MFL_INACTIVE)) { continue; }
-    if ((uis.cursorx < m->left) || (uis.cursorx > m->right) || (uis.cursory < m->top) || (uis.cursory > m->bottom)) {
-      continue;  // cursor out of item bounds
-    }
+    // Item bounds  (convert from percentage to pixels)
+    int left  = m->left * GL_W;
+    int right = m->right * GL_W;
+    int top   = m->top * GL_H;
+    int bot   = m->bottom * GL_H;
+    if ((uis.cursorx < left) || (uis.cursorx > right) || (uis.cursory < top) || (uis.cursory > bot)) { continue; }  // cursor out of item bounds
 
     // set focus to item at cursor
     if (uis.activemenu->cursor != i) {
       cursorSet(uis.activemenu, i);
       ((MenuCommon*)(uis.activemenu->items[uis.activemenu->cursor_prev]))->flags &= ~MFL_HASMOUSEFOCUS;
-      if (!(((MenuCommon*)(uis.activemenu->items[uis.activemenu->cursor]))->flags & MFL_SILENT)) {
-        id3S_StartLocalSound(q3sound.menu_move, CHAN_LOCAL_SOUND);
-      }
+      if (!(((MenuCommon*)(uis.activemenu->items[uis.activemenu->cursor]))->flags & MFL_SILENT)) { id3S_StartLocalSound(uiSound.move, CHAN_LOCAL_SOUND); }
     }
     ((MenuCommon*)(uis.activemenu->items[uis.activemenu->cursor]))->flags |= MFL_HASMOUSEFOCUS;
     return;
   }
   if (uis.activemenu->nitems > 0) {  // out of any region
     ((MenuCommon*)(uis.activemenu->items[uis.activemenu->cursor]))->flags &= ~MFL_HASMOUSEFOCUS;
+  }
+}
+
+//:::::::::::::::::::
+// uiArgv
+//   Gets the string value of the console command argument at index `arg`
+//:::::::::::::::::::
+char* uiArgv(int arg) {
+  static char buffer[MAX_STRING_CHARS];
+  id3Argv(arg, buffer, sizeof(buffer));
+  return buffer;
+}
+
+static void uiSongPlayRandom(void) {
+  int lower = 0;
+  int upper = 1;
+  int r = (rand() % (upper - lower + 1)) + lower;
+  switch (r) {
+    case 0: id3S_StartLocalSound(song.chronos, CHAN_LOCAL_SOUND); break;
+    // case 1: id3S_StartLocalSound(song.succubus, CHAN_LOCAL_SOUND); break;
+    default: id3S_StartLocalSound(uiSound.silence, CHAN_LOCAL_SOUND); break;
+  }
+}
+
+//:::::::::::::::::::
+// uiDrawConnectScreen
+//:::::::::::::::::::
+void uiDrawConnectScreen(bool overlay) {
+  if (!overlay) {
+    uiSetColor(NULL);
+    uiDrawHandlePicPix(0, 0, GL_W, GL_H, uis.bgMain);
   }
 }
 
@@ -150,35 +209,43 @@ void uiUpdateScreen(void) { id3UpdateScreen(); }
 // UI_Refresh
 //:::::::::::::::::::
 void uiRefresh(int realtime) {
+  // Update time
   uis.frametime = realtime - uis.realtime;
   uis.realtime  = realtime;
   if (!(id3Key_GetCatcher() & KEYCATCH_UI)) { return; }
+  // Update cvars
   uiCvarsUpdateAll();
+  // Draw active menu
   if (uis.activemenu) {
-    if (uis.activemenu->fullscreen) {
-      // draw the background
-      if (uis.activemenu->showlogo) {
-        uiDrawHandlePic(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, uis.menuBackShader);
-      } else {
-        uiDrawHandlePic(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, uis.menuBackNoLogoShader);
-      }
-    }
+    // Draw the background
+    if (uis.activemenu->fullscreen) { uiDrawHandlePicPix(0, 0, GL_W, GL_H, (uis.activemenu->isMain) ? uis.bgMain : uis.bgAlt); }
+    // Draw the menu
     if (uis.activemenu->draw) uis.activemenu->draw();
     else uiDrawMenu(uis.activemenu);
+    // Init the cursor position
     if (uis.firstdraw) {
+      // uiEvent_mouse(GL_W * 0.5, GL_H * 0.5);  // Start with cursor at 0.5, 0.5 (was 0,0)
       uiEvent_mouse(0, 0);
       uis.firstdraw = false;
     }
   }
   // draw cursor
   uiSetColor(NULL);
-  uiDrawHandlePic(uis.cursorx - 16, uis.cursory - 16, 32, 32, uis.cursor);
-#ifndef NDEBUG
-  if (uis.debug) { uiDrawString(0, 0, va("(%d,%d)", uis.cursorx, uis.cursory), UI_LEFT | UI_SMALLFONT, colorRed); }  // cursor coordinates
-#endif
-  // delay playing the enter sound until the menu has been drawn, to avoid delay while caching images
+  uiDrawHandlePicPix(uis.cursorx, uis.cursory, 32, 32, uis.cursor);
+  if (uis.debug) {
+    char* coordText = va("(%d,%d)", uis.cursorx, uis.cursory);
+    float x         = (float)uis.cursorx / GL_W;
+    float y         = ((float)uis.cursory / GL_H) + 0.05;
+    uiTextDraw(coordText, &uis.font.normal, x, y, fontScale(&uis.font.normal), colorCyan, 0, 0, strlen(coordText), TEXT_ALIGN_LEFT);
+  }
+  // Play the enter sound after menu has been drawn, to avoid delay while caching images
   if (m_entersound) {
-    id3S_StartLocalSound(q3sound.menu_in, CHAN_LOCAL_SOUND);
+    // id3S_StartLocalSound(q3sound.menu_in, CHAN_LOCAL_SOUND);
+    id3S_StartLocalSound(uiSound.move, CHAN_LOCAL_SOUND);
     m_entersound = false;
+  }
+  if (m_enterSong) { 
+    uiSongPlayRandom();
+    m_enterSong = false;
   }
 }

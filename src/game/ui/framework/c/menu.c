@@ -6,32 +6,50 @@
 //:::::::::::::::::::
 void menuCache(void) {
   // New UI assets
-  uis.menuBackShader       = id3R_RegisterShaderNoMip("ui/bgtest");
-  uis.cursor               = id3R_RegisterShaderNoMip("ui/cursor");
+  uis.bgMain      = id3R_RegisterShaderNoMip("ui/bg");
+  uis.bgAlt       = id3R_RegisterShaderNoMip("ui/bgAlt");
+  uis.cursor      = id3R_RegisterShaderNoMip("ui/cursor");
+  uis.logoQ3      = id3R_RegisterShaderNoMip("ui/logoQ3");
+  // Icons
+  uis.icon.cancel = id3R_RegisterShaderNoMip("ui/cancel");
+  uis.icon.accept = id3R_RegisterShaderNoMip("ui/accept");
+  // Sounds
+  uiSound.move    = id3S_RegisterSound("ui/snd/move.wav", false);
+  uiSound.select  = id3S_RegisterSound("ui/snd/select.wav", false);
+  uiSound.error   = id3S_RegisterSound("ui/snd/error.wav", false);
+  uiSound.cancel  = id3S_RegisterSound("ui/snd/cancel.wav", false);
+  uiSound.silence = id3S_RegisterSound("ui/snd/silence.wav", false);
+  // Songs
+  song.chronos    = id3S_RegisterSound("ui/snd/song-chronos.wav", false);
+  // song.succubus   = id3S_RegisterSound("ui/snd/songSuccubus.wav", false);
+  // Fonts
+  id3R_RegisterFont(FONT_FILE_DEFAULT, FONT_SIZE_DEFAULT - 4, &uis.font.small);
+  id3R_RegisterFont(FONT_FILE_DEFAULT, FONT_SIZE_DEFAULT, &uis.font.normal);
+  id3R_RegisterFont(FONT_FILE_ACTION, FONT_SIZE_ACTION, &uis.font.action);
+  id3R_RegisterFont(FONT_FILE_ACTIONKEY, FONT_SIZE_ACTIONKEY, &uis.font.actionKey);
+
   // Old Q3 assets
-  uis.charset              = id3R_RegisterShaderNoMip("gfx/2d/bigchars");
-  uis.charsetProp          = id3R_RegisterShaderNoMip("menu/art/font1_prop.tga");
-  uis.charsetPropGlow      = id3R_RegisterShaderNoMip("menu/art/font1_prop_glo.tga");
-  uis.charsetPropB         = id3R_RegisterShaderNoMip("menu/art/font2_prop.tga");
+  // uis.charset          = id3R_RegisterShaderNoMip("gfx/2d/bigchars");
+  // uis.charsetProp      = id3R_RegisterShaderNoMip("menu/art/font1_prop.tga");
+  // uis.charsetPropGlow  = id3R_RegisterShaderNoMip("menu/art/font1_prop_glo.tga");
+  // uis.charsetPropB     = id3R_RegisterShaderNoMip("menu/art/font2_prop.tga");
   // uis.cursor               = id3R_RegisterShaderNoMip("menu/art/3_cursor2");
-  uis.rb_on                = id3R_RegisterShaderNoMip("menu/art/switch_on");
-  uis.rb_off               = id3R_RegisterShaderNoMip("menu/art/switch_off");
-  uis.whiteShader          = id3R_RegisterShaderNoMip("white");
+  uis.rb_on            = id3R_RegisterShaderNoMip("menu/art/switch_on");
+  uis.rb_off           = id3R_RegisterShaderNoMip("menu/art/switch_off");
+  uis.whiteShader      = id3R_RegisterShaderNoMip("white");
 
-  // uis.menuBackNoLogoShader = id3R_RegisterShaderNoMip("menubacknologo");
-  // uis.menuBackShader       = id3R_RegisterShaderNoMip("menuback");
-
-  q3sound.menu_in          = id3S_RegisterSound("sound/misc/menu1.wav", false);
-  q3sound.menu_out         = id3S_RegisterSound("sound/misc/menu3.wav", false);
-  q3sound.menu_move        = id3S_RegisterSound("sound/misc/menu2.wav", false);
-  q3sound.menu_buzz        = id3S_RegisterSound("sound/misc/menu4.wav", false);
-  q3sound.weaponChange     = id3S_RegisterSound("sound/weapons/change.wav", false);
-  q3sound.menu_null        = -1;  // need a nonzero sound, make an empty sound for this
+  // TODO: Move to menu/snd/*
+  q3sound.menu_in      = id3S_RegisterSound("sound/misc/menu1.wav", false);
+  q3sound.menu_out     = id3S_RegisterSound("sound/misc/menu3.wav", false);
+  q3sound.menu_move    = id3S_RegisterSound("sound/misc/menu2.wav", false);
+  q3sound.menu_buzz    = id3S_RegisterSound("sound/misc/menu4.wav", false);
+  q3sound.weaponChange = id3S_RegisterSound("sound/weapons/change.wav", false);
+  q3sound.menu_null    = -1;  // need a nonzero sound, make an empty sound for this
 
   // sliderBar                = id3R_RegisterShaderNoMip("menu/art/slider2");
   // sliderButton_0           = id3R_RegisterShaderNoMip("menu/art/sliderbutt_0");
   // sliderButton_1           = id3R_RegisterShaderNoMip("menu/art/sliderbutt_1");
-  Com_Printf(":: Finished loading the menu cache\n");
+  Com_Printf(":: Finished loading menu cache\n");
 }
 
 //:::::::::::::::::::
@@ -55,30 +73,30 @@ void menuForceOff(void) {
 //:::::::::::::::::::
 void menuPush(MenuFw* menu) {
   // avoid stacking menus invoked by hotkeys
-  int i;
-  for (i = 0; i < uis.menusp; i++) {
-    if (uis.stack[i] == menu) {
-      uis.menusp = i;
+  int m;                              // Menu id
+  for (m = 0; m < uis.menusp; m++) {  // Search for the input menu in the menus stack
+    if (uis.stack[m] == menu) {       // Found it
+      uis.menusp = m;
       break;
     }
   }
-  if (i == uis.menusp) {
+  if (m == uis.menusp) {  // Check if we are at the last registered item
     if (uis.menusp >= MAX_MENUDEPTH) { id3Error(va("%s: menu stack overflow", __func__)); }
-    uis.stack[uis.menusp++] = menu;
+    uis.stack[uis.menusp++] = menu;  // Increase the stack id, and store the menu data
   }
-  uis.activemenu    = menu;
+  uis.activemenu    = menu;  // Make input menu the active one
   // default cursor position
   menu->cursor      = 0;
   menu->cursor_prev = 0;
   m_entersound      = true;
+  if (menu->isMain) m_enterSong = true;
   id3Key_SetCatcher(KEYCATCH_UI);
   // force first available item to have focus
-  MenuCommon* item;
-  for (int j = 0; j < menu->nitems; j++) {
-    item = (MenuCommon*)menu->items[j];
-    if (!(item->flags & (MFL_GRAYED | MFL_MOUSEONLY | MFL_INACTIVE))) {
+  for (int it = 0; it < menu->nitems; it++) {  // For every item in the input menu
+    MenuCommon* item = (MenuCommon*)menu->items[it];
+    if (!(item->flags & (MFL_GRAYED | MFL_MOUSEONLY | MFL_INACTIVE))) {  // Ignore grayed, mouseonly and inactive items
       menu->cursor_prev = -1;
-      cursorSet(menu, j);
+      cursorSet(menu, it);
       break;
     }
   }
@@ -88,7 +106,7 @@ void menuPush(MenuFw* menu) {
 // uiPopMenu
 //:::::::::::::::::::
 void menuPop(void) {
-  id3S_StartLocalSound(q3sound.menu_out, CHAN_LOCAL_SOUND);
+  id3S_StartLocalSound(uiSound.cancel, CHAN_LOCAL_SOUND);
   uis.menusp--;
   if (uis.menusp < 0) { id3Error(va("%s: menu stack underflow", __func__)); }
   if (uis.menusp) {
@@ -105,24 +123,24 @@ void menuPop(void) {
 void menuAddItem(MenuFw* menu, void* item) {
   if (menu->nitems >= MAX_MENUITEMS) { id3Error("Menu_AddItem: excessive items"); }
   // Set data
-  menu->items[menu->nitems]                              = item;
-  ((MenuCommon*)menu->items[menu->nitems])->parent       = menu;
-  ((MenuCommon*)menu->items[menu->nitems])->menuPosition = menu->nitems;
+  menu->items[menu->nitems]                          = item;
+  ((MenuCommon*)menu->items[menu->nitems])->parent   = menu;
+  ((MenuCommon*)menu->items[menu->nitems])->activeId = menu->nitems;
   ((MenuCommon*)menu->items[menu->nitems])->flags &= ~MFL_HASMOUSEFOCUS;
   // perform any item specific initializations
   MenuCommon* itemptr = (MenuCommon*)item;
   if (!(itemptr->flags & MFL_NODEFAULTINIT)) {
     switch (itemptr->type) {
-      case MITEM_ACTION: action_init((MenuAction*)item); break;
+      case MITEM_ACTION: menuAction_init((MenuAction*)item); break;
       case MITEM_FIELD: menuField_init((MenuField*)item); break;
-      case MITEM_SPINCONTROL: spinControl_init((MenuList*)item); break;
-      case MITEM_RADIOBUTTON: radioBtn_init((MenuRadioBtn*)item); break;
-      case MITEM_SLIDER: slider_init((MenuSlider*)item); break;
-      case MITEM_BITMAP: bitmap_init((MenuBitmap*)item); break;
-      case MITEM_TEXT: text_init((MenuText*)item); break;
-      case MITEM_SCROLLLIST: scrollList_init((MenuList*)item); break;
-      case MITEM_PTEXT: PText_init((MenuText*)item); break;
-      case MITEM_BTEXT: BText_init((MenuText*)item); break;
+      case MITEM_MULTIOPT: menuMOpt_init((MenuList*)item); break;
+      case MITEM_SWITCH: menuSwitch_init((MenuSwitch*)item); break;
+      case MITEM_SLIDER: menuSlider_init((MenuSlider*)item); break;
+      case MITEM_IMAGE: menuImage_init((MenuImage*)item); break;
+      case MITEM_LTEXT: OText_init((MenuText*)item); break;
+      case MITEM_LIST: menuList_init((MenuList*)item); break;
+      case MITEM_TEXT: menuText_init((MenuText*)item); break;
+      // case MITEM_BTEXT: BText_init((MenuText*)item); break;
       default: id3Error(va("Menu_Init: unknown type %d", itemptr->type));
     }
   }
@@ -134,8 +152,8 @@ void menuAddItem(MenuFw* menu, void* item) {
 //:::::::::::::::::::
 sfxHandle_t menuActivateItem(MenuFw* s, MenuCommon* item) {
   if (item->callback) {
-    item->callback(item, MS_ACTIVATED);
-    if (!(item->flags & MFL_SILENT)) { return q3sound.menu_move; }
+    item->callback(item, MST_ACTIVE);
+    if (!(item->flags & MFL_SILENT)) { return uiSound.move; }
   }
   return 0;
 }
@@ -147,7 +165,7 @@ sfxHandle_t menuDefaultKey(MenuFw* m, int key) {
   // menu system keys
   switch (key) {
     case K_MOUSE2:
-    case K_ESCAPE: menuPop(); return q3sound.menu_out;
+    case K_ESCAPE: menuPop(); return uiSound.cancel;
   }
   if (!m || !m->nitems) { return 0; }
   // route key stimulus to widget
@@ -155,10 +173,10 @@ sfxHandle_t menuDefaultKey(MenuFw* m, int key) {
   MenuCommon* item  = cursorGetItem(m);
   if (item && !(item->flags & (MFL_GRAYED | MFL_INACTIVE))) {
     switch (item->type) {
-      case MITEM_SPINCONTROL: sound = spinControl_key((MenuList*)item, key); break;
-      case MITEM_RADIOBUTTON: sound = radioBtn_key((MenuRadioBtn*)item, key); break;
-      case MITEM_SLIDER: sound = slider_key((MenuSlider*)item, key); break;
-      case MITEM_SCROLLLIST: sound = scrollList_key((MenuList*)item, key); break;
+      case MITEM_MULTIOPT: sound = menuMOpt_key((MenuList*)item, key); break;
+      case MITEM_SWITCH: sound = menuSwitch_key((MenuSwitch*)item, key); break;
+      case MITEM_SLIDER: sound = menuSlider_key((MenuSlider*)item, key); break;
+      case MITEM_LIST: sound = menuList_key((MenuList*)item, key); break;
       case MITEM_FIELD: sound = menuField_key((MenuField*)item, &key); break;
     }
     if (sound) { return sound; }  // key was handled
@@ -178,7 +196,7 @@ sfxHandle_t menuDefaultKey(MenuFw* m, int key) {
       cursorAdjust(m, -1);
       if (cursor_prev != m->cursor) {
         cursorMoved(m);
-        sound = q3sound.menu_move;
+        sound = uiSound.move;
       }
       break;
 
@@ -191,13 +209,13 @@ sfxHandle_t menuDefaultKey(MenuFw* m, int key) {
       cursorAdjust(m, 1);
       if (cursor_prev != m->cursor) {
         cursorMoved(m);
-        sound = q3sound.menu_move;
+        sound = uiSound.move;
       }
       break;
 
     case K_MOUSE1:
     case K_MOUSE3:
-      if (item && (item->flags & MFL_HASMOUSEFOCUS) && !(item->flags & (MFL_GRAYED | MFL_INACTIVE))) {  // sk.chg -> Removed nested if
+      if (item && item->type != MITEM_LIST && (item->flags & MFL_HASMOUSEFOCUS) && !(item->flags & (MFL_GRAYED | MFL_INACTIVE))) {
         return (menuActivateItem(m, item));
       }
       break;

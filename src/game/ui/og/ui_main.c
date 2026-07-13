@@ -65,8 +65,8 @@ vmCvar_t ui_cdkeychecked;
 vmCvar_t ui_ioq3;
 
 static cvarTable_t cvarTable[] = {
-  {     &ui_run_fraglimit,      "ui_run_fraglimit",    "0",              CVAR_ARCHIVE}, //::OSDF changed to "run" and 0, from "ffa" and 20
-  {     &ui_run_timelimit,      "ui_run_timelimit",    "0",              CVAR_ARCHIVE}, //::OSDF changed to "run"
+  {     &ui_run_fraglimit,      "ui_run_fraglimit",    "0",              CVAR_ARCHIVE}, //::OSDF.chg to "run" and 0, from "ffa" and 20
+  {     &ui_run_timelimit,      "ui_run_timelimit",    "0",              CVAR_ARCHIVE}, //::OSDF.chg to "run"
 
   { &ui_tourney_fraglimit,  "ui_tourney_fraglimit",    "0",              CVAR_ARCHIVE},
   { &ui_tourney_timelimit,  "ui_tourney_timelimit",   "15",              CVAR_ARCHIVE},

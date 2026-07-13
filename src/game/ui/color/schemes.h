@@ -25,11 +25,11 @@ typedef struct colorScheme_s {
   const vec4_t* key;        // Crucial information that needs to be remembered. Logo, brand, etc
 } ColorScheme;
 //:::::::::::::::::::::::
-extern Q3Scheme    q3color;     // Default Quake3 Color scheme
-extern ColorScheme q3credits;   // Default Quake3 Credits screen colors
-extern ColorScheme mStartQ3;    // Start menu scheme with Quake3 colors.  TODO: Remove, just for testing
-extern ColorScheme mStartColor; // Start menu scheme
+extern Q3Scheme    q3color;    // Default Quake3 Color scheme
+extern ColorScheme q3credits;  // Default Quake3 Credits screen colors
+extern ColorScheme mColorQ3;   // Menu scheme with Quake3 colors.  TODO: Remove, just for testing
+extern ColorScheme mColor;     // Start menu scheme
 //:::::::::::::::::::::::
 
 //:::::::::::::::::::::::
-#endif//UI_COLOR_SCHEMES_H
+#endif  // UI_COLOR_SCHEMES_H

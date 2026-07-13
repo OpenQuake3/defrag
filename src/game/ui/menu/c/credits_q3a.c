@@ -52,6 +52,7 @@ static sfxHandle_t menuCredits_key(int key) {
   if (s_credits.frame == 1) {
     s_credits.menu.draw = menuCredits_draw_ioq3;
   } else {
+    // TODO: Change to go back to StartMenu
     id3Cmd_ExecuteText(EXEC_APPEND, "quit\n");
   }
   return 0;

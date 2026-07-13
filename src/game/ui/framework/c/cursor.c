@@ -4,10 +4,19 @@
 //:::::::::::::::::::::::
 // uiCursorInRect
 //:::::::::::::::::::::::
-bool cursorInRect(int x, int y, int width, int height) {
+bool cursorInRect(float left, float right, float top, float bottom) {
+  int x      = left * GL_W;
+  int width  = right * GL_W;
+  int y      = top * GL_H;
+  int height = bottom * GL_H;
+  return cursorInRectPix(x, y, width, height);
+}
+//:::::::::::::::::::::::
+bool cursorInRectPix(int x, int y, int width, int height) {
   if (uis.cursorx < x || uis.cursory < y || uis.cursorx > x + width || uis.cursory > y + height) return false;
   return true;
 }
+
 //:::::::::::::::::::::::
 // cursorGetItem
 //:::::::::::::::::::::::
@@ -23,11 +32,11 @@ void cursorMoved(MenuFw* m) {
   if (m->cursor_prev == m->cursor) return;
   if (m->cursor_prev >= 0 && m->cursor_prev < m->nitems) {
     callback = ((MenuCommon*)(m->items[m->cursor_prev]))->callback;
-    if (callback) callback(m->items[m->cursor_prev], MS_LOSTFOCUS);
+    if (callback) callback(m->items[m->cursor_prev], MST_FOCUSLOST);
   }
   if (m->cursor >= 0 && m->cursor < m->nitems) {
     callback = ((MenuCommon*)(m->items[m->cursor]))->callback;
-    if (callback) callback(m->items[m->cursor], MS_GOTFOCUS);
+    if (callback) callback(m->items[m->cursor], MST_FOCUS);
   }
 }
 //:::::::::::::::::::

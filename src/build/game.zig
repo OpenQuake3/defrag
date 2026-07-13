@@ -73,8 +73,8 @@ const target = struct {
   fn ui (P :confy.Process, C :confy.Config, release :bool) !confy.Target {
     return try confy.target(.dynamic, .{
       .trg          = "ui",
-      .src          = Game.code.ui_q3.files, // TODO: Game.code.ui.files
-      .globs        = Game.code.ui_q3.dirs,  // TODO: Game.code.ui.dirs
+      .src          = Game.code.ui.files, // TODO: Game.code.ui.files
+      .globs        = Game.code.ui.dirs,  // TODO: Game.code.ui.dirs
       .src_absolute = true,
       .flags        = Game.flags.all(release),
       .cfg          = C,

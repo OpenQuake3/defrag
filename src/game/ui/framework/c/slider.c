@@ -9,7 +9,7 @@ qhandle_t sliderButton_1;
 //:::::::::::::::::
 // Slider_Init
 //:::::::::::::::::
-void slider_init(MenuSlider* s) {
+void menuSlider_init(MenuSlider* s) {
   int len           = (s->generic.name) ? strlen(s->generic.name) : 0;  // calculate bounds
   s->generic.left   = s->generic.x - (len + 1) * SMALLCHAR_WIDTH;
   s->generic.right  = s->generic.x + (SLIDER_RANGE + 2 + 1) * SMALLCHAR_WIDTH;
@@ -20,7 +20,7 @@ void slider_init(MenuSlider* s) {
 //:::::::::::::::::
 // Slider_Key
 //:::::::::::::::::
-sfxHandle_t slider_key(MenuSlider* s, int key) {
+sfxHandle_t menuSlider_key(MenuSlider* s, int key) {
   sfxHandle_t sound;
   int         x;
   int         oldvalue;
@@ -32,21 +32,21 @@ sfxHandle_t slider_key(MenuSlider* s, int key) {
       s->curvalue = (x / (float)(SLIDER_RANGE * SMALLCHAR_WIDTH)) * (s->maxvalue - s->minvalue) + s->minvalue;
       if (s->curvalue < s->minvalue) s->curvalue = s->minvalue;
       else if (s->curvalue > s->maxvalue) s->curvalue = s->maxvalue;
-      sound = (s->curvalue != oldvalue) ? q3sound.menu_move : 0;
+      sound = (s->curvalue != oldvalue) ? uiSound.move : 0;
       break;
     case K_KP_LEFTARROW:
     case K_LEFTARROW:
       if (s->curvalue > s->minvalue) { s->curvalue--; }
-      sound = (s->curvalue > s->minvalue) ? q3sound.menu_move : q3sound.menu_buzz;
+      sound = (s->curvalue > s->minvalue) ? uiSound.move : uiSound.error;
       break;
     case K_KP_RIGHTARROW:
     case K_RIGHTARROW:
       if (s->curvalue < s->maxvalue) { s->curvalue++; }
-      sound = (s->curvalue < s->maxvalue) ? q3sound.menu_move : q3sound.menu_buzz;
+      sound = (s->curvalue < s->maxvalue) ? uiSound.move : uiSound.error;
       break;
     default: sound = 0; break;  // key not handled
   }
-  if (sound && s->generic.callback) { s->generic.callback(s, MS_ACTIVATED); }
+  if (sound && s->generic.callback) { s->generic.callback(s, MST_ACTIVE); }
   return (sound);
 }
 
@@ -54,10 +54,10 @@ sfxHandle_t slider_key(MenuSlider* s, int key) {
 // Slider_Draw
 //   sk->note There was another version of the slider, behind an #if 0
 //:::::::::::::::::
-void slider_draw(MenuSlider* s) {
+void menuSlider_draw(MenuSlider* s) {
   int    x      = s->generic.x;
   int    y      = s->generic.y;
-  bool   focus  = (s->generic.parent->cursor == s->generic.menuPosition);
+  bool   focus  = (s->generic.parent->cursor == s->generic.activeId);
   bool   grayed = (s->generic.flags & MFL_GRAYED);
   float* color  = (grayed) ? (vec_t*)q3color.text_disabled : (vec_t*)q3color.text_normal;
   int    style  = UI_SMALLFONT;
@@ -69,7 +69,7 @@ void slider_draw(MenuSlider* s) {
   uiDrawString(x - SMALLCHAR_WIDTH, y, s->generic.name, UI_RIGHT | style, color);
   // draw slider
   uiSetColor(color);
-  uiDrawHandlePic(x + SMALLCHAR_WIDTH, y, 96, 16, sliderBar);
+  uiDrawHandlePicPix(x + SMALLCHAR_WIDTH, y, 96, 16, sliderBar);
   uiSetColor(NULL);
   // clamp thumb
   if (s->maxvalue > s->minvalue) {
@@ -79,5 +79,5 @@ void slider_draw(MenuSlider* s) {
   }
   // draw thumb
   int button = (style & UI_PULSE) ? sliderButton_1 : sliderButton_0;
-  uiDrawHandlePic((int)(x + 2 * SMALLCHAR_WIDTH + (SLIDER_RANGE - 1) * SMALLCHAR_WIDTH * s->range) - 2, y - 2, 12, 20, button);
+  uiDrawHandlePicPix((int)(x + 2 * SMALLCHAR_WIDTH + (SLIDER_RANGE - 1) * SMALLCHAR_WIDTH * s->range) - 2, y - 2, 12, 20, button);
 }

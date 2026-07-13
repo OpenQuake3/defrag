@@ -58,12 +58,8 @@ static void NeedCDKeyAction(bool result) {
 // uiKeyEvent
 // uiMouseEvent
 
+// uiArgv
 
-char* uiArgv(int arg) {
-  static char buffer[MAX_STRING_CHARS];
-  id3Argv(arg, buffer, sizeof(buffer));
-  return buffer;
-}
 
 char* uiCvar_VariableString(const char* var_name) {
   static char buffer[MAX_STRING_CHARS];
@@ -105,54 +101,14 @@ void uiCache_f(void) {
   uiModsMenu_Cache();
 }
 
-bool uiConsoleCommand(int realTime) {
-  uis.frametime = realTime - uis.realtime;
-  uis.realtime  = realTime;
-  char* cmd     = uiArgv(0);
-  // ensure minimum menu data is available
-  Menu_Cache();
-
-  if (Q_stricmp(cmd, "levelselect") == 0) {
-    uiSPLevelMenu_f();
-    return true;
-  }
-  if (Q_stricmp(cmd, "postgame") == 0) {
-    uiSPPostgameMenu_f();
-    return true;
-  }
-  if (Q_stricmp(cmd, "ui_cache") == 0) {
-    uiCache_f();
-    return true;
-  }
-  if (Q_stricmp(cmd, "ui_cinematics") == 0) {
-    uiCinematicsMenu_f();
-    return true;
-  }
-  if (Q_stricmp(cmd, "ui_teamOrders") == 0) {
-    uiTeamOrdersMenu_f();
-    return true;
-  }
-  if (Q_stricmp(cmd, "iamacheater") == 0) {
-    uiSPUnlock_f();
-    return true;
-  }
-  if (Q_stricmp(cmd, "iamamonkey") == 0) {
-    uiSPUnlockMedals_f();
-    return true;
-  }
-  if (Q_stricmp(cmd, "ui_cdkey") == 0) {
-    uiCDKeyMenu_f();
-    return true;
-  }
-  return false;
-}
+// uiConsoleCommand
 
 // uiShutdown
 // uiInit
 // uiAdjustFrom640
 
 // uiDrawNamedPic
-// uiDrawHandlePic
+// uiDrawHandlePicPix
 // uiFillRect
 
 //:::::::::::::::::::
