@@ -75,10 +75,22 @@ pub fn packFor (
     const out_dir  = try confy.path.join(A, &.{"./bin", sys_name});
     //__________________
     // Copy runtime libraries
+    const engine_bin = try confy.path.join(A, &.{"./src/engine/bin", sys_name});
     if (system.os == .windows) {
       try confy.file.copy(
-        "./src/engine/" ++ engine_cfg.dir.src ++ "/libsdl/windows/mingw/lib64/SDL264.dll",
-        try confy.path.join(A, &.{out_dir, "SDL2.dll"}), io, .{});
+        try confy.path.join(A, &.{engine_bin, "SDL2.dll"}),
+        try confy.path.join(A, &.{out_dir,    "SDL2.dll"}), io, .{});
+      try confy.file.copy(
+        try confy.path.join(A, &.{engine_bin, "libfreetype.dll"}),
+        try confy.path.join(A, &.{out_dir,    "libfreetype.dll"}), io, .{});
+    }
+    if (system.os == .macos) {
+      try confy.file.copy(
+        try confy.path.join(A, &.{engine_bin, "libSDL2.dylib"}),
+        try confy.path.join(A, &.{out_dir,    "libSDL2.dylib"}), io, .{});
+      try confy.file.copy(
+        try confy.path.join(A, &.{engine_bin, "libfreetype.dylib"}),
+        try confy.path.join(A, &.{out_dir,    "libfreetype.dylib"}), io, .{});
     }
     //__________________
     // Create release archives
