@@ -44,9 +44,10 @@ pub fn main (P :confy.Process) !void {
   // @section Target System
   //____________________________
   const systems =
-    // &.{confy.System.desktop.windows};
     if (distribute) confy.System.desktops()
     else            &.{confy.System.host()};
+    // &.{confy.System.desktop.windows};
+    // &.{confy.System.desktop.mac.x64, confy.System.desktop.mac.arm};
 
   //______________________________________
   // @section Order to Build

@@ -158,7 +158,7 @@ void uiTextDraw(const char* text, fontInfo_t* font, float x, float y, float scal
   x *= GL_W;
   y *= GL_H;
   int   shadowOffs = 2;    // Number of pixels to offset the drop shadow
-  float inactivePc = 0.9;  // Color will be this percentage of the original input, when the item is inactive
+  float inactivePc = 0.8;  // Color will be this percentage of the original input, when the item is inactive
 
   int w = uiTextGetWidthPix(text, font, scale, maxLength);
   if (!align) { align = TEXT_ALIGN_DEFAULT; }

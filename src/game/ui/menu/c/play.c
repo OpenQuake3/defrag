@@ -26,6 +26,18 @@ static MenuPlay s_mplay;
 //:::::::::::::::::::
 
 
+static void menuPlay_event(void* ptr, int event);
+//:::::::::::::::::::
+static sfxHandle_t menuPlay_key(int key) {
+  switch (key) {
+    case K_MOUSE2: /* fall-through */
+    case K_ESCAPE:   menuPop(); return uiSound.cancel;
+    case K_KP_ENTER: /* fall-through */
+    case K_ENTER:    menuPlay_event(&s_mplay.list, MST_ACTIVE); return uiSound.move;
+  }
+  return menuList_key(&s_mplay.list, key);
+}
+
 //:::::::::::::::::::
 static void menuPlay_event(void* ptr, int event) {
   if (event != MST_ACTIVE) { return; }
@@ -66,6 +78,7 @@ static void menuPlay_init(void) {
 
   s_mplay.menu.fullscreen         = true;
   s_mplay.menu.wrapAround         = true;
+  s_mplay.menu.key                = menuPlay_key;
 
   s_mplay.title.generic.name      = "Title Label";
   s_mplay.title.string            = "choose a map";
