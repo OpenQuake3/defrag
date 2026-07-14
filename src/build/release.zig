@@ -128,9 +128,13 @@ pub fn publish (
     .tag_name   = version.data(),
   });
   confy.prnt(cfg.name.short++": Uploading {s} release files:\n  target: `{s}`", .{release.data.name, release.data.upload_url});
+  const revision = try std.fmt.allocPrint(A, "-r{d}", .{R.rev});
   for (R.files.data()) |trg| {
     confy.prnt("  Uploading `{s}` ...", .{trg});
-    const name = confy.path.basename(trg);
+    var name = confy.path.basename(trg);
+    if (R.rev != 0) { if (std.mem.indexOf(u8, name, revision)) |pos| {
+      name = try std.fmt.allocPrint(A, "{s}{s}", .{name[0..pos], name[pos + revision.len..]});
+    }}
     const data = try confy.file.read(trg, io, A, .{});
     try release.data.upload(name, data, token, io, A);
   }
