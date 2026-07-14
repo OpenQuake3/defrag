@@ -77,7 +77,7 @@ pub fn packFor (
     // Copy runtime libraries
     if (system.os == .windows) {
       try confy.file.copy(
-        "./src/engine/" ++ engine_cfg.dir.src ++ "/libsdl/windows/mingw/lib64/SDL2.dll",
+        "./src/engine/" ++ engine_cfg.dir.src ++ "/libsdl/windows/mingw/lib64/SDL264.dll",
         try confy.path.join(A, &.{out_dir, "SDL2.dll"}), io, .{});
     }
     //__________________
