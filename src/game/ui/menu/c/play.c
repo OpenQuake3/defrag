@@ -34,8 +34,12 @@ static sfxHandle_t menuPlay_key(int key) {
     case K_ESCAPE:   menuPop(); return uiSound.cancel;
     case K_KP_ENTER: /* fall-through */
     case K_ENTER:    menuPlay_event(&s_mplay.list, MST_ACTIVE); return uiSound.move;
+    case K_KP_UPARROW: /* fall-through */
+    case K_UPARROW: /* fall-through */
+    case K_KP_DOWNARROW: /* fall-through */
+    case K_DOWNARROW:    return menuList_key(&s_mplay.list, key);
   }
-  return menuList_key(&s_mplay.list, key);
+  return menuDefaultKey(&s_mplay.menu, key);
 }
 
 //:::::::::::::::::::
