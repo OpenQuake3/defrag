@@ -159,6 +159,7 @@ void SP_target_push (gentity_t *ent);
 //::OSDF added
 void SP_target_startTimer (gentity_t *ent);
 void SP_target_stopTimer (gentity_t *ent);
+void SP_target_init (gentity_t *ent);
 //::OSDF end
 
 void SP_light (gentity_t *self);
@@ -244,7 +245,8 @@ spawn_t	spawns[] = {
 	{"target_push", SP_target_push},
 	//::OSDF added
 	{"target_startTimer", SP_target_startTimer}, 
-	{"target_stopTimer", SP_target_stopTimer}, 
+	{"target_stopTimer", SP_target_stopTimer},
+	{"target_init", SP_target_init},
 	//::OSDF end
 
 	{"light", SP_light},
