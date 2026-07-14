@@ -85,7 +85,7 @@ static void menuPlay_init(void) {
   s_mplay.title.font              = uis.font.actionKey;
   s_mplay.title.generic.type      = MITEM_TEXT;
   s_mplay.title.generic.x         = 0 + xMargin;
-  s_mplay.title.generic.y         = 0 + yMargin + uiTextGetHeight(s_mplay.title.string, &s_mplay.title.font, fontScale(&s_mplay.title.font), strlen(s_mplay.title.string)) * 0.5;
+  s_mplay.title.generic.y         = 0.10 + uiTextGetHeight(s_mplay.title.string, &s_mplay.title.font, fontScale(&s_mplay.title.font), strlen(s_mplay.title.string));
   s_mplay.title.align             = TEXT_ALIGN_LEFT;
   s_mplay.title.color             = textColor;
   s_mplay.title.generic.flags     = 0;
@@ -130,7 +130,8 @@ static void menuPlay_init(void) {
   s_mplay.list.generic.callback   = menuPlay_event;
   s_mplay.list.generic.id         = MID_PLAY_LIST;
   s_mplay.list.generic.x          = xMargin;
-  s_mplay.list.generic.y = s_mplay.title.generic.y + yMargin + uiTextGetHeight(s_mplay.title.string, &s_mplay.title.font, fontScale(&s_mplay.title.font), strlen(s_mplay.title.string));
+  float titleHeight      = uiTextGetHeight(s_mplay.title.string, &s_mplay.title.font, fontScale(&s_mplay.title.font), strlen(s_mplay.title.string));
+  s_mplay.list.generic.y = yMargin + titleHeight + yMargin + titleHeight;
   s_mplay.list.width     = 0.5 - xMargin;
   s_mplay.list.height    = 0.5;
   s_mplay.list.itemNames = (const char**)s_mplay.maplist;
