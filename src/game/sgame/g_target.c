@@ -530,10 +530,10 @@ void Use_target_init (
   gclient_t* const client = activator->client;
   playerState_t* const ps = &client->ps;
 
-  Com_Printf("target_init: spawnflags=%d, MachinegunRemove=%d, GauntletRemove=%d\n",
-    ent->spawnflags,
-    (ent->spawnflags & ent_init_MachinegunRemove) ? 1 : 0,
-    (ent->spawnflags & ent_init_GauntletRemove  ) ? 1 : 0);
+  // Com_Printf("target_init: spawnflags=%d, MachinegunRemove=%d, GauntletRemove=%d\n",
+  //   ent->spawnflags,
+  //   (ent->spawnflags & ent_init_MachinegunRemove) ? 1 : 0,
+  //   (ent->spawnflags & ent_init_GauntletRemove  ) ? 1 : 0);
 
   // Armor
   if(!(ent->spawnflags & ent_init_ArmorKeep)) {
@@ -541,8 +541,8 @@ void Use_target_init (
   }
 
   if (!(ent->spawnflags & ent_init_HealthKeep)) {
-    Com_Printf("DEBUG: Resetting health from %d to %d\n",
-        ps->stats[STAT_HEALTH], ps->stats[STAT_MAX_HEALTH] + 25);
+    // Com_Printf("DEBUG: Resetting health from %d to %d\n",
+    //     ps->stats[STAT_HEALTH], ps->stats[STAT_MAX_HEALTH] + 25);
     ps->stats[STAT_HEALTH] = ps->stats[STAT_MAX_HEALTH] + 25;
     activator->health = ps->stats[STAT_HEALTH];
   }
@@ -561,7 +561,7 @@ void Use_target_init (
   if (ent->spawnflags & ent_init_GauntletRemove) {
     ps->ammo[WP_GAUNTLET]    = 0;
     ps->stats[STAT_WEAPONS] &= ~(1 << WP_GAUNTLET);
-    Com_Printf("DEBUG: Removed gauntlet. STAT_WEAPONS now = %d\n", ps->stats[STAT_WEAPONS]);
+    // Com_Printf("DEBUG: Removed gauntlet. STAT_WEAPONS now = %d\n", ps->stats[STAT_WEAPONS]);
   }
 
   // Reset current weapon only if we're actually removing chaingun
