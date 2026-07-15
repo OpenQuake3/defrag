@@ -1,4 +1,4 @@
-# Default Folders
+## Default Folders
 root    # This repository's root folder. Where all other dirs are stored  
 bin     # Where the compiled binaries will be output  
 doc     # Project documentation files  
@@ -8,7 +8,7 @@ assets  # Project assets that will be packed into every distributed release
 
 ---
 
-# src Subfolders
+## src Subfolders
 cfg     # Default configuration files for the mod.  
 game    # Contains a modified version of ioquake3's gamecode, used as a base for the mod.  
 condump # For storing important quake console dumps  
@@ -17,7 +17,7 @@ lib     # Libraries required for the scripts stored in the root of this folder
 
 ---
 
-# gamecode Subfolders
+## gamecode Subfolders
 botlib   # Ingame Bot/AI related code
 cgame    # Client game code
 client   # Code shared between gamecode and Client engine
@@ -26,13 +26,13 @@ qcommon  # Various engine utilities, common to engine/game
 rendc    # Code shared between gamecode and Client engine renderer
 sgame    # Server and shared gamecode
 ui       # Contains the reworked UI code
-ui_q3    # Original q3ui code (osdf main menu)
+ui_q3    # Original q3ui code (old game main menu)
 ui_ta    # Original teamarena code
 
 ---
 
-# New Code folders
-## src/game/sgame/phy
+## New Code folders
+### src/game/sgame/phy
 Contains all code related to the movement physics.  
 All of this code happens inside a single `Pmove()` instance, and starts with `phy_PmoveSingle()` inside `bg_pmove.c`.  
 This is very different to every other defrag mod, that has all of the physics integrated into one single code flow.  
@@ -48,12 +48,16 @@ Each of those flows are also kept in their own separate files, unless they use t
 See `*/phy/vq1.c` or `*/phy/vq4.c` for codeflow examples that are completely different to q3a in almost every function  
 See `*/phy/vjk.c` for a codeflow that follows q3a almost entirely, except for a couple of exceptions  
 
-## src/game/cgame Subfolders
+### src/game/sgame Subfolders
+phy  # Physics and Movement code of the game.
+ent  # Contains the code of all entities implemented by the game.
+
+### src/game/cgame Subfolders
 hud       # Code related to the ingame hud. It only has strafehud code, but eventually should contain everything else
 qvm       # Deprecated qvm specific files. Disconnected from the buildsystem
 teamarena # Deprecated teamarena specific code. Disconnected from the buildsystem
 
-## src/game/ui Subfolders
+### src/game/ui Subfolders
 Contains code related to the new ui framework.  
 
 The structure aims to modularize the framework, within the limitations of C.  
