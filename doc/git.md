@@ -10,6 +10,7 @@
   - Someone with permissions will `Squash+Merge` your PR into mainline.  
   - Once that's done, the process is complete.  
 
+
 ## Review process overview
 Code reviews consist of people:
 - Reading over code.  
@@ -17,13 +18,21 @@ Code reviews consist of people:
 - Pointing out opportunities for things to be refactored.  
 - Asking questions about things that are unclear.  
 - Making "nitpick" comments on formatting and style. _(Make sure you follow and respect the style guide)_.  
+- Reviewing processes can be harsh on the person whose code is being reviewed. Always remember that.  
+
+> Friendly reminder:  
+> Something being 'wrong' according to this project's standards,  
+> does not mean -you- are wrong, that you are a bad engineer, or that your code has no value.  
+> Always separate your identity from the review process.  
+
 
 ## General rules
 - Use the project's commit-message convention.  
-- Follow the contributing guidelines for merging things into mainline.   
+- Follow the contributing guidelines for merging changes into mainline.   
 - Don't do work directly on the main branch, always make a new branch.  
-- Access to the main branch is restricted, to make sure it doesn't break horribly.  
-- Code review and automated testing (even if it's just "does this PR compile") are mandatory.  
+- Access to the main branch is restricted, to make sure it doesn't break by accident.  
+- Code review and testing (even if it's just "does this PR compile") are mandatory.  
+
 
 ## Mainline branches
 This project maintains only one active mainline branch, called `master`.  
@@ -39,17 +48,23 @@ From that point on, the `master` branch will only contain stable production code
 Never submit PRs into mainline that have not been tested to work on all supported platforms _(windows+linux+mac)_.  
 We are not stable yet. But this doesn't allow your code to be completely broken, and/or not compile at all.  
 
-## Rebasing vs Merging 
+
+## Rebasing vs Merging
 This project uses the Squash+Merge workflow.  
 Contributors are expected to maintain a clean list of commits in their their branch's history.  
 The Squash+Merge process will only be executed when a PR is merged, by using the GitHub's `Squash and Merge` feature.  
 
 The resulting commit message should appropriately reflect the list of your changes, and only contain information strictly necessary for understanding what the PR is trying to achieve.  
 
+
 ## Branching
 Never branch off of a non-mainline branch.  
-Git history might be rewritten on the branch you are using, and you will be responsible for merging your code back into that branch, and solving the problems caused by that.  
-People working together on one branch need to cooperate as one, and will merge back into mainline together as a single unit of work.  
+Git history might be rewritten on the branch you are using,
+and you will be responsible for merging your code back into that branch,
+and solving the problems caused by that.  
+People working together on one branch need to cooperate as one,
+and will merge back into mainline together as a single unit of work.  
+
 
 ## Commit message convention
 Follows a format similar to the patchnotes:  
@@ -96,5 +111,4 @@ tst: (not used) Changes to unit-tests code. No production code changed
 - [ ] automate formatting with the .clang-format file (hooks or github actions)
 - [ ] Multi-user way to track progress, todo and task assignment (issue tracker, maybe other systems)
 ```
-
 
