@@ -20,8 +20,8 @@
   along with Opensource Defrag.  If not, see <http://www.gnu.org/licenses/>.
   ==============================
 */
-#ifndef sgame_ent_velocity_target_H
-#define sgame_ent_velocity_target_H
+#ifndef sgame_ent_timer_H
+#define sgame_ent_timer_H
 
-#endif // sgame_ent_velocity_target_H
+#endif // sgame_ent_timer_H
 
