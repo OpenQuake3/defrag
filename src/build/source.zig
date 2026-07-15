@@ -69,8 +69,10 @@ const files = struct {
   //__________________
   const server = struct {
     const ents = &[_]confy.cstring{
+      Game.dir.server++"/ent/timer/server.c",
       Game.dir.server++"/ent/velocity/trigger/server.c",
       Game.dir.server++"/ent/velocity/target/server.c",
+      Game.dir.server++"/ent/init/server.c",
     };
     const all = ents;
   };
