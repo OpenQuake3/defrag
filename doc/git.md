@@ -97,18 +97,8 @@ tst: (not used) Changes to unit-tests code. No production code changed
 ---
 ```md
 # TODO
-## Buildsystem
-- [ ] write documentation about contributing 
-  - [x] style guidelines for code, commits, and general practices
-  - [ ] a process for submitting work to be included 
-    - [x] PRs
-    - [x] Code review 
-    - [x] Merging/rebasing
-    - [x] Testing 
-    - [ ] CI
-
 ## Github systems
 - [ ] automate formatting with the .clang-format file (hooks or github actions)
-- [ ] Multi-user way to track progress, todo and task assignment (issue tracker, maybe other systems)
+- [x] Multi-user way to track progress, todo and task assignment (issue tracker, maybe other systems)
 ```
 
