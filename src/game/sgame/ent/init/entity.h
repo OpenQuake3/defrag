@@ -24,14 +24,13 @@
 #define sgame_ent_init_H
 
 typedef enum ent_init_Flag {
-  ent_init_ArmorKeep        = 1 << 0,
-  ent_init_HealthKeep       = 1 << 1,
-  ent_init_WeaponsKeep      = 1 << 2,
-  ent_init_KeepPowerups     = 1 << 3,
-  ent_init_HoldableKeep     = 1 << 4,
-  ent_init_MachinegunRemove = 1 << 5,
-  ent_init_GauntletRemove   = 1 << 6,
+	ent_init_ArmorKeep        = 1 << 0,
+	ent_init_HealthKeep       = 1 << 1,
+	ent_init_WeaponsKeep      = 1 << 2,
+	ent_init_KeepPowerups     = 1 << 3,
+	ent_init_HoldableKeep     = 1 << 4,
+	ent_init_MachinegunRemove = 1 << 5,
+	ent_init_GauntletRemove   = 1 << 6,
 } ent_init_Flag;
 
-#endif // sgame_ent_init_H
-
+#endif  // sgame_ent_init_H
