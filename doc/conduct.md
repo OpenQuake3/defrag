@@ -4,22 +4,28 @@ This space is for focused, on topic, technical work on the `OpenQuake3` project 
 It is everyone’s responsibility to maintain a positive environment, especially when disagreements occur.  
 
 
-### Strict No LLM / No AI Policy
-- No LLM assistance for code.  
-- No LLM assistance for issues.  
-- No LLM assistance for pull requests.  
-- No LLM assistance for commits.  
-- No LLM assistance for comments on the repository, including translation.  
-- No LLM assistance or Generative AI usage for assets, documentation or resources of any kind.  
+### AI Policy
+#### Restriction
+Every contribution to this project **must** be the product of the contributor's own reasoning.
 
-Breaking any of the above policies is a bannable offense.  
+You are responsible for understanding **every single line** you submit.
+If you used a tool to write it _(autocomplete or whatever you used)_,  
+you are expected to have thought through the code yourself, **fully and thoroughly**, before submitting.  
 
-#### No LLM / No AI Policy: Enforcement
-If a moderator/reviewer **suspects** that your contribution is built with, or contains, any kind of AI-assisted content, you will be warned **only once**.  
+Reviewers WILL NOT do any thinking for you.  
+If you prompted some code blindly and submitted the output...  
+do not expect ANYONE to churn through that slop on your behalf.  
 
-If you ignore this **one warning**, and proceed to repeat the offense:  
-- Your username will be blocked from accessing any of the repositories owned by the `OpenQuake3` project.  
-- You will receive no other warning, or notice of the above.  
+Nobody should be expected, nor requested, to spend a single second of their lifetime  
+reviewing work from a contributor was not willing to reason through their own contribution themselves.  
+Its just a matter of basic respect.  
+
+#### Enforcement
+If a contribution shows signs that the contributor did not reason through their own work,  
+it will be immediately rejected without further review.  
+
+Repeat offenses will result in a permanent ban from this project's repositories.  
+No additional warning will be given.  
 
 
 ### Safe, Constructive Behavior Only
