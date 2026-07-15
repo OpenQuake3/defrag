@@ -23,5 +23,4 @@
 #ifndef sgame_ent_timer_H
 #define sgame_ent_timer_H
 
-#endif // sgame_ent_timer_H
-
+#endif  // sgame_ent_timer_H
